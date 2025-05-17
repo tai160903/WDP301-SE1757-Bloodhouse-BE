@@ -7,7 +7,7 @@ const COLLECTION_NAME = "BloodComponents";
 
 const bloodComponentSchema = new mongoose.Schema(
   {
-    component_name: {
+    name: {
       type: String,
       enum: Object.values(BLOOD_COMPONENT),
       required: true,

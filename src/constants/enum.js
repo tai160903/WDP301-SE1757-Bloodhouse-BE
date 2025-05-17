@@ -30,10 +30,10 @@ const SEX = {
 };
 
 const BLOOD_COMPONENT = {
-  WHOLE: "whole",
-  RED_CELLS: "red_cells",
-  PLASMA: "plasma",
-  PLATELETS: "platelets",
+  WHOLE: "Máu toàn phần",
+  RED_CELLS: "Hồng cầu",
+  PLASMA: "Huyết tương",
+  PLATELETS: "Tiểu cầu",
 };
 const REPORT_TYPE = {
   BLOOD_INVENTORY: "blood_inventory",

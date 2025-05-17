@@ -7,12 +7,14 @@ const COLLECTION_NAME = "BloodGroups";
 
 const bloodGroupSchema = new mongoose.Schema(
   {
-    type: {
+    name: {
       type: String,
       enum: Object.values(BLOOD_GROUP),
       required: true,
     },
     note: { type: String, trim: true },
+    characteristics: [{ type: String, trim: true }],
+    populationRate: { type: Number, default: 0 },
   },
   { timestamps: true, collection: COLLECTION_NAME }
 );
