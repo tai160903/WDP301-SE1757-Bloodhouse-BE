@@ -50,3 +50,11 @@ data/db/
 # Uploaded files/media (customize based on your project structure)
 uploads/
 public/uploads/
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
