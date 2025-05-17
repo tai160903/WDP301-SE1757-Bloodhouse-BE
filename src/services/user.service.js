@@ -1,0 +1,309 @@
+"use strict";
+
+const userModel = require("../models/user.model");
+const bcrypt = require("bcryptjs");
+const nodemailer = require("nodemailer");
+const { BadRequestError, NotFoundError } = require("../configs/error.response");
+const { getInfoData } = require("../utils");
+const { USER_STATUS } = require("../constants/enum");
+const crypto = require("crypto");
+const mailService = require("./mail.service");
+
+class UserService {
+  // Tìm kiếm người dùng gần vị trí
+  findNearbyUsers = async ({ lat, lng, distance, bloodType }) => {
+    const maxDistance = parseFloat(distance) * 1000; // Chuyển km thành mét
+    const query = {
+      isAvailable: true,
+      status: USER_STATUS.ACTIVE,
+    };
+
+    // Nếu có bloodType, thêm điều kiện lọc theo bloodId dựa trên type của BloodGroup
+    if (bloodType) {
+      const bloodGroup = await userModel.db
+        .collection("BloodGroups")
+        .findOne({ type: bloodType });
+      if (!bloodGroup) {
+        throw new BadRequestError("Invalid blood type");
+      }
+      query.bloodId = bloodGroup._id;
+    }
+
+    const users = await userModel
+      .aggregate([
+        {
+          $geoNear: {
+            near: {
+              type: "Point",
+              coordinates: [parseFloat(lng), parseFloat(lat)],
+            },
+            distanceField: "distance", // Thêm trường distance (mét)
+            maxDistance: maxDistance,
+            spherical: true,
+            query,
+          },
+        },
+        {
+          $lookup: {
+            from: "BloodGroups",
+            localField: "bloodId",
+            foreignField: "_id",
+            as: "bloodGroup",
+          },
+        },
+        {
+          $unwind: { path: "$bloodGroup", preserveNullAndEmptyArrays: true },
+        },
+        {
+          $project: {
+            _id: 1,
+            fullName: 1,
+            email: 1,
+            phone: 1,
+            bloodId: 1,
+            "bloodGroup.type": 1,
+            location: 1,
+            isAvailable: 1,
+            distance: { $divide: ["$distance", 1000] }, // Chuyển mét thành km
+          },
+        },
+      ])
+      .exec();
+
+    return users.map((user) =>
+      getInfoData({
+        fields: [
+          "_id",
+          "fullName",
+          "email",
+          "phone",
+          "bloodId",
+          "bloodGroup",
+          "location",
+          "isAvailable",
+          "distance",
+        ],
+        object: user,
+      })
+    );
+  };
+
+  // Điền thông tin nhóm máu
+  updateBloodGroup = async (userId, bloodId) => {
+    const user = await userModel
+      .findByIdAndUpdate(userId, { bloodId }, { new: true })
+      .select("_id fullName email bloodId");
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+    return getInfoData({
+      fields: ["_id", "fullName", "email", "bloodId"],
+      object: user,
+    });
+  };
+
+  // Cập nhật profile
+  updateProfile = async (userId, profileData) => {
+    const allowedFields = [
+      "fullName",
+      "phone",
+      "street",
+      "city",
+      "country",
+      "lat",
+      "lng",
+      "sex",
+      "yob",
+      "isAvailable",
+    ];
+    const updateData = Object.keys(profileData)
+      .filter((key) => allowedFields.includes(key))
+      .reduce((obj, key) => {
+        obj[key] = profileData[key];
+        return obj;
+      }, {});
+
+    // Cập nhật location nếu có lat và lng
+    if (updateData.lat && updateData.lng) {
+      updateData.location = {
+        type: "Point",
+        coordinates: [parseFloat(updateData.lng), parseFloat(updateData.lat)],
+      };
+      delete updateData.lat;
+      delete updateData.lng;
+    }
+
+    const user = await userModel
+      .findByIdAndUpdate(userId, updateData, { new: true })
+      .select("_id fullName email phone street city country location sex yob isAvailable");
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+    return getInfoData({
+      fields: [
+        "_id",
+        "fullName",
+        "email",
+        "phone",
+        "street",
+        "city",
+        "country",
+        "location",
+        "sex",
+        "yob",
+        "isAvailable",
+      ],
+      object: user,
+    });
+  };
+
+  // Gửi email xác minh
+  sendVerificationEmail = async (userId) => {
+    const user = await userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+    if (user.isVerified) {
+      throw new BadRequestError("User already verified");
+    }
+
+    const verifyToken = user.verifyToken || crypto.randomBytes(32).toString("hex");
+    await userModel.findByIdAndUpdate(userId, { verifyToken });
+
+    return mailService.sendVerificationEmail(user.email, verifyToken);
+  };
+
+  // Xác minh tài khoản
+  verifyAccount = async (verifyToken) => {
+    const user = await userModel.findOneAndUpdate(
+      { verifyToken, status: USER_STATUS.ACTIVE },
+      { isVerified: true, verifyToken: null, status: USER_STATUS.ACTIVE },
+      { new: true }
+    );
+    if (!user) {
+      throw new BadRequestError("Invalid or expired verification token");
+    }
+    return getInfoData({
+      fields: ["_id", "fullName", "email", "isVerified", "status"],
+      object: user,
+    });
+  };
+
+  // Đổi mật khẩu
+  changePassword = async (userId, { oldPassword, newPassword }) => {
+    const user = await userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      throw new BadRequestError("Incorrect old password");
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await userModel.findByIdAndUpdate(userId, { password: passwordHash });
+    return { message: "Password changed successfully" };
+  };
+
+  // Cập nhật avatar
+  updateAvatar = async (userId, avatarUrl) => {
+    const user = await userModel
+      .findByIdAndUpdate(userId, { avatar: avatarUrl }, { new: true })
+      .select("_id fullName email avatar");
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+    return getInfoData({
+      fields: ["_id", "fullName", "email", "avatar"],
+      object: user,
+    });
+  };
+
+  // Lấy thông tin user
+  getUserInfo = async (userId) => {
+    const user = await userModel
+      .findById(userId)
+      .select(
+        "_id fullName email phone street city country location sex yob bloodId avatar isAvailable isVerified status"
+      )
+      .populate("bloodId", "type");
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+    return getInfoData({
+      fields: [
+        "_id",
+        "fullName",
+        "email",
+        "phone",
+        "street",
+        "city",
+        "country",
+        "location",
+        "sex",
+        "yob",
+        "bloodId",
+        "avatar",
+        "isAvailable",
+        "isVerified",
+        "status",
+      ],
+      object: user,
+    });
+  };
+
+  // Xóa tài khoản
+  deleteAccount = async (userId) => {
+    const user = await userModel.findByIdAndUpdate(
+      userId,
+      { status: USER_STATUS.INACTIVE, isAvailable: false },
+      { new: true }
+    );
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+    return { message: "Account deactivated successfully" };
+  };
+
+  // Quên mật khẩu - Gửi email đặt lại
+  forgotPassword = async (email) => {
+    const user = await userModel.findOne({ email });
+    if (!user) {
+      throw new NotFoundError("Email not found");
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetExpires = Date.now() + 3600000; // Hết hạn sau 1 giờ
+
+    await userModel.findByIdAndUpdate(user._id, {
+      resetPasswordToken: resetToken,
+      resetPasswordExpires: resetExpires,
+    });
+
+    return mailService.sendResetPasswordEmail(user.email, resetToken);
+  };
+
+  // Đặt lại mật khẩu
+  resetPassword = async ({ token, newPassword }) => {
+    const user = await userModel.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      throw new BadRequestError("Invalid or expired reset token");
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await userModel.findByIdAndUpdate(user._id, {
+      password: passwordHash,
+      resetPasswordToken: null,
+      resetPasswordExpires: null,
+    });
+
+    return { message: "Password reset successfully" };
+  };
+}
+
+module.exports = new UserService();
