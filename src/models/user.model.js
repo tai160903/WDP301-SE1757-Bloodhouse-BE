@@ -1,6 +1,6 @@
 "use strict";
 const mongoose = require("mongoose");
-const { USER_ROLE, SEX } = require("../constants/enum");
+const { USER_ROLE, SEX, USER_STATUS } = require("../constants/enum");
 
 const DOCUMENT_NAME = "User";
 const COLLECTION_NAME = "Users";
@@ -15,6 +15,7 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
     verify: { type: Boolean, default: false },
     verifyToken: { type: String },
+    status: { type: String, enum: Object.values(USER_STATUS), default: USER_STATUS.ACTIVE },
     yob: { type: Date },
     sex: { type: String, enum: Object.values(SEX) },
     fullName: { type: String, trim: true },

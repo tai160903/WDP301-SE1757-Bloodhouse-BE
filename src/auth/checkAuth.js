@@ -2,8 +2,7 @@
 
 const JWT = require("jsonwebtoken");
 const { createTokenPair } = require("./jwt");
-const { HEADER, USER_ROLE } = require("../constants/enum");
-const shopModel = require("../models/shop.model");
+const { HEADER } = require("../constants/enum");
 
 // Hàm kiểm tra xác thực
 const checkAuth = async (req, res, next) => {
@@ -147,36 +146,6 @@ const checkRole = (allowedRoles) => {
   };
 };
 
-// Middleware kiểm tra quyền sở hữu quán
-const checkShopOwnership = async (req, res, next) => {
-  try {
-    const { shopId } = req.params;
-    const { userId, role } = req.user;
 
-  if (role === USER_ROLE.ADMIN) return next();
-  const shop = await shopModel.findById(shopId);
-  if (!shop) {
-    return res.status(404).json({
-      status: "error",
-      code: 404,
-      message: "Shop not found",
-    });
-  }
-  if (shop.owner_id.toString() !== userId) {
-      return res.status(403).json({
-        status: "error",
-        code: 403,
-        message: "You are not authorized to perform this action",
-      });
-    }
-    next();
-  } catch (error) {
-    return res.status(403).json({
-      status: "error",
-      code: 403,
-      message: "You are not authorized to perform this action",
-    });
-  }
-};
 
-module.exports = { checkAuth, checkRole, checkShopOwnership };
+module.exports = { checkAuth, checkRole  };

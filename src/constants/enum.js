@@ -54,6 +54,12 @@ const BLOOD_DONATION_REGISTRATION_SOURCE = {
   REQUEST: "request",
 };
 
+const USER_STATUS = {
+  ACTIVE: "active",
+  INACTIVE: "inactive",
+  BLOCKED: "blocked",
+};
+
 module.exports = {
   USER_ROLE,
   HEADER,
@@ -63,4 +69,5 @@ module.exports = {
   REPORT_TYPE,
   BLOOD_DONATION_REGISTRATION_STATUS,
   BLOOD_DONATION_REGISTRATION_SOURCE,
+  USER_STATUS,
 };
