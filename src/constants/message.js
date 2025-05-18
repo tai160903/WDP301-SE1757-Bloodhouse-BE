@@ -44,6 +44,20 @@ const BLOOD_GROUP_MESSAGE = {
   GET_FAILED: "Get blood group failed",
 };
 
+const CONTENT_CATEGORY_MESSAGE = {
+  CREATE_SUCCESS: "Create content category successfully",
+  CREATE_FAILED: "Create content category failed",
+  UPDATE_SUCCESS: "Update content category successfully",
+  UPDATE_FAILED: "Update content category failed",
+};
+
+const CONTENT_MESSAGE = {
+  CREATE_SUCCESS: "Create content successfully",
+  CREATE_FAILED: "Create content failed",
+  UPDATE_SUCCESS: "Update content successfully",
+  UPDATE_FAILED: "Update content failed",
+};
+
 const USER_MESSAGE = {
   USER_NOT_FOUND: "User not found",
   USER_ALREADY_EXISTS: "User already exists",
@@ -67,4 +81,6 @@ module.exports = {
   BLOOD_COMPONENT_MESSAGE,
   BLOOD_GROUP_MESSAGE,
   USER_MESSAGE,
+  CONTENT_CATEGORY_MESSAGE,
+  CONTENT_MESSAGE,
 };

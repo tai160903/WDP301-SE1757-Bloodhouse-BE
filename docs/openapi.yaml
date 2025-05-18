@@ -1119,6 +1119,362 @@ paths:
                     type: array
                     items:
                       type: string
+
+  /content:
+    post:
+      summary: Create new content
+      tags:
+        - Content
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum: [introduction, document, blog]
+                  example: "blog"
+                categoryId:
+                  type: string
+                  example: "60f7b3a4b9c4e1234567891"
+                title:
+                  type: string
+                  example: "Blood Donation Guidelines"
+                content:
+                  type: string
+                  example: "Detailed content about blood donation..."
+                summary:
+                  type: string
+                  example: "A brief overview of blood donation guidelines"
+                authorId:
+                  type: string
+                  example: "60f7b3a4b9c4e1234567892"
+                image:
+                  type: string
+                  format: binary
+              required:
+                - type
+                - title
+                - content
+                - authorId
+      responses:
+        '201':
+          description: Content created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Content created successfully
+                  data:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                      type:
+                        type: string
+                      categoryId:
+                        type: string
+                      title:
+                        type: string
+                      image:
+                        type: string
+                      slug:
+                        type: string
+                      content:
+                        type: string
+                      summary:
+                        type: string
+                      authorId:
+                        type: string
+                      status:
+                        type: string
+                        enum: [draft, published, archived]
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+    get:
+      summary: Get all contents
+      tags:
+        - Content
+      responses:
+        '200':
+          description: Contents retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Contents retrieved successfully
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                        type:
+                          type: string
+                        categoryId:
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                            name:
+                              type: string
+                            description:
+                              type: string
+                        title:
+                          type: string
+                        image:
+                          type: string
+                        slug:
+                          type: string
+                        content:
+                          type: string
+                        summary:
+                          type: string
+                        authorId:
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                            username:
+                              type: string
+                            avatar:
+                              type: string
+                            fullName:
+                              type: string
+                        status:
+                          type: string
+                          enum: [draft, published, archived]
+                        createdAt:
+                          type: string
+                          format: date-time
+                        updatedAt:
+                          type: string
+                          format: date-time
+
+  /content/{id}:
+    put:
+      summary: Update content
+      tags:
+        - Content
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Content ID
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum: [introduction, document, blog]
+                categoryId:
+                  type: string
+                title:
+                  type: string
+                content:
+                  type: string
+                summary:
+                  type: string
+                image:
+                  type: string
+                  format: binary
+                status:
+                  type: string
+                  enum: [draft, published, archived]
+      responses:
+        '200':
+          description: Content updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Content updated successfully
+                  data:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                      type:
+                        type: string
+                      categoryId:
+                        type: string
+                      title:
+                        type: string
+                      image:
+                        type: string
+                      slug:
+                        type: string
+                      content:
+                        type: string
+                      summary:
+                        type: string
+                      authorId:
+                        type: string
+                      status:
+                        type: string
+                        enum: [draft, published, archived]
+                      updatedAt:
+                        type: string
+                        format: date-time
+
+  /content-category:
+    post:
+      summary: Create new content category
+      tags:
+        - Content Category
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Health Guidelines"
+                description:
+                  type: string
+                  example: "Health-related articles and guidelines"
+              required:
+                - name
+      responses:
+        '201':
+          description: Content category created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Content category created successfully
+                  data:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                      name:
+                        type: string
+                      description:
+                        type: string
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+    get:
+      summary: Get all content categories
+      tags:
+        - Content Category
+      responses:
+        '200':
+          description: Content categories retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Content categories retrieved successfully
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                        name:
+                          type: string
+                        description:
+                          type: string
+                        createdAt:
+                          type: string
+                          format: date-time
+                        updatedAt:
+                          type: string
+                          format: date-time
+
+  /content-category/{id}:
+    put:
+      summary: Update content category
+      tags:
+        - Content Category
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Content Category ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Updated Health Guidelines"
+                description:
+                  type: string
+                  example: "Updated health-related articles and guidelines"
+      responses:
+        '200':
+          description: Content category updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Content category updated successfully
+                  data:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                      name:
+                        type: string
+                      description:
+                        type: string
+                      updatedAt:
+                        type: string
+                        format: date-time
+
 components:
   securitySchemes:
     bearerAuth:

@@ -1,5 +1,8 @@
 "use strict";
 const mongoose = require("mongoose");
+const slug = require('mongoose-slug-updater');
+const { CONTENT_STATUS } = require("../constants/enum");
+mongoose.plugin(slug);
 
 const DOCUMENT_NAME = "Content";
 const COLLECTION_NAME = "Contents";
@@ -11,18 +14,24 @@ const contentSchema = new mongoose.Schema(
       enum: ["introduction", "document", "blog"],
       required: true,
     },
-    categoryId: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
+    categoryId: { type: mongoose.Schema.Types.ObjectId, ref: "ContentCategory" },
     title: { type: String, trim: true, required: true },
-    slug: { type: String, trim: true, unique: true, required: true },
+    image: { type: String, trim: true },
+    slug: { 
+      type: String, 
+      slug: "title",  // Generate slug from title field
+      unique: true,   // Ensure unique slugs
+      slugPaddingSize: 4,  // Add 4 random digits to ensure uniqueness
+      permanent: true  // Don't change slug if title changes
+    },
     content: { type: String },
     summary: { type: String, trim: true },
     authorId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     status: {
       type: String,
-      enum: ["draft", "published", "archived"],
-      default: "draft",
-    },
-    publishedAt: { type: Date },
+      enum: [CONTENT_STATUS.DRAFT, CONTENT_STATUS.PUBLISHED, CONTENT_STATUS.ARCHIVED],
+      default: CONTENT_STATUS.DRAFT,
+    }
   },
   { timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" }, collection: COLLECTION_NAME }
 );

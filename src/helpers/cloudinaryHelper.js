@@ -5,14 +5,14 @@ const { BadRequestError } = require("../configs/error.response");
 const cloudinary = require("cloudinary").v2;
 
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_NAME,
-  api_key: process.env.CLOUDINARY_KEY,
-  api_secret: process.env.CLOUDINARY_SECRET,
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 const processUploadResult = (file) => ({
-  url: file.path, // URL từ Cloudinary được gán vào file.path
-  publicId: file.filename || file.public_id, // publicId có thể là filename hoặc public_id
+  url: file.secure_url, // URL từ Cloudinary được gán vào file.path
+  publicId: file.public_id, // publicId có thể là filename hoặc public_id
 });
 
 const uploadSingleImage = async ({
@@ -26,9 +26,23 @@ const uploadSingleImage = async ({
       throw new BadRequestError("No file provided for upload");
     }
 
+    if (file.buffer) {
+      // Convert buffer to base64
+      const b64 = Buffer.from(file.buffer).toString('base64');
+      const dataURI = `data:${file.mimetype};base64,${b64}`;
+      
+      // Upload to cloudinary
+      const result = await cloudinary.uploader.upload(dataURI, {
+        folder,
+        resource_type: 'auto',
+        ...options
+      });
+
+      return processUploadResult(result);
+    }
     // Với multer-storage-cloudinary, file đã được upload trực tiếp
     // Kết quả nằm trong file.path (url) và file.filename/public_id (publicId)
-    return processUploadResult(file);
+    throw new BadRequestError("Invalid file format");
   } catch (error) {
     throw new BadRequestError(
       error.message || "Failed to upload single image to Cloudinary"
