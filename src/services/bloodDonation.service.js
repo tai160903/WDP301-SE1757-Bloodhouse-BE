@@ -4,7 +4,7 @@ const bloodDonationRegistrationModel = require("../models/bloodDonationRegistrat
 const bloodDonationModel = require("../models/bloodDonation.model");
 const { BadRequestError, NotFoundError } = require("../configs/error.response");
 const { getInfoData } = require("../utils");
-const { BLOOD_DONATION_REGISTRATION_STATUS } = require("../constants/enum");
+const { BLOOD_DONATION_REGISTRATION_STATUS, USER_ROLE } = require("../constants/enum");
 const userModel = require("../models/user.model");
 const facilityModel = require("../models/facility.model");
 const bloodGroupModel = require("../models/bloodGroup.model");
@@ -203,6 +203,7 @@ class BloodDonationService {
     });
   };
 
+  /** BLOOD DONATION */
   // Lấy lịch sử hiến máu của user
   getUserDonations = async (userId, limit = 10, page = 1) => {
     const skip = (page - 1) * limit;
@@ -244,9 +245,9 @@ class BloodDonationService {
   }) => {
     // Kiểm tra user và registration
     const [user, registration] = await Promise.all([
-      bloodDonationModel.db.collection("Users").findOne({ _id: userId }),
+      userModel.findOne({ _id: userId }),
       bloodDonationRegistrationId
-        ? bloodDonationModel.findById(bloodDonationRegistrationId)
+        ? bloodDonationRegistrationModel.findById(bloodDonationRegistrationId)
         : Promise.resolve(null),
     ]);
     if (!user) throw new NotFoundError("User not found");
@@ -341,6 +342,43 @@ class BloodDonationService {
         object: donation,
       })
     );
+  };
+
+  // Lấy chi tiết một bản ghi hiến máu
+  getBloodDonationDetail = async (donationId, userId, role) => {
+    const query =
+      role === USER_ROLE.STAFF || role === USER_ROLE.MANAGER
+        ? { _id: donationId }
+        : { _id: donationId, userId };
+    const donation = await bloodDonationModel
+      .findOne(query)
+      .populate("userId", "fullName email phone")
+      .populate("bloodGroupId", "type")
+      .populate({
+        path: "bloodDonationRegistrationId",
+        select: "preferredDate facilityId",
+        populate: { path: "facilityId", select: "name street city location" },
+      })
+      .lean();
+
+    if (!donation) throw new NotFoundError("Không tìm thấy bản ghi hiến máu");
+
+    return getInfoData({
+      fields: [
+        "_id",
+        "userId",
+        "staffId",
+        "bloodGroupId",
+        "bloodDonationRegistrationId",
+        "bloodComponent",
+        "quantity",
+        "donationDate",
+        "status",
+        "createdAt",
+        "updatedAt",
+      ],
+      object: donation,
+    });
   };
 }
 

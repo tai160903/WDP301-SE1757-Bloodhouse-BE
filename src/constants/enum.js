@@ -55,6 +55,21 @@ const BLOOD_DONATION_REGISTRATION_SOURCE = {
   REQUEST: "Yêu cầu",
 };
 
+const BLOOD_DONATION_STATUS = {
+  CONFIRMED: "confirmed",
+  CANCELLED: "cancelled",
+  COMPLETED: "completed",
+};
+
+const BLOOD_DONATION_MESSAGE = {
+  CREATE_SUCCESS: "Create blood donation successfully",
+  CREATE_FAILED: "Create blood donation failed",
+  GET_SUCCESS: "Get blood donation successfully",
+  GET_FAILED: "Get blood donation failed",
+  GET_DETAIL_SUCCESS: "Get blood donation detail successfully",
+  GET_DETAIL_FAILED: "Get blood donation detail failed",
+};
+
 const USER_STATUS = {
   ACTIVE: "active",
   INACTIVE: "inactive",
@@ -71,4 +86,6 @@ module.exports = {
   BLOOD_DONATION_REGISTRATION_STATUS,
   BLOOD_DONATION_REGISTRATION_SOURCE,
   USER_STATUS,
+  BLOOD_DONATION_STATUS,
+  BLOOD_DONATION_MESSAGE,
 };

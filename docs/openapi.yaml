@@ -897,7 +897,6 @@ paths:
                 properties:
                   message:
                     type: string
-
   /blood-component:
     get:
       summary: Get all blood components
@@ -1020,7 +1019,6 @@ paths:
                 properties:
                   message:
                     type: string
-
   /blood-compatibility:
     get:
       summary: Get blood compatibility information
@@ -1119,7 +1117,6 @@ paths:
                     type: array
                     items:
                       type: string
-
   /blood-donation-registrations:
     post:
       summary: Đăng ký hiến máu
@@ -1342,6 +1339,183 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /blood-donations:
+    post:
+      summary: Tạo bản ghi hiến máu
+      tags:
+        - BloodDonation
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  example: 60f7b3a4b9c4e1234567890
+                bloodGroupId:
+                  type: string
+                  example: 60f7b3a4b9c4e1234567891
+                bloodDonationRegistrationId:
+                  type: string
+                  example: 60f7b3a4b9c4e1234567892
+                bloodComponent:
+                  type: string
+                  enum: [Máu toàn phần, Hồng cầu, Huyết tương, Tiểu cầu]
+                quantity:
+                  type: number
+                  example: 350
+                donationDate:
+                  type: string
+                  format: date-time
+                  example: 2025-06-01T10:00:00Z
+              required:
+                - userId
+                - bloodGroupId
+                - bloodComponent
+                - quantity
+                - donationDate
+      responses:
+        '201':
+          description: Tạo bản ghi hiến máu thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Tạo bản ghi hiến máu thành công
+                  data:
+                    $ref: '#/components/schemas/BloodDonation'
+        '400':
+          description: Yêu cầu không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      summary: Lấy danh sách hiến máu
+      tags:
+        - BloodDonation
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, confirmed, cancelled, completed]
+        - in: query
+          name: facilityId
+          schema:
+            type: string
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Lấy danh sách hiến máu thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Lấy danh sách hiến máu thành công
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BloodDonation'
+        '400':
+          description: Yêu cầu không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /blood-donations/user:
+    get:
+      summary: Lấy lịch sử hiến máu của người dùng
+      tags:
+        - BloodDonation
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Lấy danh sách hiến máu thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Lấy danh sách hiến máu thành công
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BloodDonation'
+        '400':
+          description: Yêu cầu không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /blood-donations/{id}:
+    get:
+      summary: Lấy chi tiết một bản ghi hiến máu
+      tags:
+        - BloodDonation
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID bản ghi hiến máu
+      responses:
+        '200':
+          description: Lấy chi tiết bản ghi hiến máu thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Lấy chi tiết bản ghi hiến máu thành công
+                  data:
+                    $ref: '#/components/schemas/BloodDonation'
+        '404':
+          description: Không tìm thấy bản ghi hiến máu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   securitySchemes:
     bearerAuth:
@@ -1433,6 +1607,66 @@ components:
               items:
                 type: number
         createdAt:
+          type: string
+          format: date-time
+    BloodDonation:
+      type: object
+      properties:
+        _id:
+          type: string
+        userId:
+          type: object
+          properties:
+            _id:
+              type: string
+            fullName:
+              type: string
+            email:
+              type: string
+            phone:
+              type: string
+        staffId:
+          type: string
+        bloodGroupId:
+          type: object
+          properties:
+            _id:
+              type: string
+            type:
+              type: string
+        bloodDonationRegistrationId:
+          type: object
+          properties:
+            _id:
+              type: string
+            preferredDate:
+              type: string
+              format: date-time
+            facilityId:
+              type: object
+              properties:
+                _id:
+                  type: string
+                name:
+                  type: string
+                street:
+                  type: string
+                city:
+                  type: string
+        bloodComponent:
+          type: string
+          enum: [whole_blood, red_cells, plasma, platelets]
+        quantity:
+          type: number
+        donationDate:
+          type: string
+          format: date-time
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
           type: string
           format: date-time
     ErrorResponse:

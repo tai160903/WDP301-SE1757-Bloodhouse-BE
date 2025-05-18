@@ -1,19 +1,21 @@
 "use strict";
 
 const express = require("express");
-const bloodDonationController = require("../../controllers/bloodDonation.controller");
 const router = express.Router();
-const checkAuth = require("../../middlewares/checkAuth");
+const bloodDonationController = require("../../controllers/bloodDonation.controller");
+const { checkAuth, checkRole } = require("../../auth/checkAuth");
+const { USER_ROLE } = require("../../constants/enum");
 // auth routes
 router.use(checkAuth);
-router.post("/registrations", bloodDonationController.createBloodDonationRegistration);
+router.get("/user", bloodDonationController.getUserDonations);
+router.get("/:id", bloodDonationController.getBloodDonationDetail);
 
-router.get("/registrations", bloodDonationController.getBloodDonationRegistrations);
+router.use(checkRole([USER_ROLE.STAFF, USER_ROLE.MANAGER]));
 
-router.put("/registrations/:id", bloodDonationController.approveBloodDonationRegistration);
-router.get("/donations", bloodDonationController.getUserDonations);
+router.post("/", bloodDonationController.createBloodDonation);
 
-router.post("/create-donation", bloodDonationController.createBloodDonation);
-router.get("/donations", bloodDonationController.getBloodDonations);
+router.get("/", bloodDonationController.getBloodDonations);
+
+
 
 module.exports = router;
