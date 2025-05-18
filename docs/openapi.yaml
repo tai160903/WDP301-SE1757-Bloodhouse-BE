@@ -161,6 +161,343 @@ paths:
                 properties:
                   message:
                     type: string
+  /blood-group:
+    get:
+      summary: Get all blood groups
+      tags:
+        - Blood Group
+      responses:
+        '200':
+          description: Blood groups retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    _id:
+                      type: string
+                    name:
+                      type: string
+                      example: "A+"
+                    note:
+                      type: string
+                      example: "Most common blood type"
+                    characteristics:
+                      type: string
+                      example: "Contains A antigen on red blood cells"
+                    populationRate:
+                      type: number
+                      example: 35.7
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+    post:
+      summary: Create a new blood group
+      tags:
+        - Blood Group
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "A+"
+                note:
+                  type: string
+                  example: "Most common blood type"
+                characteristics:
+                  type: string
+                  example: "Contains A antigen on red blood cells"
+                populationRate:
+                  type: number
+                  example: 35.7
+              required:
+                - name
+      responses:
+        '201':
+          description: Blood group created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                  name:
+                    type: string
+                  note:
+                    type: string
+                  characteristics:
+                    type: string
+                  populationRate:
+                    type: number
+  /blood-group/{id}:
+    put:
+      summary: Update a blood group
+      tags:
+        - Blood Group
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Blood group ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "A+"
+                note:
+                  type: string
+                  example: "Most common blood type"
+                characteristics:
+                  type: string
+                  example: "Contains A antigen on red blood cells"
+                populationRate:
+                  type: number
+                  example: 35.7
+      responses:
+        '200':
+          description: Blood group updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                  name:
+                    type: string
+                  note:
+                    type: string
+                  characteristics:
+                    type: string
+                  populationRate:
+                    type: number
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '404':
+          description: Blood group not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+  /blood-component:
+    get:
+      summary: Get all blood components
+      tags:
+        - Blood Component
+      responses:
+        '200':
+          description: Blood components retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    _id:
+                      type: string
+                    name:
+                      type: string
+                      example: "Plasma"
+    post:
+      summary: Create a new blood component
+      tags:
+        - Blood Component
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Plasma"
+              required:
+                - name
+      responses:
+        '201':
+          description: Blood component created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                  name:
+                    type: string
+  /blood-component/{id}:
+    put:
+      summary: Update a blood component
+      tags:
+        - Blood Component
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Blood component ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Plasma"
+      responses:
+        '200':
+          description: Blood component updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                  name:
+                    type: string
+
+  /blood-compatibility:
+    get:
+      summary: Get blood compatibility information
+      tags:
+        - Blood Compatibility
+      parameters:
+        - in: query
+          name: bloodGroupId
+          required: true
+          schema:
+            type: string
+          description: Blood group ID to check compatibility
+        - in: query
+          name: componentId
+          required: true
+          schema:
+            type: string
+          description: Blood component ID to check compatibility
+      responses:
+        '200':
+          description: Blood compatibility information retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  canDonateTo:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          example: "AB+"
+                  canReceiveFrom:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          example: "O-"
+    post:
+      summary: Create a new blood compatibility record
+      tags:
+        - Blood Compatibility
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bloodGroupId:
+                  type: string
+                  description: ID of the blood group
+                componentId:
+                  type: string
+                  description: ID of the blood component
+                canDonateTo:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of blood group IDs that can receive this blood
+                canReceiveFrom:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of blood group IDs that can donate to this blood
+              required:
+                - bloodGroupId
+                - componentId
+                - canDonateTo
+                - canReceiveFrom
+      responses:
+        '201':
+          description: Blood compatibility created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                  bloodGroupId:
+                    type: string
+                  componentId:
+                    type: string
+                  canDonateTo:
+                    type: array
+                    items:
+                      type: string
+                  canReceiveFrom:
+                    type: array
+                    items:
+                      type: string
 components:
   securitySchemes:
     bearerAuth:
