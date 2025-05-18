@@ -3,6 +3,7 @@ const USER_ROLE = {
   MEMBER: "MEMBER",
   STAFF: "STAFF",
   GUEST: "GUEST",
+  MANAGER: "MANAGER",
 };
 
 const HEADER = {
@@ -50,8 +51,23 @@ const BLOOD_DONATION_REGISTRATION_STATUS = {
 };
 
 const BLOOD_DONATION_REGISTRATION_SOURCE = {
-  VOLUNTARY: "voluntary",
-  REQUEST: "request",
+  VOLUNTARY: "Tự nguyện",
+  REQUEST: "Yêu cầu",
+};
+
+const BLOOD_DONATION_STATUS = {
+  CONFIRMED: "confirmed",
+  CANCELLED: "cancelled",
+  COMPLETED: "completed",
+};
+
+const BLOOD_DONATION_MESSAGE = {
+  CREATE_SUCCESS: "Create blood donation successfully",
+  CREATE_FAILED: "Create blood donation failed",
+  GET_SUCCESS: "Get blood donation successfully",
+  GET_FAILED: "Get blood donation failed",
+  GET_DETAIL_SUCCESS: "Get blood donation detail successfully",
+  GET_DETAIL_FAILED: "Get blood donation detail failed",
 };
 
 const USER_STATUS = {
@@ -76,5 +92,7 @@ module.exports = {
   BLOOD_DONATION_REGISTRATION_STATUS,
   BLOOD_DONATION_REGISTRATION_SOURCE,
   USER_STATUS,
+  BLOOD_DONATION_STATUS,
+  BLOOD_DONATION_MESSAGE,
   CONTENT_STATUS,
 };

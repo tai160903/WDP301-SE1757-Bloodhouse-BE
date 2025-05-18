@@ -8,14 +8,28 @@ const facilitySchema = new mongoose.Schema(
   {
     name: { type: String, trim: true, required: true },
     code: { type: String, trim: true, unique: true, required: true },
-    address: { type: String, trim: true },
+    street: { type: String, trim: true },
     city: { type: String, trim: true },
-    lat: { type: Number },
-    lng: { type: Number },
-    contact_phone: { type: String, trim: true },
-    contact_email: { type: String, trim: true },
+    country: { type: String, trim: true },
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+        default: [0, 0],
+      },
+    },
+    contactPhone: { type: String, trim: true },
+    contactEmail: { type: String, trim: true },
+    isActive: { type: Boolean, default: true },
   },
-  { timestamps: { createdAt: "-created_at", updatedAt: "updated_at" }, collection: COLLECTION_NAME }
+  { timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" }, collection: COLLECTION_NAME }
 );
+
+// Tạo index 2dsphere cho trường location
+facilitySchema.index({ location: "2dsphere" });
 
 module.exports = mongoose.model(DOCUMENT_NAME, facilitySchema);

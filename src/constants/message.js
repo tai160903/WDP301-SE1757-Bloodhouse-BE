@@ -72,6 +72,19 @@ const USER_MESSAGE = {
   USER_SAVE_FCM_TOKEN_SUCCESS: "Save FCM token successfully",
 };
 
+const BLOOD_DONATION_REGISTRATION_MESSAGE = {
+  CREATE_SUCCESS: "Create blood donation registration successfully",
+  UPDATE_SUCCESS: "Update blood donation registration successfully",
+  UPDATE_FAILED: "Update blood donation registration failed",
+  GET_SUCCESS: "Get blood donation registration successfully",
+  GET_FAILED: "Get blood donation registration failed",
+  APPROVE_SUCCESS: "Approve blood donation registration successfully",
+  APPROVE_FAILED: "Approve blood donation registration failed",
+  REJECT_SUCCESS: "Reject blood donation registration successfully",
+  REJECT_FAILED: "Reject blood donation registration failed",
+  GET_DETAIL_SUCCESS: "Get blood donation registration detail successfully",
+  GET_DETAIL_FAILED: "Get blood donation registration detail failed",
+};
 
 
 
@@ -81,6 +94,8 @@ module.exports = {
   BLOOD_COMPONENT_MESSAGE,
   BLOOD_GROUP_MESSAGE,
   USER_MESSAGE,
+  BLOOD_DONATION_REGISTRATION_MESSAGE,
   CONTENT_CATEGORY_MESSAGE,
   CONTENT_MESSAGE,
+
 };
