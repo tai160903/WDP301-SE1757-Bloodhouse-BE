@@ -161,6 +161,964 @@ paths:
                 properties:
                   message:
                     type: string
+  /users/nearby:
+    get:
+      summary: Find users near a location
+      tags:
+        - Users
+      parameters:
+        - in: query
+          name: lat
+          schema:
+            type: number
+            example: 10.776
+          required: true
+          description: Latitude of the center point
+        - in: query
+          name: lng
+          schema:
+            type: number
+            example: 106.700
+          required: true
+          description: Longitude of the center point
+        - in: query
+          name: distance
+          schema:
+            type: number
+            example: 5
+          required: true
+          description: Maximum distance in kilometers
+        - in: query
+          name: bloodType
+          schema:
+            type: string
+            example: A+
+          description: Filter by blood type (optional)
+      responses:
+        '200':
+          description: Nearby users retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Nearby users retrieved successfully
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                        fullName:
+                          type: string
+                        email:
+                          type: string
+                        phone:
+                          type: string
+                        bloodId:
+                          type: string
+                        bloodGroup:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                        location:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                              example: Point
+                            coordinates:
+                              type: array
+                              items:
+                                type: number
+                        isAvailable:
+                          type: boolean
+                        distance:
+                          type: number
+                          description: Distance in kilometers
+        '400':
+          description: Bad request (e.g., invalid blood type)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/blood-group:
+    patch:
+      summary: Update user's blood group
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bloodId:
+                  type: string
+                  example: 60f7b3a4b9c4e1234567891
+              required:
+                - bloodId
+      responses:
+        '200':
+          description: Blood group updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Blood group updated successfully
+                  data:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                      fullName:
+                        type: string
+                      email:
+                        type: string
+                      bloodId:
+                        type: string
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/profile:
+    patch:
+      summary: Update user profile
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fullName:
+                  type: string
+                  example: Nguyen Van B
+                phone:
+                  type: string
+                  example: 0987654321
+                street:
+                  type: string
+                city:
+                  type: string
+                country:
+                  type: string
+                lat:
+                  type: number
+                  example: 10.776
+                lng:
+                  type: number
+                  example: 106.700
+                sex:
+                  type: string
+                  enum: [male, female]
+                yob:
+                  type: string
+                  format: date
+                  example: 1990-01-01
+                isAvailable:
+                  type: boolean
+                  example: true
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Profile updated successfully
+                  data:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                      fullName:
+                        type: string
+                      email:
+                        type: string
+                      phone:
+                        type: string
+                      street:
+                        type: string
+                      city:
+                        type: string
+                      country:
+                        type: string
+                      location:
+                        type: object
+                        properties:
+                          type:
+                            type: string
+                          coordinates:
+                            type: array
+                            items:
+                              type: number
+                      sex:
+                        type: string
+                      yob:
+                        type: string
+                        format: date
+                      isAvailable:
+                        type: boolean
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/verify-email:
+    post:
+      summary: Send verification email
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Verification email sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Verification email sent successfully
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+        '400':
+          description: Bad request (e.g., user already verified)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/verify:
+    get:
+      summary: Verify user account
+      tags:
+        - Users
+      parameters:
+        - in: query
+          name: token
+          schema:
+            type: string
+          required: true
+          description: Verification token
+      responses:
+        '200':
+          description: Account verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Account verified successfully
+                  data:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                      fullName:
+                        type: string
+                      email:
+                        type: string
+                      isVerified:
+                        type: boolean
+                      status:
+                        type: string
+        '400':
+          description: Bad request (e.g., invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/password:
+    patch:
+      summary: Change user password
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                oldPassword:
+                  type: string
+                  format: password
+                  example: Password123!
+                newPassword:
+                  type: string
+                  format: password
+                  example: NewPass456!
+              required:
+                - oldPassword
+                - newPassword
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Password changed successfully
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+        '400':
+          description: Bad request (e.g., incorrect old password)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/avatar:
+    patch:
+      summary: Update user avatar
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                avatar:
+                  type: string
+                  example: https://example.com/avatar.jpg
+              required:
+                - avatar
+      responses:
+        '200':
+          description: Avatar updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Avatar updated successfully
+                  data:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                      fullName:
+                        type: string
+                      email:
+                        type: string
+                      avatar:
+                        type: string
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/me:
+    get:
+      summary: Get current user info
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User info retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: User info retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                      fullName:
+                        type: string
+                      email:
+                        type: string
+                      phone:
+                        type: string
+                      street:
+                        type: string
+                      city:
+                        type: string
+                      country:
+                        type: string
+                      location:
+                        type: object
+                        properties:
+                          type:
+                            type: string
+                          coordinates:
+                            type: array
+                            items:
+                              type: number
+                      sex:
+                        type: string
+                      yob:
+                        type: string
+                        format: date
+                      bloodId:
+                        type: object
+                        properties:
+                          type:
+                            type: string
+                      avatar:
+                        type: string
+                      isAvailable:
+                        type: boolean
+                      isVerified:
+                        type: boolean
+                      status:
+                        type: string
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users:
+    delete:
+      summary: Deactivate user account
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Account deactivated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Account deactivated successfully
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/forgot-password:
+    post:
+      summary: Request password reset
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: nguyenvana@example.com
+              required:
+                - email
+      responses:
+        '200':
+          description: Password reset email sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Password reset email sent successfully
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+        '404':
+          description: Email not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/reset-password:
+    post:
+      summary: Reset user password
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  example: 6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t1u
+                newPassword:
+                  type: string
+                  format: password
+                  example: NewPass456!
+              required:
+                - token
+                - newPassword
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Password reset successfully
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+        '400':
+          description: Bad request (e.g., invalid or expired token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /blood-group:
+    get:
+      summary: Get all blood groups
+      tags:
+        - Blood Group
+      responses:
+        '200':
+          description: Blood groups retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    _id:
+                      type: string
+                    name:
+                      type: string
+                      example: "A+"
+                    note:
+                      type: string
+                      example: "Most common blood type"
+                    characteristics:
+                      type: string
+                      example: "Contains A antigen on red blood cells"
+                    populationRate:
+                      type: number
+                      example: 35.7
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+    post:
+      summary: Create a new blood group
+      tags:
+        - Blood Group
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "A+"
+                note:
+                  type: string
+                  example: "Most common blood type"
+                characteristics:
+                  type: string
+                  example: "Contains A antigen on red blood cells"
+                populationRate:
+                  type: number
+                  example: 35.7
+              required:
+                - name
+      responses:
+        '201':
+          description: Blood group created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                  name:
+                    type: string
+                  note:
+                    type: string
+                  characteristics:
+                    type: string
+                  populationRate:
+                    type: number
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+  /blood-group/{id}:
+    put:
+      summary: Update a blood group
+      tags:
+        - Blood Group
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Blood group ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "A+"
+                note:
+                  type: string
+                  example: "Most common blood type"
+                characteristics:
+                  type: string
+                  example: "Contains A antigen on red blood cells"
+                populationRate:
+                  type: number
+                  example: 35.7
+      responses:
+        '200':
+          description: Blood group updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                  name:
+                    type: string
+                  note:
+                    type: string
+                  characteristics:
+                    type: string
+                  populationRate:
+                    type: number
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '404':
+          description: Blood group not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /blood-component:
+    get:
+      summary: Get all blood components
+      tags:
+        - Blood Component
+      responses:
+        '200':
+          description: Blood components retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    _id:
+                      type: string
+                    name:
+                      type: string
+                      example: "Plasma"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+    post:
+      summary: Create a new blood component
+      tags:
+        - Blood Component
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Plasma"
+              required:
+                - name
+      responses:
+        '201':
+          description: Blood component created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                  name:
+                    type: string
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+  /blood-component/{id}:
+    put:
+      summary: Update a blood component
+      tags:
+        - Blood Component
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Blood component ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Plasma"
+      responses:
+        '200':
+          description: Blood component updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                  name:
+                    type: string
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '404':
+          description: Blood component not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /blood-compatibility:
+    get:
+      summary: Get blood compatibility information
+      tags:
+        - Blood Compatibility
+      parameters:
+        - in: query
+          name: bloodGroupId
+          required: true
+          schema:
+            type: string
+          description: Blood group ID to check compatibility
+        - in: query
+          name: componentId
+          required: true
+          schema:
+            type: string
+          description: Blood component ID to check compatibility
+      responses:
+        '200':
+          description: Blood compatibility information retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  canDonateTo:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          example: "AB+"
+                  canReceiveFrom:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          example: "O-"
+    post:
+      summary: Create a new blood compatibility record
+      tags:
+        - Blood Compatibility
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bloodGroupId:
+                  type: string
+                  description: ID of the blood group
+                componentId:
+                  type: string
+                  description: ID of the blood component
+                canDonateTo:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of blood group IDs that can receive this blood
+                canReceiveFrom:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of blood group IDs that can donate to this blood
+              required:
+                - bloodGroupId
+                - componentId
+                - canDonateTo
+                - canReceiveFrom
+      responses:
+        '201':
+          description: Blood compatibility created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                  bloodGroupId:
+                    type: string
+                  componentId:
+                    type: string
+                  canDonateTo:
+                    type: array
+                    items:
+                      type: string
+                  canReceiveFrom:
+                    type: array
+                    items:
+                      type: string
 components:
   securitySchemes:
     bearerAuth:
