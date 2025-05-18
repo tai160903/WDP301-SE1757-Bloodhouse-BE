@@ -8,4 +8,5 @@ router.use("/blood-component", require("./bloodComponent"));
 router.use("/blood-group", require("./bloodGroup"));
 router.use("/blood-compatibility", require("./bloodCompatibility"));
 router.use("/users", require("./user"));
+router.use("/blood-donation-registrations", require("./bloodDonationRegistration"));
 module.exports = router;

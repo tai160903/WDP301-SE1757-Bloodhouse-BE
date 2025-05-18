@@ -15,7 +15,7 @@ const userSchema = new mongoose.Schema(
       password: { type: String, required: true },
       verifyToken: { type: String },
       isVerified: { type: Boolean, default: false },
-      status: { type: String, enum: Object.values(USER_STATUS), default: USER_STATUS.PENDING },
+      status: { type: String, enum: Object.values(USER_STATUS), default: USER_STATUS.ACTIVE },
       yob: { type: Date },
       sex: { type: String, enum: Object.values(SEX) },
       fullName: { type: String, trim: true },

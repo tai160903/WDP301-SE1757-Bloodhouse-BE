@@ -3,6 +3,7 @@ const USER_ROLE = {
   MEMBER: "MEMBER",
   STAFF: "STAFF",
   GUEST: "GUEST",
+  MANAGER: "MANAGER",
 };
 
 const HEADER = {
@@ -50,8 +51,8 @@ const BLOOD_DONATION_REGISTRATION_STATUS = {
 };
 
 const BLOOD_DONATION_REGISTRATION_SOURCE = {
-  VOLUNTARY: "voluntary",
-  REQUEST: "request",
+  VOLUNTARY: "Tự nguyện",
+  REQUEST: "Yêu cầu",
 };
 
 const USER_STATUS = {

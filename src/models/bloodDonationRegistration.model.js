@@ -25,22 +25,21 @@ const bloodDonationRegistrationSchema = new mongoose.Schema(
     notes: { type: String },
     source: { type: String, enum: Object.values(BLOOD_DONATION_REGISTRATION_SOURCE) },
     location: {
-        type: {
-          type: String,
-          enum: ["Point"],
-          default: "Point",
-        },
-        coordinates: {
-          type: [Number], // [longitude, latitude]
-          default: [0, 0],
-        },
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+        default: [0, 0],
       },
     },
-    { timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" }, collection: COLLECTION_NAME }
-  );
-  
-  // Tạo index 2dsphere cho trường location
-  bloodDonationRegistrationSchema.index({ location: "2dsphere" });
+  },
+  { timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" }, collection: COLLECTION_NAME }
+);
 
+// Tạo index 2dsphere cho trường location
+bloodDonationRegistrationSchema.index({ location: "2dsphere" });
 
 module.exports = mongoose.model(DOCUMENT_NAME, bloodDonationRegistrationSchema);

@@ -2,12 +2,15 @@
 
 const bloodDonationRegistrationModel = require("../models/bloodDonationRegistration.model");
 const bloodDonationModel = require("../models/bloodDonation.model");
-const bloodRequestModel = require("../models/bloodRequest.model");
 const { BadRequestError, NotFoundError } = require("../configs/error.response");
 const { getInfoData } = require("../utils");
-const axios = require("axios");
+const { BLOOD_DONATION_REGISTRATION_STATUS } = require("../constants/enum");
+const userModel = require("../models/user.model");
+const facilityModel = require("../models/facility.model");
+const bloodGroupModel = require("../models/bloodGroup.model");
 
 class BloodDonationService {
+  /** BLOOD DONATION REGISTRATION */
   // Đăng ký hiến máu
   createBloodDonationRegistration = async ({
     userId,
@@ -17,34 +20,19 @@ class BloodDonationService {
     preferredDate,
     source,
     notes,
-    street,
-    city,
   }) => {
     // Kiểm tra user và facility
-    const [user, facility] = await Promise.all([
-      bloodDonationRegistrationModel.db.collection("Users").findOne({ _id: userId }),
-      bloodDonationRegistrationModel.db.collection("Facilities").findOne({ _id: facilityId }),
+    const [user, facility, bloodGroup] = await Promise.all([
+      userModel.findOne({ _id: userId }),
+      facilityModel.findOne({ _id: facilityId }),
+      bloodGroupModel.findOne({ _id: bloodGroupId }),
     ]);
     if (!user) throw new NotFoundError("User not found");
     if (!facility) throw new NotFoundError("Facility not found");
+    if (!bloodGroup) throw new NotFoundError("Blood group not found");
 
-    // Lấy tọa độ từ Google Maps Geocoding API
-    let location = { type: "Point", coordinates: [0, 0] };
-    if (street && city) {
-      const address = `${street}, ${city}`;
-      const response = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", {
-        params: {
-          address,
-          key: process.env.GOOGLE_MAPS_API_KEY,
-        },
-      });
-      if (response.data.status === "OK" && response.data.results.length > 0) {
-        const { lat, lng } = response.data.results[0].geometry.location;
-        location.coordinates = [lng, lat];
-      } else {
-        throw new BadRequestError("Invalid address");
-      }
-    }
+    // Lấy location từ profile người dùng
+    const location = user.location || { type: "Point", coordinates: [0, 0] };
 
     const registration = await bloodDonationRegistrationModel.create({
       userId,
@@ -69,16 +57,91 @@ class BloodDonationService {
         "source",
         "notes",
         "location",
+        "createdAt",
       ],
       object: registration,
     });
   };
 
   // Lấy danh sách đăng ký hiến máu
-  getBloodDonationRegistrations = async ({ status, facilityId, limit = 10, page = 1 }) => {
+  getBloodDonationRegistrations = async ({
+    status,
+    facilityId,
+    limit = 10,
+    page = 1,
+  }) => {
     const query = {};
     if (status) query.status = status;
     if (facilityId) query.facilityId = facilityId;
+
+    const skip = (page - 1) * limit;
+    const registrations = await bloodDonationRegistrationModel
+      .find(query)
+      .populate("userId", "fullName email phone")
+      .populate("facilityId", "name street city")
+      .populate("bloodGroupId", "type")
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    return registrations.map((reg) =>
+      getInfoData({
+        fields: [
+          "_id",
+          "userId",
+          "facilityId",
+          "bloodGroupId",
+          "bloodComponent",
+          "preferredDate",
+          "status",
+          "source",
+          "notes",
+          "createdAt",
+        ],
+        object: reg,
+      })
+    );
+  };
+
+  // Phê duyệt đăng ký hiến máu
+  approveBloodDonationRegistration = async (
+    registrationId,
+    staffId,
+    status
+  ) => {
+    const registration = await bloodDonationRegistrationModel.findById(
+      registrationId
+    );
+    if (!registration) throw new NotFoundError("Registration not found");
+
+    if (!Object.values(BLOOD_DONATION_REGISTRATION_STATUS).includes(status)) {
+      throw new BadRequestError("Invalid status");
+    }
+
+    registration.status = status;
+    registration.staffId = staffId;
+    await registration.save();
+
+    return getInfoData({
+      fields: [
+        "_id",
+        "userId",
+        "facilityId",
+        "bloodGroupId",
+        "status",
+        "updatedAt",
+      ],
+      object: registration,
+    });
+  };
+
+  // Lấy danh sách đăng ký hiến máu của người dùng
+  getUserBloodDonationRegistrations = async (
+    userId,
+    { status, limit = 10, page = 1 }
+  ) => {
+    const query = { userId };
+    if (status) query.status = status;
 
     const skip = (page - 1) * limit;
     const registrations = await bloodDonationRegistrationModel
@@ -110,21 +173,32 @@ class BloodDonationService {
     );
   };
 
-  // Phê duyệt đăng ký hiến máu
-  approveBloodDonationRegistration = async (registrationId, staffId, status) => {
-    const registration = await bloodDonationRegistrationModel.findById(registrationId);
-    if (!registration) throw new NotFoundError("Registration not found");
+  // Lấy chi tiết một đăng ký hiến máu
+  getBloodDonationRegistrationDetail = async (registrationId, userId) => {
+    const registration = await bloodDonationRegistrationModel
+      .findOne({ _id: registrationId, userId })
+      .populate("userId", "fullName email phone")
+      .populate("facilityId", "name street city")
+      .populate("bloodGroupId", "type")
+      .lean();
 
-    if (!Object.values(BLOOD_DONATION_REGISTRATION_STATUS).includes(status)) {
-      throw new BadRequestError("Invalid status");
-    }
-
-    registration.status = status;
-    registration.staffId = staffId;
-    await registration.save();
+    if (!registration) throw new NotFoundError("Không tìm thấy đăng ký");
 
     return getInfoData({
-      fields: ["_id", "userId", "facilityId", "bloodGroupId", "status", "updatedAt"],
+      fields: [
+        "_id",
+        "userId",
+        "facilityId",
+        "bloodGroupId",
+        "bloodComponent",
+        "preferredDate",
+        "status",
+        "source",
+        "notes",
+        "location",
+        "createdAt",
+        "updatedAt",
+      ],
       object: registration,
     });
   };
@@ -230,7 +304,8 @@ class BloodDonationService {
       return donations
         .filter(
           (donation) =>
-            donation.bloodDonationRegistrationId?.facilityId?._id.toString() === facilityId.toString()
+            donation.bloodDonationRegistrationId?.facilityId?._id.toString() ===
+            facilityId.toString()
         )
         .map((donation) =>
           getInfoData({
