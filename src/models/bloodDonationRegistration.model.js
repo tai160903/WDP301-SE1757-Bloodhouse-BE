@@ -10,6 +10,7 @@ const bloodDonationRegistrationSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     staffId: { type: mongoose.Schema.Types.ObjectId, ref: "FacilityStaff" },
+    facilityId: { type: mongoose.Schema.Types.ObjectId, ref: "Facility", required: true },
     bloodGroupId: { type: mongoose.Schema.Types.ObjectId, ref: "BloodGroup", required: true },
     bloodComponent: {
       type: String,
@@ -23,8 +24,23 @@ const bloodDonationRegistrationSchema = new mongoose.Schema(
     },
     notes: { type: String },
     source: { type: String, enum: Object.values(BLOOD_DONATION_REGISTRATION_SOURCE) },
-  },
-  { timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" }, collection: COLLECTION_NAME }
-);
+    location: {
+        type: {
+          type: String,
+          enum: ["Point"],
+          default: "Point",
+        },
+        coordinates: {
+          type: [Number], // [longitude, latitude]
+          default: [0, 0],
+        },
+      },
+    },
+    { timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" }, collection: COLLECTION_NAME }
+  );
+  
+  // Tạo index 2dsphere cho trường location
+  bloodDonationRegistrationSchema.index({ location: "2dsphere" });
 
-module. exports = mongoose.model(DOCUMENT_NAME, bloodDonationRegistrationSchema);
+
+module.exports = mongoose.model(DOCUMENT_NAME, bloodDonationRegistrationSchema);
