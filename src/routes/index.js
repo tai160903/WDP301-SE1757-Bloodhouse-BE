@@ -10,4 +10,6 @@ router.use("/blood-compatibility", require("./bloodCompatibility"));
 router.use("/users", require("./user"));
 router.use("/blood-donation-registrations", require("./bloodDonationRegistration"));
 router.use("/blood-donations", require("./bloodDonation"));
+router.use("/content-category", require("./contentCategory"));
+router.use("/content", require("./content"));
 module.exports = router;

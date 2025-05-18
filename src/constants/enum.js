@@ -76,6 +76,12 @@ const USER_STATUS = {
   BLOCKED: "blocked",
 };
 
+const CONTENT_STATUS = {
+  DRAFT: "draft",
+  PUBLISHED: "published",
+  ARCHIVED: "archived",
+};
+
 module.exports = {
   USER_ROLE,
   HEADER,
@@ -88,4 +94,5 @@ module.exports = {
   USER_STATUS,
   BLOOD_DONATION_STATUS,
   BLOOD_DONATION_MESSAGE,
+  CONTENT_STATUS,
 };
