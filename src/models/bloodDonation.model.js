@@ -1,6 +1,6 @@
 "use strict";
 const mongoose = require("mongoose");
-const { BLOOD_COMPONENT } = require("../constants/enum");
+const { BLOOD_COMPONENT, BLOOD_DONATION_STATUS } = require("../constants/enum");
 
 const DOCUMENT_NAME = "BloodDonation";
 const COLLECTION_NAME = "BloodDonations";
@@ -20,9 +20,10 @@ const bloodDonationSchema = new mongoose.Schema(
     donationDate: { type: Date },
     status: {
       type: String,
-      enum: ["pending", "confirmed", "cancelled"],
-      default: "pending",
+      enum: Object.values(BLOOD_DONATION_STATUS),
+      default: BLOOD_DONATION_STATUS.CONFIRMED,
     },
+    notes: { type: String },
   },
   { timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" }, collection: COLLECTION_NAME }
 );

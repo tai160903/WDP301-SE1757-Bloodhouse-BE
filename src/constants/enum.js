@@ -3,6 +3,7 @@ const USER_ROLE = {
   MEMBER: "MEMBER",
   STAFF: "STAFF",
   GUEST: "GUEST",
+  MANAGER: "MANAGER",
 };
 
 const HEADER = {
@@ -30,10 +31,10 @@ const SEX = {
 };
 
 const BLOOD_COMPONENT = {
-  WHOLE: "whole",
-  RED_CELLS: "red_cells",
-  PLASMA: "plasma",
-  PLATELETS: "platelets",
+  WHOLE: "Máu toàn phần",
+  RED_CELLS: "Hồng cầu",
+  PLASMA: "Huyết tương",
+  PLATELETS: "Tiểu cầu",
 };
 const REPORT_TYPE = {
   BLOOD_INVENTORY: "blood_inventory",
@@ -50,14 +51,35 @@ const BLOOD_DONATION_REGISTRATION_STATUS = {
 };
 
 const BLOOD_DONATION_REGISTRATION_SOURCE = {
-  VOLUNTARY: "voluntary",
-  REQUEST: "request",
+  VOLUNTARY: "Tự nguyện",
+  REQUEST: "Yêu cầu",
+};
+
+const BLOOD_DONATION_STATUS = {
+  CONFIRMED: "confirmed",
+  CANCELLED: "cancelled",
+  COMPLETED: "completed",
+};
+
+const BLOOD_DONATION_MESSAGE = {
+  CREATE_SUCCESS: "Create blood donation successfully",
+  CREATE_FAILED: "Create blood donation failed",
+  GET_SUCCESS: "Get blood donation successfully",
+  GET_FAILED: "Get blood donation failed",
+  GET_DETAIL_SUCCESS: "Get blood donation detail successfully",
+  GET_DETAIL_FAILED: "Get blood donation detail failed",
 };
 
 const USER_STATUS = {
   ACTIVE: "active",
   INACTIVE: "inactive",
   BLOCKED: "blocked",
+};
+
+const CONTENT_STATUS = {
+  DRAFT: "draft",
+  PUBLISHED: "published",
+  ARCHIVED: "archived",
 };
 
 module.exports = {
@@ -70,4 +92,7 @@ module.exports = {
   BLOOD_DONATION_REGISTRATION_STATUS,
   BLOOD_DONATION_REGISTRATION_SOURCE,
   USER_STATUS,
+  BLOOD_DONATION_STATUS,
+  BLOOD_DONATION_MESSAGE,
+  CONTENT_STATUS,
 };
