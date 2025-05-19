@@ -1,9 +1,16 @@
 const USER_ROLE = {
   ADMIN: "ADMIN",
   MEMBER: "MEMBER",
-  STAFF: "STAFF",
+  STAFF: "MANAGER",
+  DOCTOR: "DOCTOR",
+  NURSE: "NURSE",
   GUEST: "GUEST",
+};
+
+const STAFF_POSITION = {
   MANAGER: "MANAGER",
+  NURSE: "NURSE",
+  DOCTOR: "DOCTOR",
 };
 
 const HEADER = {
@@ -84,6 +91,7 @@ const CONTENT_STATUS = {
 
 module.exports = {
   USER_ROLE,
+  STAFF_POSITION,
   HEADER,
   BLOOD_GROUP,
   SEX,
