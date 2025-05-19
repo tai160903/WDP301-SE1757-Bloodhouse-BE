@@ -31,10 +31,23 @@ const USER_MESSAGE = {
   USER_SAVE_FCM_TOKEN_SUCCESS: "Save FCM token successfully",
 };
 
-
-
+const FACILITY_MESSAGE = {
+  GET_ALL_FACILITIES_SUCCESS: "Get all facilities successfully",
+  GET_ALL_FACILITIES_FAILED: "Get all facilities failed",
+  GET_FACILITY_BY_ID_SUCCESS: "Get facility by id successfully",
+  GET_FACILITY_BY_ID_FAILED: "Get facility by id failed",
+  CREATE_FACILITY_SUCCESS: "Create facility successfully",
+  CREATE_FACILITY_FAILED: "Create facility failed",
+  UPDATE_FACILITY_SUCCESS: "Update facility successfully",
+  UPDATE_FACILITY_FAILED: "Update facility failed",
+  DELETE_FACILITY_SUCCESS: "Delete facility successfully",
+  DELETE_FACILITY_FAILED: "Delete facility failed",
+  FACILITY_NOT_FOUND: "Facility not found",
+  FACILITY_ALREADY_EXISTS: "Facility already exists",
+};
 
 module.exports = {
   ACCESS_MESSAGE,
   USER_MESSAGE,
+  FACILITY_MESSAGE,
 };
