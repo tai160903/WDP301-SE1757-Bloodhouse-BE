@@ -1911,6 +1911,185 @@ paths:
                   data: { $ref: "#/components/schemas/BloodRequest" }
         "400":
           description: Invalid request or unauthorized
+  /facility:
+    get:
+      summary: Get all facilities
+      tags:
+        - Facility
+      parameters:
+        - in: query
+          name: latitude
+          schema:
+            type: number
+          description: User's latitude for distance calculation
+        - in: query
+          name: longitude
+          schema:
+            type: number
+          description: User's longitude for distance calculation
+        - in: query
+          name: distance
+          schema:
+            type: number
+          description: Maximum distance in kilometers
+      responses:
+        '200':
+          description: Facilities retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: number
+                  result:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Facility'
+    post:
+      summary: Create a new facility
+      tags:
+        - Facility
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "City Hospital"
+                address:
+                  type: string
+                  example: "123 Main Street"
+                longitude:
+                  type: number
+                  example: 106.700
+                latitude:
+                  type: number
+                  example: 10.776
+                contactPhone:
+                  type: string
+                  example: "0987654321"
+                contactEmail:
+                  type: string
+                  format: email
+                  example: "contact@hospital.com"
+                managerId:
+                  type: string
+                  example: "60f7b3a4b9c4e1234567890"
+                doctorIds:
+                  type: string
+                  example: "['60f7b3a4b9c4e1234567891', '60f7b3a4b9c4e1234567892']"
+                nurseIds:
+                  type: string
+                  example: "['60f7b3a4b9c4e1234567893', '60f7b3a4b9c4e1234567894']"
+                image:
+                  type: string
+                  format: binary
+              required:
+                - name
+                - address
+                - longitude
+                - latitude
+                - contactPhone
+                - contactEmail
+                - managerId
+      responses:
+        '201':
+          description: Facility created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Facility'
+  /facility/{id}:
+    get:
+      summary: Get facility by ID
+      tags:
+        - Facility
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Facility ID
+      responses:
+        '200':
+          description: Facility retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Facility'
+    put:
+      summary: Update facility
+      tags:
+        - Facility
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Facility ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                address:
+                  type: string
+                longitude:
+                  type: number
+                latitude:
+                  type: number
+                contactPhone:
+                  type: string
+                contactEmail:
+                  type: string
+                isActive:
+                  type: boolean
+      responses:
+        '200':
+          description: Facility updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Facility'
+  /facility/delete/{id}:
+    put:
+      summary: Delete facility (soft delete)
+      tags:
+        - Facility
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Facility ID
+      responses:
+        '200':
+          description: Facility deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: boolean
+
 components:
   securitySchemes:
     bearerAuth:
@@ -2092,6 +2271,62 @@ components:
         consent: { type: boolean }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+    Facility:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        code:
+          type: string
+        address:
+          type: string
+        location:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: [Point]
+            coordinates:
+              type: array
+              items:
+                type: number
+        contactPhone:
+          type: string
+        contactEmail:
+          type: string
+        mainImage:
+          type: object
+          properties:
+            _id:
+              type: string
+            url:
+              type: string
+            isMain:
+              type: boolean
+        schedules:
+          type: array
+          items:
+            type: object
+            properties:
+              dayOfWeek:
+                type: number
+                enum: [0, 1, 2, 3, 4, 5, 6]
+              openTime:
+                type: string
+              closeTime:
+                type: string
+              isOpen:
+                type: boolean
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
     Pagination:
       type: object
       properties:
