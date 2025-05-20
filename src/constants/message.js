@@ -108,6 +108,8 @@ const BLOOD_REQUEST_MESSAGE = {
   GET_USER_SUCCESS: "Lấy danh sách yêu cầu máu của người dùng thành công",
   GET_DETAILS_SUCCESS: "Lấy chi tiết yêu cầu máu thành công",
   UPDATE_STATUS_SUCCESS: "Cập nhật trạng thái yêu cầu máu thành công",
+  GET_FACILITY_USER_SUCCESS: "Lấy danh sách yêu cầu máu của cơ sở theo người dùng thành công",
+  GET_FACILITY_DETAIL_SUCCESS: "Lấy chi tiết yêu cầu máu của cơ sở thành công",
 };
 
 module.exports = {

@@ -10,7 +10,7 @@ router.use(checkAuth);
 router.get("/user", bloodDonationController.getUserDonations);
 router.get("/:id", bloodDonationController.getBloodDonationDetail);
 
-router.use(checkRole([USER_ROLE.STAFF, USER_ROLE.MANAGER]));
+router.use(checkRole([, USER_ROLE.MANAGER]));
 
 router.post("/", bloodDonationController.createBloodDonation);
 

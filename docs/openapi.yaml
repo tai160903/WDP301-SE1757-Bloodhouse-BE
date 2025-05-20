@@ -1516,739 +1516,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /blood-group:
-    get:
-      summary: Get all blood groups
-      tags:
-        - Blood Group
-      responses:
-        '200':
-          description: Blood groups retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    _id:
-                      type: string
-                    name:
-                      type: string
-                      example: "A+"
-                    note:
-                      type: string
-                      example: "Most common blood type"
-                    characteristics:
-                      type: string
-                      example: "Contains A antigen on red blood cells"
-                    populationRate:
-                      type: number
-                      example: 35.7
-        '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-    post:
-      summary: Create a new blood group
-      tags:
-        - Blood Group
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                  example: "A+"
-                note:
-                  type: string
-                  example: "Most common blood type"
-                characteristics:
-                  type: string
-                  example: "Contains A antigen on red blood cells"
-                populationRate:
-                  type: number
-                  example: 35.7
-              required:
-                - name
-      responses:
-        '201':
-          description: Blood group created successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  _id:
-                    type: string
-                  name:
-                    type: string
-                  note:
-                    type: string
-                  characteristics:
-                    type: string
-                  populationRate:
-                    type: number
-        '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-  /blood-group/{id}:
-    put:
-      summary: Update a blood group
-      tags:
-        - Blood Group
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-          description: Blood group ID
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                  example: "A+"
-                note:
-                  type: string
-                  example: "Most common blood type"
-                characteristics:
-                  type: string
-                  example: "Contains A antigen on red blood cells"
-                populationRate:
-                  type: number
-                  example: 35.7
-      responses:
-        '200':
-          description: Blood group updated successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  _id:
-                    type: string
-                  name:
-                    type: string
-                  note:
-                    type: string
-                  characteristics:
-                    type: string
-                  populationRate:
-                    type: number
-        '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-        '404':
-          description: Blood group not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-  /blood-component:
-    get:
-      summary: Get all blood components
-      tags:
-        - Blood Component
-      responses:
-        '200':
-          description: Blood components retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    _id:
-                      type: string
-                    name:
-                      type: string
-                      example: "Plasma"
-        '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-    post:
-      summary: Create a new blood component
-      tags:
-        - Blood Component
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                  example: "Plasma"
-              required:
-                - name
-      responses:
-        '201':
-          description: Blood component created successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  _id:
-                    type: string
-                  name:
-                    type: string
-        '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-  /blood-component/{id}:
-    put:
-      summary: Update a blood component
-      tags:
-        - Blood Component
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-          description: Blood component ID
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                  example: "Plasma"
-      responses:
-        '200':
-          description: Blood component updated successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  _id:
-                    type: string
-                  name:
-                    type: string
-        '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-        '404':
-          description: Blood component not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-  /blood-compatibility:
-    get:
-      summary: Get blood compatibility information
-      tags:
-        - Blood Compatibility
-      parameters:
-        - in: query
-          name: bloodGroupId
-          required: true
-          schema:
-            type: string
-          description: Blood group ID to check compatibility
-        - in: query
-          name: componentId
-          required: true
-          schema:
-            type: string
-          description: Blood component ID to check compatibility
-      responses:
-        '200':
-          description: Blood compatibility information retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  canDonateTo:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        name:
-                          type: string
-                          example: "AB+"
-                  canReceiveFrom:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        name:
-                          type: string
-                          example: "O-"
-    post:
-      summary: Create a new blood compatibility record
-      tags:
-        - Blood Compatibility
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                bloodGroupId:
-                  type: string
-                  description: ID of the blood group
-                componentId:
-                  type: string
-                  description: ID of the blood component
-                canDonateTo:
-                  type: array
-                  items:
-                    type: string
-                  description: Array of blood group IDs that can receive this blood
-                canReceiveFrom:
-                  type: array
-                  items:
-                    type: string
-                  description: Array of blood group IDs that can donate to this blood
-              required:
-                - bloodGroupId
-                - componentId
-                - canDonateTo
-                - canReceiveFrom
-      responses:
-        '201':
-          description: Blood compatibility created successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  _id:
-                    type: string
-                  bloodGroupId:
-                    type: string
-                  componentId:
-                    type: string
-                  canDonateTo:
-                    type: array
-                    items:
-                      type: string
-                  canReceiveFrom:
-                    type: array
-                    items:
-                      type: string
-  /content:
-    post:
-      summary: Create new content
-      tags:
-        - Content
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                type:
-                  type: string
-                  enum: [introduction, document, blog]
-                  example: "blog"
-                categoryId:
-                  type: string
-                  example: "60f7b3a4b9c4e1234567891"
-                title:
-                  type: string
-                  example: "Blood Donation Guidelines"
-                content:
-                  type: string
-                  example: "Detailed content about blood donation..."
-                summary:
-                  type: string
-                  example: "A brief overview of blood donation guidelines"
-                authorId:
-                  type: string
-                  example: "60f7b3a4b9c4e1234567892"
-                image:
-                  type: string
-                  format: binary
-              required:
-                - type
-                - title
-                - content
-                - authorId
-      responses:
-        '201':
-          description: Content created successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Content created successfully
-                  data:
-                    type: object
-                    properties:
-                      _id:
-                        type: string
-                      type:
-                        type: string
-                      categoryId:
-                        type: string
-                      title:
-                        type: string
-                      image:
-                        type: string
-                      slug:
-                        type: string
-                      content:
-                        type: string
-                      summary:
-                        type: string
-                      authorId:
-                        type: string
-                      status:
-                        type: string
-                        enum: [draft, published, archived]
-                      createdAt:
-                        type: string
-                        format: date-time
-                      updatedAt:
-                        type: string
-                        format: date-time
-    get:
-      summary: Get all contents
-      tags:
-        - Content
-      responses:
-        '200':
-          description: Contents retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Contents retrieved successfully
-                  data:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        _id:
-                          type: string
-                        type:
-                          type: string
-                        categoryId:
-                          type: object
-                          properties:
-                            _id:
-                              type: string
-                            name:
-                              type: string
-                            description:
-                              type: string
-                        title:
-                          type: string
-                        image:
-                          type: string
-                        slug:
-                          type: string
-                        content:
-                          type: string
-                        summary:
-                          type: string
-                        authorId:
-                          type: object
-                          properties:
-                            _id:
-                              type: string
-                            username:
-                              type: string
-                            avatar:
-                              type: string
-                            fullName:
-                              type: string
-                        status:
-                          type: string
-                          enum: [draft, published, archived]
-                        createdAt:
-                          type: string
-                          format: date-time
-                        updatedAt:
-                          type: string
-                          format: date-time
-  /content/{id}:
-    put:
-      summary: Update content
-      tags:
-        - Content
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-          description: Content ID
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                type:
-                  type: string
-                  enum: [introduction, document, blog]
-                categoryId:
-                  type: string
-                title:
-                  type: string
-                content:
-                  type: string
-                summary:
-                  type: string
-                image:
-                  type: string
-                  format: binary
-                status:
-                  type: string
-                  enum: [draft, published, archived]
-      responses:
-        '200':
-          description: Content updated successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Content updated successfully
-                  data:
-                    type: object
-                    properties:
-                      _id:
-                        type: string
-                      type:
-                        type: string
-                      categoryId:
-                        type: string
-                      title:
-                        type: string
-                      image:
-                        type: string
-                      slug:
-                        type: string
-                      content:
-                        type: string
-                      summary:
-                        type: string
-                      authorId:
-                        type: string
-                      status:
-                        type: string
-                        enum: [draft, published, archived]
-                      updatedAt:
-                        type: string
-                        format: date-time
-  /content-category:
-    post:
-      summary: Create new content category
-      tags:
-        - Content Category
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                  example: "Health Guidelines"
-                description:
-                  type: string
-                  example: "Health-related articles and guidelines"
-              required:
-                - name
-      responses:
-        '201':
-          description: Content category created successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Content category created successfully
-                  data:
-                    type: object
-                    properties:
-                      _id:
-                        type: string
-                      name:
-                        type: string
-                      description:
-                        type: string
-                      createdAt:
-                        type: string
-                        format: date-time
-                      updatedAt:
-                        type: string
-                        format: date-time
-    get:
-      summary: Get all content categories
-      tags:
-        - Content Category
-      responses:
-        '200':
-          description: Content categories retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Content categories retrieved successfully
-                  data:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        _id:
-                          type: string
-                        name:
-                          type: string
-                        description:
-                          type: string
-                        createdAt:
-                          type: string
-                          format: date-time
-                        updatedAt:
-                          type: string
-                          format: date-time
-  /content-category/{id}:
-    put:
-      summary: Update content category
-      tags:
-        - Content Category
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-          description: Content Category ID
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                  example: "Updated Health Guidelines"
-                description:
-                  type: string
-                  example: "Updated health-related articles and guidelines"
-      responses:
-        '200':
-          description: Content category updated successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Content category updated successfully
-                  data:
-                    type: object
-                    properties:
-                      _id:
-                        type: string
-                      name:
-                        type: string
-                      description:
-                        type: string
-                      updatedAt:
-                        type: string
-                        format: date-time
-  /blood-requests:
+  /blood-request:
     post:
       summary: Create a new blood request
       tags:
@@ -2270,7 +1538,7 @@ paths:
                 - medicalDocuments
               properties:
                 bloodType: { type: string, example: "A+" }
-                bloodComponent: { type: string, enum: ["Máu toàn phần", "Hồng cầu", "Tiểu cầu", "Huyết tương"] }
+                bloodComponent: { type: string, enum: ["whole_blood", "red_cells", "platelets", "plasma"] }
                 quantity: { type: number, minimum: 1 }
                 isUrgent: { type: boolean, default: false }
                 street: { type: string }
@@ -2302,7 +1570,347 @@ paths:
                   data: { $ref: "#/components/schemas/BloodRequest" }
         "400":
           description: Invalid input
-
+  /blood-request/facility:
+    get:
+      summary: Get all blood requests for a facility
+      tags:
+        - Blood Requests
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+          description: Number of records per page
+        - in: query
+          name: status
+          schema: { type: string, enum: ["pending", "approved", "rejected", "fulfilled", "cancelled"] }
+          description: Filter by request status
+        - in: query
+          name: search
+          schema: { type: string }
+          description: Search term for patientName, contactName, or reason
+        - in: query
+          name: sortBy
+          schema: { type: string, enum: ["createdAt", "updatedAt", "quantity", "status", "preferredDate"], default: "createdAt" }
+          description: Field to sort by
+        - in: query
+          name: sortOrder
+          schema: { type: integer, enum: [1, -1], default: -1 }
+          description: Sort order (1 for ascending, -1 for descending)
+      responses:
+        "200":
+          description: List of blood requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, example: "Get facility blood requests successfully" }
+                  data: { type: array, items: { $ref: "#/components/schemas/BloodRequest" } }
+                  metadata: { $ref: "#/components/schemas/Pagination" }
+        "400":
+          description: Invalid input
+  /blood-request/facility/user/{userId}:
+    get:
+      summary: Get all blood requests for a specific user in a facility
+      tags:
+        - Blood Requests
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: string }
+          description: User ID
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+          description: Number of records per page
+        - in: query
+          name: status
+          schema: { type: string, enum: ["pending", "approved", "rejected", "fulfilled", "cancelled"] }
+          description: Filter by request status
+        - in: query
+          name: search
+          schema: { type: string }
+          description: Search term for patientName, contactName, or reason
+        - in: query
+          name: sortBy
+          schema: { type: string, enum: ["createdAt", "updatedAt", "quantity", "status", "preferredDate"], default: "createdAt" }
+          description: Field to sort by
+        - in: query
+          name: sortOrder
+          schema: { type: integer, enum: [1, -1], default: -1 }
+          description: Sort order (1 for ascending, -1 for descending)
+      responses:
+        "200":
+          description: List of blood requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, example: "Get facility user blood requests successfully" }
+                  data: { type: array, items: { $ref: "#/components/schemas/BloodRequest" } }
+                  metadata: { $ref: "#/components/schemas/Pagination" }
+        "400":
+          description: Invalid input
+  /blood-request/facility/{facilityId}:
+    get:
+      summary: Get all blood requests for a facility
+      tags:
+        - Blood Requests
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: facilityId
+          required: true
+          schema: { type: string }
+          description: Facility ID
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+          description: Number of records per page
+        - in: query
+          name: status
+          schema: { type: string, enum: ["pending", "approved", "rejected", "fulfilled", "cancelled"] }
+          description: Filter by request status
+        - in: query
+          name: search
+          schema: { type: string }
+          description: Search term for patientName, contactName, or reason
+        - in: query
+          name: sortBy
+          schema: { type: string, enum: ["createdAt", "updatedAt", "quantity", "status", "preferredDate"], default: "createdAt" }
+          description: Field to sort by
+        - in: query
+          name: sortOrder
+          schema: { type: integer, enum: [1, -1], default: -1 }
+          description: Sort order (1 for ascending, -1 for descending)
+      responses:
+        "200":
+          description: List of blood requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, example: "Get facility blood requests successfully" }
+                  data: { type: array, items: { $ref: "#/components/schemas/BloodRequest" } }
+                  metadata: { $ref: "#/components/schemas/Pagination" }
+        "400":
+          description: Invalid input
+  /blood-request/facility/{facilityId}/user/{userId}:
+    get:
+      summary: Get all blood requests for a specific user in a facility
+      tags:
+        - Blood Requests
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: facilityId
+          required: true
+          schema: { type: string }
+          description: Facility ID
+        - in: path
+          name: userId
+          required: true
+          schema: { type: string }
+          description: User ID
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+          description: Number of records per page
+        - in: query
+          name: status
+          schema: { type: string, enum: ["pending", "approved", "rejected", "fulfilled", "cancelled"] }
+          description: Filter by request status
+        - in: query
+          name: search
+          schema: { type: string }
+          description: Search term for patientName, contactName, or reason
+        - in: query
+          name: sortBy
+          schema: { type: string, enum: ["createdAt", "updatedAt", "quantity", "status", "preferredDate"], default: "createdAt" }
+          description: Field to sort by
+        - in: query
+          name: sortOrder
+          schema: { type: integer, enum: [1, -1], default: -1 }
+          description: Sort order (1 for ascending, -1 for descending)
+      responses:
+        "200":
+          description: List of blood requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, example: "Get facility user blood requests successfully" }
+                  data: { type: array, items: { $ref: "#/components/schemas/BloodRequest" } }
+                  metadata: { $ref: "#/components/schemas/Pagination" }
+        "400":
+          description: Invalid input
+  /blood-request/facility/{facilityId}/{id}:
+    get:
+      summary: Get details of a facility's blood request
+      tags:
+        - Blood Requests
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: facilityId
+          required: true
+          schema: { type: string }
+          description: Facility ID
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+          description: Blood request ID
+      responses:
+        "200":
+          description: Blood request details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, example: "Get blood request details successfully" }
+                  data: { $ref: "#/components/schemas/BloodRequest" }
+        "400":
+          description: Invalid request or unauthorized
+  /blood-request/facility/{facilityId}/{id}/status:
+    patch:
+      summary: Update blood request status
+      tags:
+        - Blood Requests
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: facilityId
+          required: true
+          schema: { type: string }
+          description: Facility ID
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+          description: Blood request ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status: { type: string, enum: ["pending", "approved", "rejected", "fulfilled", "cancelled"] }
+                staffId: { type: string }
+      responses:
+        "200":
+          description: Status updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, example: "Update blood request status successfully" }
+                  data: { type: object, properties: { _id: { type: string }, status: { type: string }, staffId: { type: string }, updatedAt: { type: string, format: date-time } } }
+        "400":
+          description: Invalid status or unauthorized
+  /blood-request/user:
+    get:
+      summary: Get all blood requests for current user
+      tags:
+        - Blood Requests
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+          description: Number of records per page
+        - in: query
+          name: status
+          schema: { type: string, enum: ["pending", "approved", "rejected", "fulfilled", "cancelled"] }
+          description: Filter by request status
+        - in: query
+          name: search
+          schema: { type: string }
+          description: Search term for patientName, contactName, or reason
+        - in: query
+          name: sortBy
+          schema: { type: string, enum: ["createdAt", "updatedAt", "quantity", "status", "preferredDate"], default: "createdAt" }
+          description: Field to sort by
+        - in: query
+          name: sortOrder
+          schema: { type: integer, enum: [1, -1], default: -1 }
+          description: Sort order (1 for ascending, -1 for descending)
+      responses:
+        "200":
+          description: List of blood requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, example: "Get user blood requests successfully" }
+                  data: { type: array, items: { $ref: "#/components/schemas/BloodRequest" } }
+                  metadata: { $ref: "#/components/schemas/Pagination" }
+        "400":
+          description: Invalid input
+  /blood-request/user/{id}:
+    get:
+      summary: Get details of a user's blood request
+      tags:
+        - Blood Requests
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+          description: Blood request ID
+      responses:
+        "200":
+          description: Blood request details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, example: "Get blood request details successfully" }
+                  data: { $ref: "#/components/schemas/BloodRequest" }
+        "400":
+          description: Invalid request or unauthorized
 components:
   securitySchemes:
     bearerAuth:
@@ -2484,6 +2092,13 @@ components:
         consent: { type: boolean }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+    Pagination:
+      type: object
+      properties:
+        page: { type: integer }
+        limit: { type: integer }
+        total: { type: integer }
+        totalPages: { type: integer }
     ErrorResponse:
       type: object
       properties:

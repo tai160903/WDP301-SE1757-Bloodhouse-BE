@@ -15,7 +15,7 @@ router.get("/user", bloodDonationRegistrationController.getUserBloodDonationRegi
 
 router.get("/:id", bloodDonationRegistrationController.getBloodDonationRegistrationDetail);
 
-router.use(checkRole([USER_ROLE.STAFF, USER_ROLE.MANAGER]));
+router.use(checkRole([USER_ROLE.MANAGER]));
 
 router.put("/:id", bloodDonationRegistrationController.approveBloodDonationRegistration);
 

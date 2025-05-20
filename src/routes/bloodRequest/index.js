@@ -3,12 +3,23 @@
 const express = require("express");
 const router = express.Router();
 const BloodRequestController = require("../../controllers/bloodRequest.controller");
-const { checkAuth } = require("../../auth/checkAuth");
+const { checkAuth, checkRole } = require("../../auth/checkAuth");
 const { upload } = require("../../utils/upload");
+const { USER_ROLE } = require("../../constants/enum");
 
 
 router.use(checkAuth)
-router.post("/", upload.array('medicalDocuments', 5), BloodRequestController.createBloodRequest);
+router.post("/", BloodRequestController.createBloodRequest);
+router.get("/user", BloodRequestController.getUserBloodRequests);
+router.get("/user/:id", BloodRequestController.getUserBloodRequestDetails);
 
+router.use(checkRole([USER_ROLE.MANAGER, USER_ROLE.NURSE]))
+router.get("/facility/:facilityId", BloodRequestController.getFacilityBloodRequests);
+router.get(
+  "/facility/:facilityId/user/:userId",
+  BloodRequestController.getFacilityBloodRequestsByUser
+);
+router.get("/facility/:facilityId/:id", BloodRequestController.getFacilityBloodRequestDetails);
+router.patch("/facility/:facilityId/:id/status", BloodRequestController.updateBloodRequestStatus);
 
 module.exports = router;
