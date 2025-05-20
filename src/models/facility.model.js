@@ -8,9 +8,7 @@ const facilitySchema = new mongoose.Schema(
   {
     name: { type: String, trim: true, required: true },
     code: { type: String, trim: true, unique: true, required: true },
-    street: { type: String, trim: true },
-    city: { type: String, trim: true },
-    country: { type: String, trim: true },
+    address: { type: String, trim: true },
     location: {
       type: {
         type: String,
@@ -22,14 +20,34 @@ const facilitySchema = new mongoose.Schema(
         default: [0, 0],
       },
     },
+    avgRating: { type: Number, default: 0 },
+    totalFeedback: { type: Number, default: 0 },
     contactPhone: { type: String, trim: true },
     contactEmail: { type: String, trim: true },
     isActive: { type: Boolean, default: true },
   },
-  { timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" }, collection: COLLECTION_NAME }
+  { timestamps: true, collection: COLLECTION_NAME }
 );
 
 // Tạo index 2dsphere cho trường location
-facilitySchema.index({ location: "2dsphere" });
+// facilitySchema.index({ location: "2dsphere" });
+
+facilitySchema.virtual("schedules", {
+  ref: "FacilitySchedule",
+  localField: "_id",
+  foreignField: "facilityId",
+});
+
+// Virtual for main image
+facilitySchema.virtual("mainImage", {
+  ref: "FacilityImage",
+  localField: "_id",
+  foreignField: "facilityId",
+  justOne: true,
+  match: { isMain: true },
+});
+
+facilitySchema.set("toJSON", { virtuals: true });
+facilitySchema.set("toObject", { virtuals: true });
 
 module.exports = mongoose.model(DOCUMENT_NAME, facilitySchema);

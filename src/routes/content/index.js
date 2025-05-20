@@ -8,6 +8,7 @@ const contentController = require("../../controllers/content.controller");
 
 router.post("/", upload.single("image"), contentController.createContent);
 router.get("/", contentController.getContents);
+router.get("/:id", contentController.getContentById);
 router.put("/:id", upload.single("image"), contentController.updateContent);
 
 module.exports = router;

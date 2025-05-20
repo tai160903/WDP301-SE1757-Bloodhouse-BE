@@ -1,10 +1,11 @@
+const { OK, CREATED } = require("../configs/success.response");
 const { FACILITY_MESSAGE } = require("../constants/message");
 const asyncHandler = require("../helpers/asyncHandler");
 const facilityService = require("../services/facility.service");
 
 class FacilityController {
   getAllFacilities = asyncHandler(async (req, res, next) => {
-    const result = await facilityService.getAllFacilities();
+    const result = await facilityService.getAllFacilities(req.query);
     new OK({
       message: FACILITY_MESSAGE.GET_ALL_FACILITIES_SUCCESS,
       data: result,
@@ -20,7 +21,7 @@ class FacilityController {
   });
 
   createFacility = asyncHandler(async (req, res, next) => {
-    const result = await facilityService.createFacility(req.body);
+    const result = await facilityService.createFacility(req.body, req.file);
     new CREATED({
       message: FACILITY_MESSAGE.CREATE_FACILITY_SUCCESS,
       data: result,

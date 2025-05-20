@@ -1,15 +1,19 @@
 const express = require("express");
+const multer = require("multer");
+const upload = multer({ storage: multer.memoryStorage() });
 const facilityController = require("../../controllers/facility.controller");
-const { checkRole } = require("../auth/checkAuth");
-const { USER_ROLE } = require("../constants/enum");
+const { checkRole, checkAuth } = require("../../auth/checkAuth");
+const { USER_ROLE } = require("../../constants/enum");
 
 const router = express.Router();
 
 router.get("/", facilityController.getAllFacilities);
 router.get("/:id", facilityController.getFacilityById);
 
-router.use(checkRole(USER_ROLE.STAFF, USER_ROLE.ADMIN));
-router.post("/", facilityController.createFacility);
+router.use(checkAuth);
+router.use(checkRole([USER_ROLE.ADMIN]));
+router.post("/", upload.single("image"), facilityController.createFacility);
+
 router.put("/:id", facilityController.updateFacility);
 router.put("delete/:id", facilityController.deleteFacility);
 

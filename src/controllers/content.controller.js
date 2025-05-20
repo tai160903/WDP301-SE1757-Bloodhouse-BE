@@ -15,7 +15,12 @@ class ContentController {
     const result = await contentService.getContents();
     new OK({ message: CONTENT_MESSAGE.GET_SUCCESS, data: result }).send(res);
   });
-  
+
+  getContentById = asyncHandler(async (req, res, next) => {
+    const result = await contentService.getContentById(req.params.id);
+    new OK({ message: CONTENT_MESSAGE.GET_SUCCESS, data: result }).send(res);
+  });
+
   updateContent = asyncHandler(async (req, res, next) => {
     const result = await contentService.updateContent(req.params.id, req.body, req.file);
     new OK({ message: CONTENT_MESSAGE.UPDATE_SUCCESS, data: result }).send(res);
