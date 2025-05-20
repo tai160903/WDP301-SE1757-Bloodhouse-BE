@@ -11,6 +11,9 @@ const crypto = require("crypto");
 class AccessService {
   signUp = async ({ full_name, email, password }) => {
     // Step 1: Check if email exists
+    console.log("email", email);
+    console.log("password", password);
+    console.log("full_name", full_name);
     const existingUser = await userModel.findOne({ email });
     if (existingUser) {
       throw new BadRequestError("Email already exists");
@@ -118,7 +121,6 @@ class AccessService {
       throw new BadRequestError(error.message || "Logout failed");
     }
   };
-
 }
 
 module.exports = new AccessService();
