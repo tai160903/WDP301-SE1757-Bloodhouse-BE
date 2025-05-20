@@ -102,6 +102,14 @@ const BLOOD_DONATION_REGISTRATION_MESSAGE = {
   GET_DETAIL_FAILED: "Get blood donation registration detail failed",
 };
 
+const BLOOD_REQUEST_MESSAGE = {
+  CREATE_SUCCESS: "Tạo yêu cầu máu thành công",
+  GET_FACILITY_SUCCESS: "Lấy danh sách yêu cầu máu của cơ sở thành công",
+  GET_USER_SUCCESS: "Lấy danh sách yêu cầu máu của người dùng thành công",
+  GET_DETAILS_SUCCESS: "Lấy chi tiết yêu cầu máu thành công",
+  UPDATE_STATUS_SUCCESS: "Cập nhật trạng thái yêu cầu máu thành công",
+};
+
 module.exports = {
   ACCESS_MESSAGE,
   BLOOD_COMPATIBILITY_MESSAGE,
@@ -112,4 +120,5 @@ module.exports = {
   BLOOD_DONATION_REGISTRATION_MESSAGE,
   CONTENT_CATEGORY_MESSAGE,
   CONTENT_MESSAGE,
+  BLOOD_REQUEST_MESSAGE,
 };

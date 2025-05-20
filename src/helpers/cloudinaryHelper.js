@@ -17,7 +17,7 @@ const processUploadResult = (file) => ({
 
 const uploadSingleImage = async ({
   file,
-  folder = "checkafe",
+  folder = "bloodhouse",
   transformations = [],
   options = {},
 }) => {

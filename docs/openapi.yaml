@@ -2248,7 +2248,60 @@ paths:
                       updatedAt:
                         type: string
                         format: date-time
-
+  /blood-requests:
+    post:
+      summary: Create a new blood request
+      tags:
+        - Blood Requests
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - bloodType
+                - bloodComponent
+                - quantity
+                - preferredDate
+                - consent
+                - medicalDocuments
+              properties:
+                bloodType: { type: string, example: "A+" }
+                bloodComponent: { type: string, enum: ["Máu toàn phần", "Hồng cầu", "Tiểu cầu", "Huyết tương"] }
+                quantity: { type: number, minimum: 1 }
+                isUrgent: { type: boolean, default: false }
+                street: { type: string }
+                city: { type: string }
+                lat: { type: number }
+                lng: { type: number }
+                reason: { type: string }
+                medicalDetails: { type: string }
+                note: { type: string }
+                preferredDate: { type: string, format: date-time }
+                consent: { type: boolean }
+                facilityId: { type: string }
+                medicalDocuments:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  maxItems: 5
+                  minItems: 1
+      responses:
+        "201":
+          description: Blood request created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  data: { $ref: "#/components/schemas/BloodRequest" }
+        "400":
+          description: Invalid input
 
 components:
   securitySchemes:
@@ -2403,6 +2456,34 @@ components:
         updatedAt:
           type: string
           format: date-time
+    BloodRequest:
+      type: object
+      properties:
+        _id: { type: string }
+        bloodId: { type: object, properties: { type: { type: string } } }
+        userId: { type: object, properties: { fullName: { type: string }, email: { type: string }, phone: { type: string } } }
+        facilityId: { type: object, properties: { name: { type: string }, street: { type: string }, city: { type: string } } }
+        staffId: { type: object, properties: { fullName: { type: string }, email: { type: string }, phone: { type: string } } }
+        patientName: { type: string }
+        patientAge: { type: string }
+        bloodComponent: { type: string }
+        quantity: { type: number }
+        isUrgent: { type: boolean }
+        status: { type: string }
+        location: { type: object, properties: { type: { type: string }, coordinates: { type: array, items: { type: number } } } }
+        street: { type: string }
+        city: { type: string }
+        contactName: { type: string }
+        contactPhone: { type: string }
+        contactEmail: { type: string }
+        reason: { type: string }
+        medicalDetails: { type: string }
+        medicalDocumentUrl: { type: array, items: { type: string } }
+        note: { type: string }
+        preferredDate: { type: string, format: date-time }
+        consent: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
     ErrorResponse:
       type: object
       properties:

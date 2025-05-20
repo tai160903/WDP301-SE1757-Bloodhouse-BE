@@ -89,6 +89,13 @@ const CONTENT_STATUS = {
   ARCHIVED: "archived",
 };
 
+const BLOOD_REQUEST_STATUS = {
+  PENDING: "pending",
+  IN_PROGRESS: "in_progress",
+  COMPLETED: "completed",
+  CANCELLED: "cancelled",
+};
+
 module.exports = {
   USER_ROLE,
   STAFF_POSITION,
@@ -103,4 +110,5 @@ module.exports = {
   BLOOD_DONATION_STATUS,
   BLOOD_DONATION_MESSAGE,
   CONTENT_STATUS,
+  BLOOD_REQUEST_STATUS,
 };
