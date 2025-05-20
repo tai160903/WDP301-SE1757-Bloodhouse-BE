@@ -17,6 +17,7 @@ const feedbackSchema = new mongoose.Schema(
     },
     rating: { type: Number, required: true },
     comment: { type: String, required: true },
+    isDeleted: { type: Boolean, default: false },
   },
   { timestamps: true, collection: COLLECTION_NAME }
 );
