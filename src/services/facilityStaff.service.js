@@ -5,119 +5,118 @@ const facilityStaffModel = require("../models/facilityStaff.model");
 const userModel = require("../models/user.model");
 
 class FacilityStaffService {
-  getAllFacilityStaff = async (facilityId) => {
-    try {
-      if (!facilityId) {
-        throw new BadRequestError(FACILITY_STAFF_MESSAGE.FACILITY_ID_REQUIRED);
-      }
-      const result = await facilityStaffModel
-        .find({ facilityId, isDeleted: { $ne: true } })
-        .populate("userId", "name email phoneNumber avatar")
-        .populate("facilityId", "name address");
-      return {
-        total: result.length,
-        result,
-      };
-    } catch (error) {
-      throw error;
+  getAllStaffs = async () => {
+    const result = await facilityStaffModel
+      .find({ isDeleted: { $ne: true } })
+      .populate("userId", "name email phoneNumber avatar")
+      .populate("facilityId", "name address");
+    return result;
+  };
+
+  getAllStaffsNotAssignedToFacility = async ({ position }) => {
+    const result = await facilityStaffModel.find({
+      isDeleted: { $ne: true },
+      facilityId: { $exists: false },
+      position: { $in: position },
+    });
+    return result;
+  };
+
+  getFacilityStaffByFacilityId = async (facilityId) => {
+    if (!facilityId) {
+      throw new BadRequestError(FACILITY_STAFF_MESSAGE.FACILITY_ID_REQUIRED);
     }
+    const result = await facilityStaffModel
+      .find({ facilityId, isDeleted: { $ne: true } })
+      .populate("userId", "name email phoneNumber avatar")
+      .populate("facilityId", "name address");
+    return {
+      total: result.length,
+      result,
+    };
   };
 
   getFacilityStaffById = async (id) => {
-    try {
-      if (!id) {
-        throw new BadRequestError(
-          FACILITY_STAFF_MESSAGE.FACILITY_STAFF_ID_REQUIRED
-        );
-      }
-      const result = await facilityStaffModel
-        .findById(id)
-        .populate("userId", "name email phoneNumber avatar")
-        .populate("facilityId", "name address");
-      if (!result) {
-        throw new BadRequestError(
-          FACILITY_STAFF_MESSAGE.FACILITY_STAFF_NOT_FOUND
-        );
-      }
-      return result;
-    } catch (error) {
-      throw error;
+    if (!id) {
+      throw new BadRequestError(
+        FACILITY_STAFF_MESSAGE.FACILITY_STAFF_ID_REQUIRED
+      );
     }
+    const result = await facilityStaffModel
+      .findById(id)
+      .populate("userId", "name email phoneNumber avatar")
+      .populate("facilityId", "name address");
+    if (!result) {
+      throw new BadRequestError(
+        FACILITY_STAFF_MESSAGE.FACILITY_STAFF_NOT_FOUND
+      );
+    }
+    return result;
   };
 
   createFacilityStaff = async (data) => {
-    try {
-      const { userId, facilityId, position } = data;
-      if (!userId || !facilityId || !position) {
-        throw new BadRequestError(
-          FACILITY_STAFF_MESSAGE.FACILITY_STAFF_REQUIRED
-        );
-      }
-      const updateRoleUser = await userModel.findByIdAndUpdate(
-        userId,
-        { role: position },
-        { new: true }
-      );
+    const { userId, position } = data;
 
-      const newFacilityStaff = new facilityStaffModel(data);
-      await newFacilityStaff.save();
-      return newFacilityStaff;
-    } catch (error) {
-      throw error;
+    if (!userId || !position) {
+      throw new BadRequestError(FACILITY_STAFF_MESSAGE.FACILITY_STAFF_REQUIRED);
     }
+
+    const user = await facilityStaffModel.findOne({
+      userId,
+      isDeleted: { $ne: true },
+    });
+    if (user) {
+      throw new BadRequestError(FACILITY_STAFF_MESSAGE.STAFF_ALREADY_EXISTS);
+    }
+
+    const newFacilityStaff = new facilityStaffModel(data);
+    await newFacilityStaff.save();
+    return newFacilityStaff;
   };
 
   updateFacilityStaff = async (id, data) => {
-    try {
-      if (!id) {
-        throw new BadRequestError(
-          FACILITY_STAFF_MESSAGE.FACILITY_STAFF_ID_REQUIRED
-        );
-      }
-      const updatedFacilityStaff = await facilityStaffModel.findByIdAndUpdate(
-        id,
-        data,
-        { new: true }
+    if (!id) {
+      throw new BadRequestError(
+        FACILITY_STAFF_MESSAGE.FACILITY_STAFF_ID_REQUIRED
       );
-      if (!updatedFacilityStaff) {
-        throw new BadRequestError(
-          FACILITY_STAFF_MESSAGE.FACILITY_STAFF_NOT_FOUND
-        );
-      }
-      return updatedFacilityStaff;
-    } catch (error) {
-      throw error;
     }
+    const updatedFacilityStaff = await facilityStaffModel.findByIdAndUpdate(
+      id,
+      data,
+      { new: true }
+    );
+    if (!updatedFacilityStaff) {
+      throw new BadRequestError(
+        FACILITY_STAFF_MESSAGE.FACILITY_STAFF_NOT_FOUND
+      );
+    }
+    return updatedFacilityStaff;
   };
 
   deleteFacilityStaff = async (id) => {
-    try {
-      if (!id) {
-        throw new BadRequestError(
-          FACILITY_STAFF_MESSAGE.FACILITY_STAFF_ID_REQUIRED
-        );
-      }
-      const deletedFacilityStaff = await facilityStaffModel.findByIdAndUpdate(
-        id,
-        { $set: { isDeleted: true } },
-        { new: true }
+    if (!id) {
+      throw new BadRequestError(
+        FACILITY_STAFF_MESSAGE.FACILITY_STAFF_ID_REQUIRED
       );
-
-      await userModel.findByIdAndUpdate(
-        deletedFacilityStaff.userId,
-        { role: USER_ROLE.MEMBER },
-        { new: true }
-      );
-
-      if (!deletedFacilityStaff) {
-        throw new BadRequestError(
-          FACILITY_STAFF_MESSAGE.FACILITY_STAFF_NOT_FOUND
-        );
-      }
-      return deletedFacilityStaff;
-    } catch (error) {
-      throw error;
     }
+    const deletedFacilityStaff = await facilityStaffModel.findByIdAndUpdate(
+      id,
+      { $set: { isDeleted: true } },
+      { new: true }
+    );
+
+    await userModel.findByIdAndUpdate(
+      deletedFacilityStaff.userId,
+      { role: USER_ROLE.MEMBER },
+      { new: true }
+    );
+
+    if (!deletedFacilityStaff) {
+      throw new BadRequestError(
+        FACILITY_STAFF_MESSAGE.FACILITY_STAFF_NOT_FOUND
+      );
+    }
+    return deletedFacilityStaff;
   };
 }
 

@@ -1,4 +1,5 @@
 const { BadRequestError } = require("../configs/error.response");
+const { FEEDBACK_MESSAGE } = require("../constants/message");
 const feedbackModel = require("../models/feedback.model");
 
 class FeedbackService {
@@ -9,7 +10,7 @@ class FeedbackService {
       .populate("facilityId", "name address");
 
     if (!feedback) {
-      throw new BadRequestError("Feedback not found");
+      throw new BadRequestError(FEEDBACK_MESSAGE.FEEDBACK_NOT_FOUND);
     }
     return {
       count: feedback.length,
@@ -20,7 +21,7 @@ class FeedbackService {
   getFeedbackById = async (id) => {
     const feedback = await feedbackModel.findById(id);
     if (!feedback) {
-      throw new BadRequestError("Feedback not found");
+      throw new BadRequestError(FEEDBACK_MESSAGE.FEEDBACK_NOT_FOUND);
     }
     return feedback;
   };
@@ -28,9 +29,7 @@ class FeedbackService {
   createFeedback = async (body) => {
     const { userId, facilityId, rating, comment } = body;
     if (!userId || !facilityId || !rating) {
-      throw new BadRequestError(
-        "User ID, Facility ID, and Rating are required"
-      );
+      throw new BadRequestError(FEEDBACK_MESSAGE.CREATE_FAILED);
     }
     const feedback = await feedbackModel.create({
       userId,
@@ -47,7 +46,7 @@ class FeedbackService {
       new: true,
     });
     if (!feedback) {
-      throw new BadRequestError("Feedback not updated");
+      throw new BadRequestError(FEEDBACK_MESSAGE.UPDATE_FEEDBACK_FAILED);
     }
     return feedback;
   };
@@ -57,9 +56,10 @@ class FeedbackService {
       isDeleted: true,
     });
     if (!feedback) {
-      throw new BadRequestError("Feedback not deleted");
+      throw new BadRequestError(FEEDBACK_MESSAGE.DELETE_FEEDBACK_FAILED);
     }
     return feedback;
   };
 }
+
 module.exports = new FeedbackService();

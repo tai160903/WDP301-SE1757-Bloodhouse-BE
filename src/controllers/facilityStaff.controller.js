@@ -4,9 +4,25 @@ const asyncHandler = require("../helpers/asyncHandler");
 const facilityStaffService = require("../services/facilityStaff.service");
 
 class FacilityStaffController {
-  getAllFacilityStaffs = asyncHandler(async (req, res, next) => {
-    const { facilityId } = req.query;
-    const result = await facilityStaffService.getAllFacilityStaff(facilityId);
+  getAllStaffs = asyncHandler(async (req, res, next) => {
+    const result = await facilityStaffService.getAllStaffs();
+    new OK({
+      message: FACILITY_STAFF_MESSAGE.GET_ALL_FACILITY_STAFFS_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  getAllStaffsNotAssignedToFacility = asyncHandler(async (req, res, next) => {
+    const result = await facilityStaffService.getAllStaffsNotAssignedToFacility(req.query);
+    new OK({
+      message: FACILITY_STAFF_MESSAGE.GET_ALL_FACILITY_STAFFS_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  getFacilityStaffByFacilityId = asyncHandler(async (req, res, next) => {
+    const { id } = req.params;
+    const result = await facilityStaffService.getFacilityStaffByFacilityId(id);
     new OK({
       message: FACILITY_STAFF_MESSAGE.GET_ALL_FACILITY_STAFFS_SUCCESS,
       data: result,

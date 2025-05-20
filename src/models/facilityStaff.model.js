@@ -14,8 +14,7 @@ const facilityStaffSchema = new mongoose.Schema(
     },
     facilityId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Facility",
-      required: true,
+      ref: "Facility"
     },
     position: {
       type: String,
