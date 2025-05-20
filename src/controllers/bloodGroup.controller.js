@@ -18,6 +18,11 @@ class BloodGroupController {
     new OK({ message: BLOOD_GROUP_MESSAGE.GET_SUCCESS, data: result }).send(res);
   });
 
+  getBloodGroupPositive = asyncHandler(async (req, res, next) => {
+    const result = await bloodGroupService.getBloodGroupPositive();
+    new OK({ message: BLOOD_GROUP_MESSAGE.GET_SUCCESS, data: result }).send(res);
+  });
+
   updateBloodGroup = asyncHandler(async (req, res, next) => {
     const result = await bloodGroupService.updateBloodGroup(req.params.id, req.body);
     new OK({ message: BLOOD_GROUP_MESSAGE.UPDATE_SUCCESS, data: result }).send(res);

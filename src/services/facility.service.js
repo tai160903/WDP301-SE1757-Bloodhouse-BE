@@ -1,9 +1,5 @@
 const { BadRequestError } = require("../configs/error.response");
-const {
-  STAFF_POSITION,
-  BLOOD_GROUP,
-  BLOOD_COMPONENT,
-} = require("../constants/enum");
+const { STAFF_POSITION } = require("../constants/enum");
 const { FACILITY_MESSAGE } = require("../constants/message");
 const { uploadSingleImage } = require("../helpers/cloudinaryHelper");
 const facilityModel = require("../models/facility.model");
@@ -11,30 +7,40 @@ const facilityImageModel = require("../models/facilityImage.model");
 const crypto = require("crypto");
 const facilityStaffModel = require("../models/facilityStaff.model");
 const facilityScheduleModel = require("../models/facilitySchedule.model");
+const { calculateDistance } = require("../utils/distanceCaculate");
 
 class FacilityService {
-  getAllFacilities = async ({ latitude, longitude }) => {
-    try {
-      // Get current day of week (0-6, where 0 is Sunday)
-      const today = new Date().getDay();
-      const facilities = await facilityModel
-        .find({ isActive: true })
-        .populate({
-          path: "schedules", // giả sử facility có mảng schedules ref đến FacilitySchedule
-          match: { dayOfWeek: today }, // chỉ lấy lịch hôm nay
-        })
-        .populate({
-          path: "mainImage",
-          match: { isMain: true },
-        })
-        .exec();
-      return {
-        total: facilities.length,
-        result: facilities,
-      };
-    } catch (error) {
-      throw new BadRequestError(FACILITY_MESSAGE.GET_ALL_FACILITIES_FAILED);
+  getAllFacilities = async ({ latitude, longitude, distance }) => {
+    const today = new Date().getDay();
+    const facilities = await facilityModel
+      .find({ isActive: true })
+      .populate({
+        path: "schedules", // giả sử facility có mảng schedules ref đến FacilitySchedule
+        match: { dayOfWeek: today }, // chỉ lấy lịch hôm nay
+      })
+      .populate({
+        path: "mainImage",
+        match: { isMain: true },
+      })
+      .exec();
+      
+    let filteredFacilities = facilities;
+    if (latitude && longitude && distance) {
+      filteredFacilities = facilities.filter((facility) => {
+        const facilityDistance = calculateDistance(
+          latitude,
+          longitude,
+          facility.location.coordinates[1],
+          facility.location.coordinates[0]
+        );
+
+        return facilityDistance < distance;
+      });
     }
+    return {
+      total: filteredFacilities.length,
+      result: filteredFacilities,
+    };
   };
 
   getFacilityById = async (id) => {
