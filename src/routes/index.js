@@ -13,5 +13,6 @@ router.use("/blood-donations", require("./bloodDonation"));
 router.use("/content-category", require("./contentCategory"));
 router.use("/content", require("./content"));
 router.use("/facility", require("./facility"));
+router.use("/blood-request", require("./bloodRequest"));
 router.use("/facility-staff", require("./facilityStaff"));
 module.exports = router;

@@ -114,6 +114,16 @@ const USER_MESSAGE = {
   USER_SAVE_FCM_TOKEN_SUCCESS: "Save FCM token successfully",
 };
 
+const BLOOD_REQUEST_MESSAGE = {
+  CREATE_SUCCESS: "Tạo yêu cầu máu thành công",
+  GET_FACILITY_SUCCESS: "Lấy danh sách yêu cầu máu của cơ sở thành công",
+  GET_USER_SUCCESS: "Lấy danh sách yêu cầu máu của người dùng thành công",
+  GET_DETAILS_SUCCESS: "Lấy chi tiết yêu cầu máu thành công",
+  UPDATE_STATUS_SUCCESS: "Cập nhật trạng thái yêu cầu máu thành công",
+  GET_FACILITY_USER_SUCCESS: "Lấy danh sách yêu cầu máu của cơ sở theo người dùng thành công",
+  GET_FACILITY_DETAIL_SUCCESS: "Lấy chi tiết yêu cầu máu của cơ sở thành công",
+};
+
 module.exports = {
   ACCESS_MESSAGE,
   BLOOD_COMPATIBILITY_MESSAGE,
@@ -122,6 +132,7 @@ module.exports = {
   BLOOD_GROUP_MESSAGE,
   CONTENT_CATEGORY_MESSAGE,
   CONTENT_MESSAGE,
+  BLOOD_REQUEST_MESSAGE,
   FACILITY_MESSAGE,
   FACILITY_STAFF_MESSAGE,
   USER_MESSAGE,

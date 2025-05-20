@@ -1,115 +1,342 @@
 "use strict";
 
-const bloodRequestModel = require("../models/bloodRequest.model");
-const { BadRequestError, NotFoundError } = require("../configs/error.response");
+const BloodRequest = require("../models/bloodRequest.model");
 const { getInfoData } = require("../utils");
-const axios = require("axios");
+const { BadRequestError } = require("../configs/error.response");
+const { BLOOD_REQUEST_STATUS, BLOOD_COMPONENT } = require("../constants/enum");
+const bloodGroupModel = require("../models/bloodGroup.model");
+const userModel = require("../models/user.model");
+const { uploadSingleImage } = require("../helpers/cloudinaryHelper");
+const { getPaginatedData } = require("../helpers/mongooseHelper");
 
 class BloodRequestService {
+  requestFields = [
+    "_id",
+    "bloodId",
+    "userId",
+    "patientName",
+    "patientAge",
+    "bloodComponent",
+    "quantity",
+    "isUrgent",
+    "status",
+    "location",
+    "street",
+    "city",
+    "contactName",
+    "contactPhone",
+    "contactEmail",
+    "reason",
+    "medicalDetails",
+    "medicalDocumentUrl",
+    "note",
+    "preferredDate",
+    "consent",
+    "createdAt",
+    "updatedAt"
+  ];
 
   // Tạo yêu cầu máu
-  createBloodRequest = async ({
-    userId,
-    bloodId,
-    bloodComponent,
-    quantity,
-    isUrgent,
-    street,
-    city,
-  }) => {
-    // Kiểm tra user và blood group
-    const [user, bloodGroup] = await Promise.all([
-      bloodRequestModel.db.collection("Users").findOne({ _id: userId }),
-      bloodRequestModel.db.collection("BloodGroups").findOne({ _id: bloodId }),
-    ]);
-    if (!user) throw new NotFoundError("User not found");
-    if (!bloodGroup) throw new NotFoundError("Blood group not found");
-
-    // Lấy tọa độ từ Google Maps Geocoding API
-    let lat = 0,
-      lng = 0;
-    if (street && city) {
-      const address = `${street}, ${city}`;
-      const response = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", {
-        params: {
-          address,
-          key: process.env.GOOGLE_MAPS_API_KEY,
-        },
-      });
-      if (response.data.status === "OK" && response.data.results.length > 0) {
-        ({ lat, lng } = response.data.results[0].geometry.location);
-      } else {
-        throw new BadRequestError("Invalid address");
-      }
+  createBloodRequest = async ({ bloodType, files, ...requestData }, userId) => {
+    // Step 1: Lấy thông tin người dùng
+    const user = await userModel.findById(userId);
+    if (!user) {
+      throw new BadRequestError("Người dùng không tồn tại");
     }
 
-    const request = await bloodRequestModel.create({
+    // Step 2: Resolve bloodId từ bloodType
+    const bloodGroup = await bloodGroupModel.findOne({ name: bloodType });
+    if (!bloodGroup) {
+      throw new BadRequestError("Nhóm máu không hợp lệ");
+    }
+
+    // Step 3: Validate dữ liệu bắt buộc
+    if (
+      !requestData.bloodComponent ||
+      !requestData.quantity ||
+      !requestData.preferredDate ||
+      !requestData.consent
+    ) {
+      throw new BadRequestError(
+        "Thiếu thông tin bắt buộc: thành phần máu, số lượng, ngày yêu cầu, hoặc đồng ý"
+      );
+    }
+
+    if (!Object.values(BLOOD_COMPONENT).includes(requestData.bloodComponent)) {
+      throw new BadRequestError("Thành phần máu không hợp lệ");
+    }
+
+    if (parseInt(requestData.quantity) < 1) {
+      throw new BadRequestError("Số lượng phải là số dương");
+    }
+
+    // Step 4: Xử lý file tải lên (1-5 file)
+    let medicalDocumentUrls = [];
+    if (files && files.length > 0) {
+      if (files.length > 5) {
+        throw new BadRequestError("Chỉ được tải lên tối đa 5 file");
+      }
+      if (files.length < 1) {
+        throw new BadRequestError("Cần tải lên ít nhất 1 file");
+      }
+      medicalDocumentUrls = await Promise.all(
+        files.map((file) =>
+          uploadSingleImage({
+            file,
+            folder: "bloodhouse/medical-documents",
+            options: { resource_type: "auto" },
+          }).then((result) => result.url)
+        )
+      );
+    } else {
+      throw new BadRequestError("Cần tải lên ít nhất 1 file tài liệu y tế");
+    }
+
+    // Step 5: Tạo yêu cầu máu
+    const bloodRequest = await BloodRequest.create({
+      bloodId: bloodGroup._id,
       userId,
-      bloodId,
-      bloodComponent,
-      quantity,
-      isUrgent,
-      street,
-      city,
-      lat,
-      lng,
+      patientName: user.fullName,
+      patientAge: user.age || "",
+      contactName: user.fullName,
+      contactPhone: user.phone || "",
+      contactEmail: user.email,
+      bloodComponent: requestData.bloodComponent,
+      quantity: parseInt(requestData.quantity),
+      isUrgent: requestData.isUrgent === "true" || requestData.isUrgent === true,
+      status: BLOOD_REQUEST_STATUS.PENDING,
+      location: {
+        type: "Point",
+        coordinates: [parseFloat(requestData.lng) || 0, parseFloat(requestData.lat) || 0],
+      },
+      street: requestData.street,
+      city: requestData.city,
+      reason: requestData.reason,
+      medicalDetails: requestData.medicalDetails,
+      medicalDocumentUrl: medicalDocumentUrls,
+      note: requestData.note,
+      preferredDate: new Date(requestData.preferredDate),
+      consent: requestData.consent === "true" || requestData.consent === true,
+      facilityId: requestData.facilityId,
     });
 
+    // Step 6: Populate và trả về dữ liệu
+    const result = await bloodRequest.populate("userId", "fullName email phone");
     return getInfoData({
-      fields: [
-        "_id",
-        "userId",
-        "bloodId",
-        "bloodComponent",
-        "quantity",
-        "isUrgent",
-        "status",
-        "street",
-        "city",
-        "lat",
-        "lng",
+        fields: ["_id", "bloodId", "userId", "facilityId", "patientName", "patientAge", "bloodComponent", "quantity", "isUrgent", "status", "location", "street", "city", "contactName", "contactPhone", "contactEmail", "reason", "medicalDetails", "medicalDocumentUrl", "note", "preferredDate", "consent", "createdAt", "updatedAt"],
+        object: result,
+      });
+    };
+
+  // Lấy danh sách yêu cầu máu của cơ sở
+  getFacilityBloodRequests = async (facilityId, { page = 1, limit = 10, status, search, sortBy = "createdAt", sortOrder = -1 }) => {
+    const query = { facilityId };
+    if (status) {
+      if (!Object.values(BLOOD_REQUEST_STATUS).includes(status)) {
+        throw new BadRequestError("Trạng thái không hợp lệ");
+      }
+      query.status = status;
+    }
+
+    // Validate sortBy
+    const validSortFields = ["createdAt", "updatedAt", "quantity", "status", "preferredDate"];
+    if (!validSortFields.includes(sortBy)) {
+      throw new BadRequestError(
+        `Trường sắp xếp không hợp lệ. Các trường hợp lệ: ${validSortFields.join(", ")}`
+      );
+    }
+
+    // Xây dựng object sort
+    const sort = { [sortBy]: parseInt(sortOrder) };
+
+    return await getPaginatedData({
+      model: BloodRequest,
+      query,
+      page,
+      limit,
+      select: this.requestFields.join(" "),
+      populate: [
+        { path: "bloodId", select: "name" },
+        { path: "userId", select: "fullName email phone" },
       ],
-      object: request,
+      search,
+      searchFields: ["patientName", "contactName", "reason"],
+      sort,
     });
-  };
+  }
 
-  // Lấy danh sách yêu cầu máu
-  getBloodRequests = async ({ status, bloodId, isUrgent, limit = 10, page = 1 }) => {
-    const query = {};
-    if (status) query.status = status;
-    if (bloodId) query.bloodId = bloodId;
-    if (isUrgent !== undefined) query.isUrgent = isUrgent;
-
-    const skip = (page - 1) * limit;
-    const requests = await bloodRequestModel
-      .find(query)
+  // Lấy chi tiết yêu cầu máu của người dùng
+  getUserBloodRequestDetails = async (id, userId) => {
+    const bloodRequest = await BloodRequest.findOne({ _id: id, userId })
+      .populate("bloodId", "name")
       .populate("userId", "fullName email phone")
-      .populate("bloodId", "type")
-      .skip(skip)
-      .limit(limit)
+      .populate("facilityId", "name address")
+      .populate("staffId", "fullName email phone")
       .lean();
 
-    return requests.map((req) =>
-      getInfoData({
-        fields: [
-          "_id",
-          "userId",
-          "bloodId",
-          "bloodComponent",
-          "quantity",
-          "isUrgent",
-          "status",
-          "street",
-          "city",
-          "lat",
-          "lng",
-          "createdAt",
-        ],
-        object: req,
-      })
-    );
-  };
+    if (!bloodRequest) {
+      throw new BadRequestError("Không tìm thấy yêu cầu máu hoặc bạn không có quyền truy cập");
+    }
 
+    return {
+      data: getInfoData({
+        fields: this.requestFields.concat(["facilityId", "staffId"]),
+        object: bloodRequest,
+      }),
+    };
+  }
+
+  // Lấy danh sách yêu cầu máu của người dùng
+  getUserBloodRequests = async (userId, { page = 1, limit = 10, status, search, sortBy = "createdAt", sortOrder = -1 }) =>{
+    const query = { userId };
+    if (status) {
+      if (!Object.values(BLOOD_REQUEST_STATUS).includes(status)) {
+        throw new BadRequestError("Trạng thái không hợp lệ");
+      }
+      query.status = status;
+    }
+
+    // Validate sortBy
+    const validSortFields = ["createdAt", "updatedAt", "quantity", "status", "preferredDate"];
+    if (!validSortFields.includes(sortBy)) {
+      throw new BadRequestError(
+        `Trường sắp xếp không hợp lệ. Các trường hợp lệ: ${validSortFields.join(", ")}`
+      );
+    }
+
+    // Xây dựng object sort
+    const sort = { [sortBy]: parseInt(sortOrder) };
+
+    return await getPaginatedData({
+      model: BloodRequest,
+      query,
+      page,
+      limit,
+      select: this.requestFields.join(" "),
+      populate: [
+        { path: "bloodId", select: "name" },
+        { path: "userId", select: "fullName email phone" },
+        { path: "facilityId", select: "name address" },
+      ],
+      search,
+      searchFields: ["patientName", "contactName", "reason"],
+      sort,
+    });
+  }
+
+  // Lấy chi tiết yêu cầu máu
+  getBloodRequestDetails = async (id, userId, facilityId) => {
+    const query = { _id: id };
+    if (!userId && !facilityId) {
+      throw new BadRequestError("Yêu cầu userId hoặc facilityId để xem chi tiết");
+    }
+    if (userId) {
+      query.userId = userId;
+    } else if (facilityId) {
+      query.facilityId = facilityId;
+    }
+
+    const bloodRequest = await BloodRequest.findOne(query)
+      .populate("bloodId", "name")
+      .populate("userId", "fullName email phone")
+      .populate("facilityId", "name address")
+      .populate("staffId", "fullName email phone")
+      .lean();
+
+    if (!bloodRequest) {
+      throw new BadRequestError("Không tìm thấy yêu cầu máu hoặc bạn không có quyền truy cập");
+    }
+
+    return {
+      data: getInfoData({
+        fields: this.requestFields.concat(["facilityId", "staffId"]),
+        object: bloodRequest,
+      }),
+    };
+  }
+
+  // Lấy danh sách yêu cầu máu của cơ sở theo người dùng
+  getFacilityBloodRequestsByUser = async (facilityId, userId, { page = 1, limit = 10, status, search, sortBy = "createdAt", sortOrder = -1 }) => {
+    const query = { facilityId, userId };
+    if (status) {
+      if (!Object.values(BLOOD_REQUEST_STATUS).includes(status)) {
+        throw new BadRequestError("Trạng thái không hợp lệ");
+      }
+      query.status = status;
+    }
+
+    // Validate sortBy
+    const validSortFields = ["createdAt", "updatedAt", "quantity", "status", "preferredDate"];
+    if (!validSortFields.includes(sortBy)) {
+      throw new BadRequestError(
+        `Trường sắp xếp không hợp lệ. Các trường hợp lệ: ${validSortFields.join(", ")}`
+      );
+    }
+
+    // Xây dựng object sort
+    const sort = { [sortBy]: parseInt(sortOrder) };
+
+    return await getPaginatedData({
+      model: BloodRequest,
+      query,
+      page,
+      limit,
+      select: this.requestFields.join(" "),
+      populate: [
+        { path: "bloodId", select: "name" },
+        { path: "userId", select: "fullName email phone" },
+      ],
+      search,
+      searchFields: ["patientName", "contactName", "reason"],
+      sort,
+    });
+  }
+
+  // Lấy chi tiết yêu cầu máu của cơ sở
+  getFacilityBloodRequestDetails = async (id, facilityId) => {
+    const bloodRequest = await BloodRequest.findOne({ _id: id, facilityId })
+      .populate("bloodId", "name")
+      .populate("userId", "fullName email phone")
+      .populate("facilityId", "name address")
+      .populate("staffId", "fullName email phone")
+      .lean();
+
+    if (!bloodRequest) {
+      throw new BadRequestError("Không tìm thấy yêu cầu máu hoặc không thuộc cơ sở này");
+    }
+
+    return {
+      data: getInfoData({
+        fields: this.requestFields.concat(["facilityId", "staffId"]),
+        object: bloodRequest,
+      }),
+    };
+  }
+
+  // Cập nhật trạng thái yêu cầu máu
+  updateBloodRequestStatus = async (id, facilityId, { status, staffId }) => {
+    if (!Object.values(BLOOD_REQUEST_STATUS).includes(status)) {
+      throw new BadRequestError("Trạng thái không hợp lệ");
+    }
+
+    const bloodRequest = await BloodRequest.findOne({ _id: id, facilityId });
+    if (!bloodRequest) {
+      throw new BadRequestError("Không tìm thấy yêu cầu máu hoặc không thuộc cơ sở này");
+    }
+
+    bloodRequest.status = status;
+    if (staffId) {
+      bloodRequest.staffId = staffId;
+    }
+    await bloodRequest.save();
+
+    return {
+      data: getInfoData({
+        fields: ["_id", "status", "staffId", "updatedAt"],
+        object: bloodRequest,
+      }),
+    };
+  }
 }
 
 module.exports = new BloodRequestService();

@@ -347,7 +347,7 @@ class BloodDonationService {
   // Lấy chi tiết một bản ghi hiến máu
   getBloodDonationDetail = async (donationId, userId, role) => {
     const query =
-      role === USER_ROLE.STAFF || role === USER_ROLE.MANAGER
+      role === USER_ROLE.NURSE || role === USER_ROLE.MANAGER || role === USER_ROLE.DOCTOR
         ? { _id: donationId }
         : { _id: donationId, userId };
     const donation = await bloodDonationModel
