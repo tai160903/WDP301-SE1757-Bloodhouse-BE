@@ -1,6 +1,6 @@
 const { BadRequestError } = require("../configs/error.response");
 const { STAFF_POSITION } = require("../constants/enum");
-const { FACILITY_MESSAGE } = require("../constants/message");
+const { FACILITY_MESSAGE, FACILITY_STAFF_MESSAGE } = require("../constants/message");
 const { uploadSingleImage } = require("../helpers/cloudinaryHelper");
 const facilityModel = require("../models/facility.model");
 const facilityImageModel = require("../models/facilityImage.model");
@@ -113,33 +113,75 @@ class FacilityService {
     const staffEntries = [];
 
     if (!managerId) {
-      throw new BadRequestError("Cơ sở phải có ít nhất 1 quản lý");
+      throw new BadRequestError(FACILITY_MESSAGE.MANAGER_REQUIRED);
+    }
+
+    // Validate manager
+    const manager = await facilityStaffModel.findOne({
+      userId: managerId,
+      facilityId: { $exists: false },  // Make sure not assigned to any facility
+      isDeleted: { $ne: true },
+      position: STAFF_POSITION.MANAGER,
+    });
+    if (!manager) {
+      throw new BadRequestError(FACILITY_STAFF_MESSAGE.MANAGER_NOT_FOUND);
     }
     staffEntries.push({
       facilityId,
       userId: managerId,
       position: STAFF_POSITION.MANAGER,
+      assignedAt: new Date()
     });
 
+    // Validate doctors
     if (Array.isArray(doctorIds) && doctorIds.length > 0) {
+      const existingDoctors = await facilityStaffModel.find({
+        userId: { $in: doctorIds },
+        facilityId: { $exists: false },
+        isDeleted: { $ne: true },
+        position: STAFF_POSITION.DOCTOR
+      });
+
+      if (existingDoctors.length !== doctorIds.length) {
+        throw new BadRequestError(FACILITY_STAFF_MESSAGE.DOCTOR_NOT_FOUND);
+      }
+
       const doctorEntries = doctorIds.map((doctorId) => ({
         facilityId,
         userId: doctorId,
         position: STAFF_POSITION.DOCTOR,
+        assignedAt: new Date()
       }));
       staffEntries.push(...doctorEntries);
     }
 
+    // Validate nurses
     if (Array.isArray(nurseIds) && nurseIds.length > 0) {
+      const existingNurses = await facilityStaffModel.find({
+        userId: { $in: nurseIds },
+        facilityId: { $exists: false },
+        isDeleted: { $ne: true },
+        position: STAFF_POSITION.NURSE
+      });
+
+      if (existingNurses.length !== nurseIds.length) {
+        throw new BadRequestError(FACILITY_STAFF_MESSAGE.NURSE_NOT_FOUND);
+      }
+
       const nurseEntries = nurseIds.map((nurseId) => ({
         facilityId,
         userId: nurseId,
         position: STAFF_POSITION.NURSE,
+        assignedAt: new Date()
       }));
       staffEntries.push(...nurseEntries);
     }
 
-    await facilityStaffModel.insertMany(staffEntries);
+    // Update all staff entries at once
+    await facilityStaffModel.updateMany(
+      { userId: { $in: staffEntries.map(entry => entry.userId) } },
+      { $set: { facilityId: facilityId, assignedAt: new Date() } }
+    );
 
     // 5. Tạo lịch hoạt động mặc định (cả tuần, 8h - 17h)
     const defaultSchedules = Array.from({ length: 7 }, (_, day) => ({
