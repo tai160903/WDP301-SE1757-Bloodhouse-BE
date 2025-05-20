@@ -1677,7 +1677,6 @@ paths:
                 properties:
                   message:
                     type: string
-
   /blood-component:
     get:
       summary: Get all blood components
@@ -1800,7 +1799,6 @@ paths:
                 properties:
                   message:
                     type: string
-
   /blood-compatibility:
     get:
       summary: Get blood compatibility information
@@ -1899,7 +1897,6 @@ paths:
                     type: array
                     items:
                       type: string
-
   /content:
     post:
       summary: Create new content
@@ -2045,7 +2042,6 @@ paths:
                         updatedAt:
                           type: string
                           format: date-time
-
   /content/{id}:
     put:
       summary: Update content
@@ -2122,7 +2118,6 @@ paths:
                       updatedAt:
                         type: string
                         format: date-time
-
   /content-category:
     post:
       summary: Create new content category
@@ -2203,7 +2198,6 @@ paths:
                         updatedAt:
                           type: string
                           format: date-time
-
   /content-category/{id}:
     put:
       summary: Update content category

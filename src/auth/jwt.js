@@ -1,6 +1,5 @@
-import JWT from "jsonwebtoken";
-
-export const createTokenPair = async (
+const JWT = require("jsonwebtoken");
+ const createTokenPair = async (
   payload,
   accessTokenKey,
   refreshTokenKey,
@@ -27,7 +26,7 @@ export const createTokenPair = async (
   }
 };
 
-export const generateToken = async (userInfo, secretSignature, tokenLife) => {
+ const generateToken = async (userInfo, secretSignature, tokenLife) => {
   try {
     const token = await JWT.sign(userInfo, secretSignature, {
       expiresIn: tokenLife,
@@ -40,10 +39,16 @@ export const generateToken = async (userInfo, secretSignature, tokenLife) => {
 }
 
 
-export const verifyToken = async (token, secretSignature) => {
+ const verifyToken = async (token, secretSignature) => {
   try {
     return JWT.verify(token, secretSignature);
   } catch (error) {
     throw new Error(`Token verification failed: ${error.message}`);
   }
+};
+
+module.exports = {
+  createTokenPair,
+  generateToken,
+  verifyToken,
 };
