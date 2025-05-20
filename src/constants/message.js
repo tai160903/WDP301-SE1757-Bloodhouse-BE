@@ -72,6 +72,22 @@ const USER_MESSAGE = {
   USER_SAVE_FCM_TOKEN_SUCCESS: "Save FCM token successfully",
 };
 
+
+const FACILITY_MESSAGE = {
+  GET_ALL_FACILITIES_SUCCESS: "Get all facilities successfully",
+  GET_ALL_FACILITIES_FAILED: "Get all facilities failed",
+  GET_FACILITY_BY_ID_SUCCESS: "Get facility by id successfully",
+  GET_FACILITY_BY_ID_FAILED: "Get facility by id failed",
+  CREATE_FACILITY_SUCCESS: "Create facility successfully",
+  CREATE_FACILITY_FAILED: "Create facility failed",
+  UPDATE_FACILITY_SUCCESS: "Update facility successfully",
+  UPDATE_FACILITY_FAILED: "Update facility failed",
+  DELETE_FACILITY_SUCCESS: "Delete facility successfully",
+  DELETE_FACILITY_FAILED: "Delete facility failed",
+  FACILITY_NOT_FOUND: "Facility not found",
+  FACILITY_ALREADY_EXISTS: "Facility already exists",
+};
+
 const BLOOD_DONATION_REGISTRATION_MESSAGE = {
   CREATE_SUCCESS: "Create blood donation registration successfully",
   UPDATE_SUCCESS: "Update blood donation registration successfully",
@@ -86,16 +102,14 @@ const BLOOD_DONATION_REGISTRATION_MESSAGE = {
   GET_DETAIL_FAILED: "Get blood donation registration detail failed",
 };
 
-
-
 module.exports = {
   ACCESS_MESSAGE,
   BLOOD_COMPATIBILITY_MESSAGE,
   BLOOD_COMPONENT_MESSAGE,
   BLOOD_GROUP_MESSAGE,
   USER_MESSAGE,
+  FACILITY_MESSAGE,
   BLOOD_DONATION_REGISTRATION_MESSAGE,
   CONTENT_CATEGORY_MESSAGE,
   CONTENT_MESSAGE,
-
 };

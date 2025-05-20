@@ -31,8 +31,17 @@ class ContentService {
     const contents = await contentModel
       .find()
       .populate("categoryId")
-      .populate("authorId", "username avatar fullName");
+      .populate("authorId", "username avatar fullName")
+      .sort({ createdAt: -1 });
     return contents;
+  };
+
+  getContentById = async (id) => {
+    const content = await contentModel
+      .findById(id)
+      .populate("categoryId")
+      .populate("authorId", "username avatar fullName");
+    return content;
   };
 
   updateContent = async (id, updateData, file) => {
