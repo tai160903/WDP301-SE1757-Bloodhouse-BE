@@ -35,6 +35,20 @@ const BLOOD_COMPONENT_MESSAGE = {
   GET_FAILED: "Get blood component failed",
 };
 
+const BLOOD_DONATION_REGISTRATION_MESSAGE = {
+  CREATE_SUCCESS: "Create blood donation registration successfully",
+  UPDATE_SUCCESS: "Update blood donation registration successfully",
+  UPDATE_FAILED: "Update blood donation registration failed",
+  GET_SUCCESS: "Get blood donation registration successfully",
+  GET_FAILED: "Get blood donation registration failed",
+  APPROVE_SUCCESS: "Approve blood donation registration successfully",
+  APPROVE_FAILED: "Approve blood donation registration failed",
+  REJECT_SUCCESS: "Reject blood donation registration successfully",
+  REJECT_FAILED: "Reject blood donation registration failed",
+  GET_DETAIL_SUCCESS: "Get blood donation registration detail successfully",
+  GET_DETAIL_FAILED: "Get blood donation registration detail failed",
+};
+
 const BLOOD_GROUP_MESSAGE = {
   CREATE_SUCCESS: "Create blood group successfully",
   CREATE_FAILED: "Create blood group failed",
@@ -58,21 +72,6 @@ const CONTENT_MESSAGE = {
   UPDATE_FAILED: "Update content failed",
 };
 
-const USER_MESSAGE = {
-  USER_NOT_FOUND: "User not found",
-  USER_ALREADY_EXISTS: "User already exists",
-  USER_UPDATE_SUCCESS: "User updated successfully",
-  USER_UPDATE_FAILED: "User update failed",
-  USER_DELETE_SUCCESS: "User deleted successfully",
-  USER_DELETE_FAILED: "User delete failed",
-  USER_GET_PROFILE_SUCCESS: "Get user profile successfully",
-  USER_UPDATE_PROFILE_SUCCESS: "Update user profile successfully",
-  USER_CHANGE_PASSWORD_SUCCESS: "Change password successfully",
-  USER_CHANGE_AVATAR_SUCCESS: "Update avatar successfully",
-  USER_SAVE_FCM_TOKEN_SUCCESS: "Save FCM token successfully",
-};
-
-
 const FACILITY_MESSAGE = {
   GET_ALL_FACILITIES_SUCCESS: "Get all facilities successfully",
   GET_ALL_FACILITIES_FAILED: "Get all facilities failed",
@@ -88,28 +87,42 @@ const FACILITY_MESSAGE = {
   FACILITY_ALREADY_EXISTS: "Facility already exists",
 };
 
-const BLOOD_DONATION_REGISTRATION_MESSAGE = {
-  CREATE_SUCCESS: "Create blood donation registration successfully",
-  UPDATE_SUCCESS: "Update blood donation registration successfully",
-  UPDATE_FAILED: "Update blood donation registration failed",
-  GET_SUCCESS: "Get blood donation registration successfully",
-  GET_FAILED: "Get blood donation registration failed",
-  APPROVE_SUCCESS: "Approve blood donation registration successfully",
-  APPROVE_FAILED: "Approve blood donation registration failed",
-  REJECT_SUCCESS: "Reject blood donation registration successfully",
-  REJECT_FAILED: "Reject blood donation registration failed",
-  GET_DETAIL_SUCCESS: "Get blood donation registration detail successfully",
-  GET_DETAIL_FAILED: "Get blood donation registration detail failed",
+const FACILITY_STAFF_MESSAGE = {
+  GET_ALL_FACILITY_STAFFS_SUCCESS: "Get all facility staffs successfully",
+  GET_ALL_FACILITY_STAFFS_FAILED: "Get all facility staffs failed",
+  GET_FACILITY_STAFF_BY_ID_SUCCESS: "Get facility staff by id successfully",
+  GET_FACILITY_STAFF_BY_ID_FAILED: "Get facility staff by id failed",
+  CREATE_FACILITY_STAFF_SUCCESS: "Create facility staff successfully",
+  CREATE_FACILITY_STAFF_FAILED: "Create facility staff failed",
+  UPDATE_FACILITY_STAFF_SUCCESS: "Update facility staff successfully",
+  UPDATE_FACILITY_STAFF_FAILED: "Update facility staff failed",
+  DELETE_FACILITY_STAFF_SUCCESS: "Delete facility staff successfully",
+  DELETE_FACILITY_STAFF_FAILED: "Delete facility staff failed",
+};
+
+const USER_MESSAGE = {
+  USER_NOT_FOUND: "User not found",
+  USER_ALREADY_EXISTS: "User already exists",
+  USER_UPDATE_SUCCESS: "User updated successfully",
+  USER_UPDATE_FAILED: "User update failed",
+  USER_DELETE_SUCCESS: "User deleted successfully",
+  USER_DELETE_FAILED: "User delete failed",
+  USER_GET_PROFILE_SUCCESS: "Get user profile successfully",
+  USER_UPDATE_PROFILE_SUCCESS: "Update user profile successfully",
+  USER_CHANGE_PASSWORD_SUCCESS: "Change password successfully",
+  USER_CHANGE_AVATAR_SUCCESS: "Update avatar successfully",
+  USER_SAVE_FCM_TOKEN_SUCCESS: "Save FCM token successfully",
 };
 
 module.exports = {
   ACCESS_MESSAGE,
   BLOOD_COMPATIBILITY_MESSAGE,
   BLOOD_COMPONENT_MESSAGE,
-  BLOOD_GROUP_MESSAGE,
-  USER_MESSAGE,
-  FACILITY_MESSAGE,
   BLOOD_DONATION_REGISTRATION_MESSAGE,
+  BLOOD_GROUP_MESSAGE,
   CONTENT_CATEGORY_MESSAGE,
   CONTENT_MESSAGE,
+  FACILITY_MESSAGE,
+  FACILITY_STAFF_MESSAGE,
+  USER_MESSAGE,
 };
