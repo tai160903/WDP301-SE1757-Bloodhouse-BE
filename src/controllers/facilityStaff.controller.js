@@ -5,7 +5,11 @@ const facilityStaffService = require("../services/facilityStaff.service");
 
 class FacilityStaffController {
   getAllStaffs = asyncHandler(async (req, res, next) => {
-    const result = await facilityStaffService.getAllStaffs();
+    const { limit, page } = req.query;
+    const result = await facilityStaffService.getAllStaffs(
+      parseInt(limit) || 10,
+      parseInt(page) || 1
+    );
     new OK({
       message: FACILITY_STAFF_MESSAGE.GET_ALL_FACILITY_STAFFS_SUCCESS,
       data: result,
@@ -13,7 +17,9 @@ class FacilityStaffController {
   });
 
   getAllStaffsNotAssignedToFacility = asyncHandler(async (req, res, next) => {
-    const result = await facilityStaffService.getAllStaffsNotAssignedToFacility(req.query);
+    const result = await facilityStaffService.getAllStaffsNotAssignedToFacility(
+      req.query
+    );
     new OK({
       message: FACILITY_STAFF_MESSAGE.GET_ALL_FACILITY_STAFFS_SUCCESS,
       data: result,
