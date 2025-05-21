@@ -140,6 +140,7 @@ const BLOOD_REQUEST_MESSAGE = {
 
 const FEEDBACK_MESSAGE = {
   FEEDBACK_NOT_FOUND: "Phản hồi không tồn tại",
+  CREATE_SUCCESS: "Tạo phản hồi thành công",
   CREATE_FAILED: "Tạo phản hồi thất bại",
   GET_ALL_FEEDBACK_SUCCESS: "Lấy danh sách phản hồi thành công",
   GET_ALL_FEEDBACK_FAILED: "Lấy danh sách phản hồi thất bại",
@@ -149,6 +150,7 @@ const FEEDBACK_MESSAGE = {
   UPDATE_FEEDBACK_FAILED: "Cập nhật phản hồi thất bại",
   DELETE_FEEDBACK_SUCCESS: "Xóa phản hồi thành công",
   DELETE_FEEDBACK_FAILED: "Xóa phản hồi thất bại",
+  NOT_AUTHORIZED: "Bạn không có quyền truy cập vào phản hồi này",
 };
 
 module.exports = {

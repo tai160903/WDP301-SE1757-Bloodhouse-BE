@@ -5,12 +5,22 @@ const facilityStaffModel = require("../models/facilityStaff.model");
 const userModel = require("../models/user.model");
 
 class FacilityStaffService {
-  getAllStaffs = async () => {
+  getAllStaffs = async (limit = 10, page = 1) => {
+    const skip = (page - 1) * limit;
+
     const result = await facilityStaffModel
       .find({ isDeleted: { $ne: true } })
       .populate("userId", "fullName email phone avatar")
-      .populate("facilityId", "name address");
-    return result;
+      .populate("facilityId", "name address")
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    return {
+      total: result.length,
+      page,
+      result,
+    };
   };
 
   getAllStaffsNotAssignedToFacility = async ({ position }) => {
