@@ -150,6 +150,11 @@ const FEEDBACK_MESSAGE = {
   NOT_AUTHORIZED: "Bạn không có quyền truy cập vào phản hồi này",
 };
 
+const HEALTH_CHECK_MESSAGE = {
+  CREATE_SUCCESS: "Tạo kiểm tra sức khỏe thành công",
+  UPDATE_SUCCESS: "Cập nhật kiểm tra sức khỏe thành công",
+};
+
 module.exports = {
   ACCESS_MESSAGE,
   BLOOD_COMPATIBILITY_MESSAGE,
@@ -163,4 +168,5 @@ module.exports = {
   FACILITY_STAFF_MESSAGE,
   USER_MESSAGE,
   FEEDBACK_MESSAGE,
+  HEALTH_CHECK_MESSAGE,
 };

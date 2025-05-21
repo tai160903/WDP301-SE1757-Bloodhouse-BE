@@ -55,6 +55,7 @@ const BLOOD_DONATION_REGISTRATION_STATUS = {
   REJECTED: "rejected",
   CANCELLED: "cancelled",
   COMPLETED: "completed",
+  NO_SHOW: "no_show",
 };
 
 const BLOOD_DONATION_REGISTRATION_SOURCE = {

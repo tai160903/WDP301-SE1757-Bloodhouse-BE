@@ -38,6 +38,8 @@ const checkAuth = async (req, res, next) => {
         userId: decoded.userId,
         email: decoded.email,
         role: decoded.role,
+        staffId: decoded.staffId,
+        facilityId: decoded.facilityId,
       };
       next();
     } catch (error) {
@@ -146,6 +148,4 @@ const checkRole = (allowedRoles) => {
   };
 };
 
-
-
-module.exports = { checkAuth, checkRole  };
+module.exports = { checkAuth, checkRole };

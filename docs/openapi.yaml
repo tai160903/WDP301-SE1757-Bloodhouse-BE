@@ -1449,7 +1449,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
     put:
-      summary: Phê duyệt hoặc cập nhật đăng ký hiến máu
+      summary: Cập nhật trạng thái đăng ký hiến máu (phê duyệt hoặc ghi nhận trạng thái)
       tags:
         - Blood Donation Registration
       security:
@@ -1460,7 +1460,7 @@ paths:
           schema:
             type: string
           required: true
-          description: ID đăng ký hiến máu
+          description: ID đăng ký hiến máu cần cập nhật
       requestBody:
         required: true
         content:
@@ -1470,7 +1470,20 @@ paths:
               properties:
                 status:
                   type: string
-                  enum: [pending, approved, rejected]
+                  description: Trạng thái mới của đăng ký hiến máu
+                  enum:
+                    - approved
+                    - rejected
+                    - pending
+                    - completed
+                    - cancelled
+                    - no_show
+                staffId:
+                  type: string
+                  description: ID nhân viên được phân công (bắt buộc khi status = approved)
+                notes:
+                  type: string
+                  description: Ghi chú thêm (tuỳ chọn)
               required:
                 - status
       responses:
@@ -1486,6 +1499,12 @@ paths:
                     example: Cập nhật đăng ký hiến máu thành công
                   data:
                     $ref: "#/components/schemas/BloodDonationRegistration"
+        "400":
+          description: Yêu cầu không hợp lệ (ví dụ thiếu staffId khi approved hoặc status không hợp lệ)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Không tìm thấy đăng ký
           content:
@@ -2404,6 +2423,148 @@ paths:
                 properties:
                   result:
                     type: boolean
+  /health-checks:
+    post:
+      summary: Create a new health check
+      description: Allows a nurse to create a health check record for a blood donation registration. The staff ID is derived from the authenticated user's token.
+      tags:
+        - Health Checks
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - registrationId
+                - userId
+                - doctorId
+                - checkDate
+              properties:
+                registrationId:
+                  type: string
+                  description: The ID of the blood donation registration
+                  example: "60f7b3a4b9c4e1234567890"
+                userId:
+                  type: string
+                  description: The ID of the user (donor) being checked
+                  example: "60f7b3a4b9c4e1234567891"
+                doctorId:
+                  type: string
+                  description: The ID of the doctor assigned to review the health check
+                  example: "60f7b3a4b9c4e1234567892"
+                checkDate:
+                  type: string
+                  format: date-time
+                  description: The date and time of the health check, must not be in the future
+                  example: "2025-05-20T10:00:00Z"
+            example:
+              registrationId: "60f7b3a4b9c4e1234567890"
+              userId: "60f7b3a4b9c4e1234567891"
+              doctorId: "60f7b3a4b9c4e1234567892"
+              checkDate: "2025-05-20T10:00:00Z"
+      responses:
+        "201":
+          description: Health check created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Create health check successfully"
+                  data:
+                    $ref: "#/components/schemas/HealthCheck"
+        "400":
+          description: Invalid input (e.g., missing required fields, invalid IDs, or future checkDate)
+        "403":
+          description: Forbidden (requires nurse role)
+  /health-checks/{id}:
+    patch:
+      summary: Update a health check
+      tags:
+        - Health Checks
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+          description: Health check ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                isEligible:
+                  { type: boolean, description: "Eligibility for donation" }
+                bloodPressure:
+                  {
+                    type: string,
+                    example: "120/80 mmHg",
+                    description: "Blood pressure",
+                  }
+                hemoglobin:
+                  {
+                    type: number,
+                    minimum: 10,
+                    maximum: 20,
+                    description: "Hemoglobin level in g/dL",
+                  }
+                weight:
+                  {
+                    type: number,
+                    minimum: 40,
+                    maximum: 150,
+                    description: "Weight in kg",
+                  }
+                pulse:
+                  {
+                    type: number,
+                    minimum: 50,
+                    maximum: 120,
+                    description: "Pulse in bpm",
+                  }
+                temperature:
+                  {
+                    type: number,
+                    minimum: 35,
+                    maximum: 38,
+                    description: "Temperature in °C",
+                  }
+                generalCondition:
+                  {
+                    type: string,
+                    example: "Good",
+                    description: "General condition",
+                  }
+                deferralReason:
+                  { type: string, description: "Reason for ineligibility" }
+                notes: { type: string, description: "Additional notes" }
+      responses:
+        "200":
+          description: Health check updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    {
+                      type: string,
+                      example: "Update health check successfully",
+                    }
+                  data: { $ref: "#/components/schemas/HealthCheck" }
+        "400":
+          description: Invalid input
+        "403":
+          description: Forbidden (doctor role required)
 
 components:
   securitySchemes:
@@ -2684,6 +2845,30 @@ components:
         limit: { type: integer }
         total: { type: integer }
         totalPages: { type: integer }
+    HealthCheck:
+      type: object
+      properties:
+        _id: { type: string }
+        registrationId: { type: string }
+        userId:
+          {
+            type: object,
+            properties: { fullName: { type: string }, email: { type: string } },
+          }
+        doctorId: { type: object, properties: { position: { type: string } } }
+        staffId: { type: object, properties: { position: { type: string } } }
+        checkDate: { type: string, format: date-time }
+        isEligible: { type: boolean }
+        bloodPressure: { type: string }
+        hemoglobin: { type: number }
+        weight: { type: number }
+        pulse: { type: number }
+        temperature: { type: number }
+        generalCondition: { type: string }
+        deferralReason: { type: string }
+        notes: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
     ErrorResponse:
       type: object
       properties:

@@ -12,6 +12,7 @@ const {
   validateEmail,
   validateIdCard,
 } = require("../utils/validation");
+const facilityStaffModel = require("../models/facilityStaff.model");
 
 class AccessService {
   signUp = async ({
@@ -183,9 +184,30 @@ class AccessService {
       throw new Error("Secret keys are not defined in environment variables");
     }
 
+    const payload = {
+      userId: foundUser._id,
+      email: foundUser.email,
+      role: foundUser.role,
+    };
+    // Kiểm tra role user
+    if (
+      foundUser.role === USER_ROLE.MANAGER ||
+      foundUser.role === USER_ROLE.DOCTOR ||
+      foundUser.role === USER_ROLE.NURSE
+    ) {
+      const staff = await facilityStaffModel.findOne({
+        userId: foundUser._id,
+      });
+
+      if (staff) {
+        payload.facilityId = staff.facilityId;
+        payload.staffId = staff._id;
+      }
+    }
+
     // Step 5: Tạo token pair
     const tokens = await createTokenPair(
-      { userId: foundUser._id, email: foundUser.email, role: foundUser.role },
+      payload,
       accessTokenKey,
       refreshTokenKey,
       accessTokenExpiresIn,
