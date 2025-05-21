@@ -4,7 +4,10 @@ const bloodDonationRegistrationModel = require("../models/bloodDonationRegistrat
 const bloodDonationModel = require("../models/bloodDonation.model");
 const { BadRequestError, NotFoundError } = require("../configs/error.response");
 const { getInfoData } = require("../utils");
-const { BLOOD_DONATION_REGISTRATION_STATUS, USER_ROLE } = require("../constants/enum");
+const {
+  BLOOD_DONATION_REGISTRATION_STATUS,
+  USER_ROLE,
+} = require("../constants/enum");
 const userModel = require("../models/user.model");
 const facilityModel = require("../models/facility.model");
 const bloodGroupModel = require("../models/bloodGroup.model");
@@ -103,12 +106,13 @@ class BloodDonationService {
     );
   };
 
-  // Phê duyệt đăng ký hiến máu
-  approveBloodDonationRegistration = async (
+  // Cập nhật đăng ký hiến máu
+  updateBloodDonationRegistration = async ({
     registrationId,
+    status,
     staffId,
-    status
-  ) => {
+    notes,
+  }) => {
     const registration = await bloodDonationRegistrationModel.findById(
       registrationId
     );
@@ -118,10 +122,48 @@ class BloodDonationService {
       throw new BadRequestError("Invalid status");
     }
 
-    registration.status = status;
-    registration.staffId = staffId;
+    // Nếu trạng thái là approved hoặc rejected (phê duyệt)
+    if (
+      [
+        BLOOD_DONATION_REGISTRATION_STATUS.APPROVED,
+        BLOOD_DONATION_REGISTRATION_STATUS.REJECTED,
+      ].includes(status)
+    ) {
+      // Nếu approved thì staffId bắt buộc phải có
+      if (status === BLOOD_DONATION_REGISTRATION_STATUS.APPROVED && !staffId) {
+        throw new BadRequestError(
+          "staffId is required when approving registration"
+        );
+      }
+
+      registration.status = status;
+
+      if (status === BLOOD_DONATION_REGISTRATION_STATUS.APPROVED) {
+        registration.staffId = staffId;
+      }
+    } else {
+      // Các trạng thái khác chỉ cập nhật status và notes (nếu có)
+      registration.status = status;
+    }
+
+    if (notes) {
+      registration.notes = notes;
+    }
+
     await registration.save();
 
+    const result = await registration.populate([
+      {
+        path: "userId",
+        select: "fullName email phone",
+      },
+      {
+        path: "facilityId",
+        select: "name street city",
+      },
+      { path: "bloodGroupId", select: "name" },
+      { path: "staffId", select: "position" },
+    ]);
     return getInfoData({
       fields: [
         "_id",
@@ -131,7 +173,7 @@ class BloodDonationService {
         "status",
         "updatedAt",
       ],
-      object: registration,
+      object: result,
     });
   };
 
@@ -347,7 +389,9 @@ class BloodDonationService {
   // Lấy chi tiết một bản ghi hiến máu
   getBloodDonationDetail = async (donationId, userId, role) => {
     const query =
-      role === USER_ROLE.NURSE || role === USER_ROLE.MANAGER || role === USER_ROLE.DOCTOR
+      role === USER_ROLE.NURSE ||
+      role === USER_ROLE.MANAGER ||
+      role === USER_ROLE.DOCTOR
         ? { _id: donationId }
         : { _id: donationId, userId };
     const donation = await bloodDonationModel

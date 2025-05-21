@@ -33,12 +33,11 @@ class BloodDonationRegistrationController {
   });
 
   // Phê duyệt đăng ký hiến máu
-  approveBloodDonationRegistration = asyncHandler(async (req, res) => {
-    const result = await bloodDonationService.approveBloodDonationRegistration(
-      req.params.id,
-      req.user.userId,
-      req.body.status
-    );
+  updateBloodDonationRegistration = asyncHandler(async (req, res) => {
+    const result = await bloodDonationService.updateBloodDonationRegistration({
+      registrationId: req.params.id,
+      ...req.body,
+    });
     new OK({
       message: BLOOD_DONATION_REGISTRATION_MESSAGE.APPROVE_SUCCESS,
       data: result,
@@ -64,10 +63,11 @@ class BloodDonationRegistrationController {
 
   // Lấy chi tiết một đăng ký hiến máu
   getBloodDonationRegistrationDetail = asyncHandler(async (req, res) => {
-    const result = await bloodDonationService.getBloodDonationRegistrationDetail(
-      req.params.id,
-      req.user.userId
-    );
+    const result =
+      await bloodDonationService.getBloodDonationRegistrationDetail(
+        req.params.id,
+        req.user.userId
+      );
     new OK({
       message: BLOOD_DONATION_REGISTRATION_MESSAGE.GET_DETAIL_SUCCESS,
       data: result,
