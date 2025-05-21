@@ -6,42 +6,54 @@ const DOCUMENT_NAME = "User";
 const COLLECTION_NAME = "Users";
 
 const userSchema = new mongoose.Schema(
-    {
-      bloodId: { type: mongoose.Schema.Types.ObjectId, ref: "BloodGroup" },
-      role: { type: String, enum: Object.values(USER_ROLE), default: USER_ROLE.MEMBER },
-      idCard: { type: String },
-      avatar: { type: String, trim: true },
-      email: { type: String, trim: true, unique: true, required: true },
-      password: { type: String, required: true },
-      verifyToken: { type: String },
-      isVerified: { type: Boolean, default: false },
-      status: { type: String, enum: Object.values(USER_STATUS), default: USER_STATUS.ACTIVE },
-      yob: { type: Date },
-      sex: { type: String, enum: Object.values(SEX) },
-      fullName: { type: String, trim: true },
-      phone: { type: String, trim: true },
-      street: { type: String, trim: true },
-      city: { type: String, trim: true },
-      country: { type: String, trim: true },
-      location: {
-        type: {
-          type: String,
-          enum: ["Point"],
-          default: "Point",
-        },
-        coordinates: {
-          type: [Number], // [longitude, latitude]
-          default: [0, 0],
-        },
-      },
-      isAvailable: { type: Boolean, default: true },
-      resetPasswordToken: { type: String },
-      resetPasswordExpires: { type: Date },
+  {
+    bloodId: { type: mongoose.Schema.Types.ObjectId, ref: "BloodGroup" },
+    role: {
+      type: String,
+      enum: Object.values(USER_ROLE),
+      default: USER_ROLE.MEMBER,
     },
-    { timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" }, collection: COLLECTION_NAME }
-  );
-  
-  // Tạo index 2dsphere cho trường location
-  userSchema.index({ location: "2dsphere" });
-  
-  module.exports = mongoose.model(DOCUMENT_NAME, userSchema);
+    idCard: { type: String, trim: true, unique: true },
+    avatar: { type: String, trim: true },
+    email: { type: String, trim: true, unique: true, required: true },
+    password: { type: String, required: true },
+    verifyOTP: { type: String },
+    isVerified: { type: Boolean, default: false },
+    verifyExpires: { type: Date },
+    status: {
+      type: String,
+      enum: Object.values(USER_STATUS),
+      default: USER_STATUS.ACTIVE,
+    },
+    yob: { type: Date },
+    sex: { type: String, enum: Object.values(SEX) },
+    fullName: { type: String, trim: true },
+    phone: { type: String, trim: true, unique: true },
+    street: { type: String, trim: true },
+    city: { type: String, trim: true },
+    country: { type: String, trim: true },
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+        default: [0, 0],
+      },
+    },
+    isAvailable: { type: Boolean, default: true },
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
+  },
+  {
+    timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" },
+    collection: COLLECTION_NAME,
+  }
+);
+
+// Tạo index 2dsphere cho trường location
+userSchema.index({ location: "2dsphere" });
+
+module.exports = mongoose.model(DOCUMENT_NAME, userSchema);

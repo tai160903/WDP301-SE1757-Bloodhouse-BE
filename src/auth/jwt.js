@@ -1,5 +1,5 @@
 const JWT = require("jsonwebtoken");
- const createTokenPair = async (
+const createTokenPair = async (
   payload,
   accessTokenKey,
   refreshTokenKey,
@@ -26,22 +26,22 @@ const JWT = require("jsonwebtoken");
   }
 };
 
- const generateToken = async (userInfo, secretSignature, tokenLife) => {
+const generateToken = async (userInfo, secretSignature, tokenLife) => {
   try {
     const token = await JWT.sign(userInfo, secretSignature, {
       expiresIn: tokenLife,
-      algorithm: 'HS256'
-    })
-    return token
+      algorithm: "HS256",
+    });
+    return token;
   } catch (error) {
-    throw new Error(error)
+    throw new Error(error);
   }
-}
+};
 
-
- const verifyToken = async (token, secretSignature) => {
+const verifyToken = async (token, secretSignature) => {
   try {
-    return JWT.verify(token, secretSignature);
+    const result = JWT.verify(token, secretSignature);
+    return result;
   } catch (error) {
     throw new Error(`Token verification failed: ${error.message}`);
   }
