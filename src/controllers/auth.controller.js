@@ -24,7 +24,14 @@ class AuthController {
     new OK({ message: ACCESS_MESSAGE.LOGOUT_SUCCESS, data: result }).send(res);
   });
 
-
+  refreshToken = asyncHandler(async (req, res, next) => {
+    const userId = req.user.userId;
+    const result = await authService.refreshToken({ userId, ...req.body });
+    new OK({
+      message: ACCESS_MESSAGE.REFRESH_TOKEN_SUCCESS,
+      data: result,
+    }).send(res);
+  });
 }
 
 module.exports = new AuthController();

@@ -135,7 +135,9 @@ class UserService {
 
     const user = await userModel
       .findByIdAndUpdate(userId, updateData, { new: true })
-      .select("_id fullName email phone street city country location sex yob isAvailable");
+      .select(
+        "_id fullName email phone street city country location sex yob isAvailable"
+      );
     if (!user) {
       throw new NotFoundError("User not found");
     }
@@ -167,22 +169,48 @@ class UserService {
       throw new BadRequestError("User already verified");
     }
 
-    const verifyToken = user.verifyToken || crypto.randomBytes(32).toString("hex");
-    await userModel.findByIdAndUpdate(userId, { verifyToken });
+    const verifyOTP = crypto.randomInt(100000, 999999).toString();
+    const hashOTP = await bcrypt.hash(verifyOTP, 10);
+    const verifyExpires = Date.now() + 3600000;
+    await userModel.findByIdAndUpdate(userId, {
+      verifyOTP: hashOTP,
+      verifyExpires,
+    });
 
-    return mailService.sendVerificationEmail(user.email, verifyToken);
+    return mailService.sendVerificationEmail(user.email, verifyOTP);
   };
 
   // Xác minh tài khoản
-  verifyAccount = async (verifyToken) => {
-    const user = await userModel.findOneAndUpdate(
-      { verifyToken, status: USER_STATUS.ACTIVE },
-      { isVerified: true, verifyToken: null, status: USER_STATUS.ACTIVE },
-      { new: true }
-    );
+  verifyAccount = async (userId, verifyOTP) => {
+    const user = await userModel.findOne({
+      _id: userId,
+      status: USER_STATUS.ACTIVE,
+    });
     if (!user) {
-      throw new BadRequestError("Invalid or expired verification token");
+      throw new BadRequestError("User not found or inactive");
     }
+
+    if (user.isVerified) {
+      throw new BadRequestError("User already verified");
+    }
+
+    // Kiểm tra thời gian hết hạn OTP
+    if (!user.verifyExpires || user.verifyExpires < new Date()) {
+      throw new BadRequestError("OTP has expired");
+    }
+
+    // So sánh OTP nhập vào với OTP hash trong DB
+    const isValidOTP = await bcrypt.compare(verifyOTP, user.verifyOTP);
+    if (!isValidOTP) {
+      throw new BadRequestError("Invalid OTP");
+    }
+
+    // Cập nhật trạng thái verified và xóa OTP
+    user.isVerified = true;
+    user.verifyOTP = null;
+    user.verifyExpires = null;
+    await user.save();
+
     return getInfoData({
       fields: ["_id", "fullName", "email", "isVerified", "status"],
       object: user,
