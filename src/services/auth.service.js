@@ -3,10 +3,12 @@
 const userModel = require("../models/user.model");
 const bcrypt = require("bcryptjs");
 const { getInfoData } = require("../utils");
-const { USER_ROLE, USER_STATUS, SEX } = require("../constants/enum");
+const { USER_ROLE, USER_STATUS, STAFF_POSITION, SEX } = require("../constants/enum");
+
 const { BadRequestError } = require("../configs/error.response");
 const { createTokenPair, verifyToken } = require("../auth/jwt");
 const crypto = require("crypto");
+
 const {
   validatePhone,
   validateEmail,
@@ -214,12 +216,32 @@ class AccessService {
       refreshTokenExpiresIn
     );
 
-    // Step 6: Trả về thông tin user và token
+    // Step 6: Get user info
+    const userData = getInfoData({
+      fields: ["_id", "fullName", "email", "role", "avatar"],
+      object: foundUser,
+    });
+
+    // Step 7: Nếu là staff thì lấy thêm facilityId
+    const STAFF_POSITION = [USER_ROLE.MANAGER, USER_ROLE.DOCTOR, USER_ROLE.NURSE];
+    if (STAFF_POSITION.includes(foundUser.role)) {
+      const staffRecord = await facilityStaffModel
+        .findOne({
+          userId: foundUser._id,
+          isDeleted: { $ne: true },
+        })
+        .populate("facilityId", "name")
+
+      if (staffRecord) {
+        userData.facilityId = staffRecord.facilityId._id;
+        userData.position = staffRecord.position;
+        userData.facilityName = staffRecord.facilityId.name;
+      }
+    }
+
+
     return {
-      user: getInfoData({
-        fields: ["_id", "fullName", "email", "role", "avatar"],
-        object: foundUser,
-      }),
+      user: userData,
       tokens,
     };
   };

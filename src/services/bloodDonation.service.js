@@ -11,6 +11,7 @@ const {
 const userModel = require("../models/user.model");
 const facilityModel = require("../models/facility.model");
 const bloodGroupModel = require("../models/bloodGroup.model");
+const { USER_MESSAGE, FACILITY_MESSAGE, BLOOD_GROUP_MESSAGE } = require("../constants/message");
 const QRCode = require("qrcode");
 
 class BloodDonationService {
@@ -20,8 +21,8 @@ class BloodDonationService {
     userId,
     facilityId,
     bloodGroupId,
-    bloodComponent,
     preferredDate,
+    expectedQuantity,
     source,
     notes,
   }) => {
@@ -31,9 +32,39 @@ class BloodDonationService {
       facilityModel.findOne({ _id: facilityId }),
       bloodGroupModel.findOne({ _id: bloodGroupId }),
     ]);
-    if (!user) throw new NotFoundError("User not found");
-    if (!facility) throw new NotFoundError("Facility not found");
-    if (!bloodGroup) throw new NotFoundError("Blood group not found");
+    if (!user) throw new NotFoundError(USER_MESSAGE.USER_NOT_FOUND);
+    if (!facility) throw new NotFoundError(FACILITY_MESSAGE.FACILITY_NOT_FOUND);
+    if (!bloodGroup) throw new NotFoundError(BLOOD_GROUP_MESSAGE.BLOOD_GROUP_NOT_FOUND);
+
+    // Kiểm tra xem người dùng có đăng ký nào đang chờ xử lý không
+    const pendingRegistration = await bloodDonationRegistrationModel.findOne({
+      userId,
+      status: BLOOD_DONATION_REGISTRATION_STATUS.PENDING_APPROVAL,
+    });
+
+    if (pendingRegistration) {
+      throw new BadRequestError(USER_MESSAGE.USER_HAS_PENDING_REGISTRATION);
+    }
+
+    // Lấy lần hiến máu gần nhất
+    const lastDonation = await bloodDonationModel
+      .findOne({ userId })
+      .sort({ donationDate: -1 });
+
+    if (lastDonation) {
+      const lastDonationDate = new Date(lastDonation.donationDate);
+      const currentDate = new Date();
+      const monthsDiff = (currentDate.getFullYear() - lastDonationDate.getFullYear()) * 12 + 
+                        (currentDate.getMonth() - lastDonationDate.getMonth());
+
+      // Kiểm tra thời gian chờ dựa trên giới tính
+      const requiredMonths = user.gender === 'female' ? 4 : 3;
+      if (monthsDiff < requiredMonths) {
+        throw new BadRequestError(
+          `Bạn cần đợi đủ ${requiredMonths} tháng kể từ lần hiến máu trước (${lastDonationDate.toLocaleDateString('vi-VN')})`
+        );
+      }
+    }
 
     // Lấy location từ profile người dùng
     const location = user.location || { type: "Point", coordinates: [0, 0] };
@@ -42,9 +73,9 @@ class BloodDonationService {
       userId,
       facilityId,
       bloodGroupId,
-      bloodComponent,
       preferredDate,
       source,
+      expectedQuantity,
       notes,
       location,
     });
@@ -62,6 +93,7 @@ class BloodDonationService {
         "notes",
         "location",
         "createdAt",
+        "expectedQuantity",
       ],
       object: registration,
     });
@@ -81,9 +113,9 @@ class BloodDonationService {
     const skip = (page - 1) * limit;
     const registrations = await bloodDonationRegistrationModel
       .find(query)
-      .populate("userId", "fullName email phone")
-      .populate("facilityId", "name street city")
-      .populate("bloodGroupId", "type")
+      .populate("userId", "fullName email phone avatar")
+      .populate("facilityId", "name street city address")
+      .populate("bloodGroupId", "name")
       .skip(skip)
       .limit(limit)
       .lean();
@@ -101,6 +133,7 @@ class BloodDonationService {
           "source",
           "notes",
           "createdAt",
+          "expectedQuantity",
         ],
         object: reg,
       })
@@ -195,6 +228,7 @@ class BloodDonationService {
         "notes",
         "qrCodeUrl",
         "updatedAt",
+        "expectedQuantity",
       ],
       object: result,
     });
@@ -211,9 +245,9 @@ class BloodDonationService {
     const skip = (page - 1) * limit;
     const registrations = await bloodDonationRegistrationModel
       .find(query)
-      .populate("userId", "fullName email phone")
-      .populate("facilityId", "name street city")
-      .populate("bloodGroupId", "type")
+      .populate("userId", "fullName email phone avatar")
+      .populate("facilityId", "name street city address")
+      .populate("bloodGroupId", "name")
       .skip(skip)
       .limit(limit)
       .lean();
@@ -232,6 +266,7 @@ class BloodDonationService {
           "notes",
           "location",
           "createdAt",
+          "expectedQuantity",
         ],
         object: reg,
       })

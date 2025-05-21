@@ -50,12 +50,20 @@ const REPORT_TYPE = {
 };
 
 const BLOOD_DONATION_REGISTRATION_STATUS = {
-  PENDING: "pending",
-  APPROVED: "approved",
+  PENDING_APPROVAL: "pending_approval",
+  REJECTED_REGISTRATION: "rejected_registration",
+  REGISTERED: "registered",
+  CHECKED_IN: "checked_in",
+  IN_CONSULT: "in_consult",
   REJECTED: "rejected",
-  CANCELLED: "cancelled",
+  WAITING_DONATION: "waiting_donation",
+  DONATING: "donating",
+  DONATED: "donated",
+  RESTING: "resting",
+  POST_REST_CHECK: "post_rest_check",
   COMPLETED: "completed",
-  NO_SHOW: "no_show",
+  CANCELLED: "cancelled",
+
 };
 
 const BLOOD_DONATION_REGISTRATION_SOURCE = {

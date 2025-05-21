@@ -27,8 +27,7 @@ class FacilityStaffController {
   });
 
   getFacilityStaffByFacilityId = asyncHandler(async (req, res, next) => {
-    const { id } = req.params;
-    const result = await facilityStaffService.getFacilityStaffByFacilityId(id);
+    const result = await facilityStaffService.getFacilityStaffByFacilityId(req.params.id, req.query);
     new OK({
       message: FACILITY_STAFF_MESSAGE.GET_ALL_FACILITY_STAFFS_SUCCESS,
       data: result,
