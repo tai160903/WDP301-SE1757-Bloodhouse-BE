@@ -198,7 +198,7 @@ class AccessService {
       const staff = await facilityStaffModel.findOne({
         userId: foundUser._id,
       });
-      console.log("🚀 ~ AccessService ~ signIn= ~ staff:", staff);
+
       if (staff) {
         payload.facilityId = staff.facilityId;
         payload.staffId = staff._id;
