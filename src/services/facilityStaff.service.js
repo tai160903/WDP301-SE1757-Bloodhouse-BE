@@ -8,7 +8,7 @@ class FacilityStaffService {
   getAllStaffs = async () => {
     const result = await facilityStaffModel
       .find({ isDeleted: { $ne: true } })
-      .populate("userId", "name email phoneNumber avatar")
+      .populate("userId", "fullName email phone avatar")
       .populate("facilityId", "name address");
     return result;
   };
@@ -22,14 +22,22 @@ class FacilityStaffService {
     return result;
   };
 
-  getFacilityStaffByFacilityId = async (facilityId) => {
+  getFacilityStaffByFacilityId = async (facilityId, { position }) => {
     if (!facilityId) {
       throw new BadRequestError(FACILITY_STAFF_MESSAGE.FACILITY_ID_REQUIRED);
     }
+    const query = {
+      facilityId,
+      isDeleted: { $ne: true },
+    };
+    if (position) {
+      query.position = { $in: position };
+    }
     const result = await facilityStaffModel
-      .find({ facilityId, isDeleted: { $ne: true } })
-      .populate("userId", "name email phoneNumber avatar")
+      .find(query)
+      .populate("userId", "fullName email phone avatar")
       .populate("facilityId", "name address");
+    console.log(result);
     return {
       total: result.length,
       result,
@@ -44,7 +52,7 @@ class FacilityStaffService {
     }
     const result = await facilityStaffModel
       .findById(id)
-      .populate("userId", "name email phoneNumber avatar")
+      .populate("userId", "fullName email phone avatar")
       .populate("facilityId", "name address");
     if (!result) {
       throw new BadRequestError(

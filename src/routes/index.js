@@ -9,7 +9,7 @@ router.use("/blood-group", require("./bloodGroup"));
 router.use("/blood-compatibility", require("./bloodCompatibility"));
 router.use("/user", require("./user"));
 router.use(
-  "/blood-donation-registrations",
+  "/blood-donation-registration",
   require("./bloodDonationRegistration")
 );
 router.use("/blood-donations", require("./bloodDonation"));

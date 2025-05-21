@@ -12,17 +12,14 @@ const bloodDonationRegistrationSchema = new mongoose.Schema(
     staffId: { type: mongoose.Schema.Types.ObjectId, ref: "FacilityStaff" },
     facilityId: { type: mongoose.Schema.Types.ObjectId, ref: "Facility", required: true },
     bloodGroupId: { type: mongoose.Schema.Types.ObjectId, ref: "BloodGroup", required: true },
-    bloodComponent: {
-      type: String,
-      enum: Object.values(BLOOD_COMPONENT),
-    },
     preferredDate: { type: Date },
     status: {
       type: String,
       enum: Object.values(BLOOD_DONATION_REGISTRATION_STATUS),
-      default: BLOOD_DONATION_REGISTRATION_STATUS.PENDING,
+      default: BLOOD_DONATION_REGISTRATION_STATUS.PENDING_APPROVAL,
     },
     notes: { type: String },
+    expectedQuantity: { type: Number },
     source: { type: String, enum: Object.values(BLOOD_DONATION_REGISTRATION_SOURCE) },
     location: {
       type: {

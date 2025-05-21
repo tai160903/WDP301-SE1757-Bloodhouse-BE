@@ -51,6 +51,7 @@ const BLOOD_DONATION_REGISTRATION_MESSAGE = {
 };
 
 const BLOOD_GROUP_MESSAGE = {
+  BLOOD_GROUP_NOT_FOUND: "Nhóm máu không tồn tại",
   CREATE_SUCCESS: "Tạo nhóm máu thành công",
   CREATE_FAILED: "Tạo nhóm máu thất bại",
   UPDATE_SUCCESS: "Cập nhật nhóm máu thành công",
@@ -87,6 +88,7 @@ const FACILITY_MESSAGE = {
   FACILITY_NOT_FOUND: "Cơ sở không tồn tại",
   FACILITY_ALREADY_EXISTS: "Cơ sở đã tồn tại",
   MANAGER_REQUIRED: "Cơ sở phải có ít nhất 1 quản lý",
+  FACILITY_NOT_FOUND: "Cơ sở không tồn tại",
 };
 
 const FACILITY_STAFF_MESSAGE = {
@@ -122,6 +124,7 @@ const USER_MESSAGE = {
   USER_CHANGE_PASSWORD_SUCCESS: "Đổi mật khẩu thành công",
   USER_CHANGE_AVATAR_SUCCESS: "Cập nhật ảnh đại diện thành công",
   USER_SAVE_FCM_TOKEN_SUCCESS: "Lưu FCM token thành công",
+  USER_HAS_PENDING_REGISTRATION: "Bạn đã có một đăng ký hiến máu đang chờ xử lý",
 };
 
 const BLOOD_REQUEST_MESSAGE = {
