@@ -12,6 +12,7 @@ const userModel = require("../models/user.model");
 const facilityModel = require("../models/facility.model");
 const bloodGroupModel = require("../models/bloodGroup.model");
 const { USER_MESSAGE, FACILITY_MESSAGE, BLOOD_GROUP_MESSAGE } = require("../constants/message");
+const QRCode = require("qrcode");
 
 class BloodDonationService {
   /** BLOOD DONATION REGISTRATION */
@@ -139,25 +140,84 @@ class BloodDonationService {
     );
   };
 
-  // Phê duyệt đăng ký hiến máu
-  approveBloodDonationRegistration = async (
+  // Cập nhật đăng ký hiến máu
+  updateBloodDonationRegistration = async ({
     registrationId,
+    status,
     staffId,
-    status
-  ) => {
+    notes,
+  }) => {
+    // Step 1: Find registration
     const registration = await bloodDonationRegistrationModel.findById(
       registrationId
     );
     if (!registration) throw new NotFoundError("Registration not found");
 
+    // Step 2: Validate status
     if (!Object.values(BLOOD_DONATION_REGISTRATION_STATUS).includes(status)) {
       throw new BadRequestError("Invalid status");
     }
 
-    registration.status = status;
-    registration.staffId = staffId;
+    // Step 3: Handle APPROVED or REJECTED status
+    if (
+      [
+        BLOOD_DONATION_REGISTRATION_STATUS.APPROVED,
+        BLOOD_DONATION_REGISTRATION_STATUS.REJECTED,
+      ].includes(status)
+    ) {
+      // If APPROVED, staffId is required
+      if (status === BLOOD_DONATION_REGISTRATION_STATUS.APPROVED && !staffId) {
+        throw new BadRequestError(
+          "staffId is required when approving registration"
+        );
+      }
+
+      registration.status = status;
+
+      if (status === BLOOD_DONATION_REGISTRATION_STATUS.APPROVED) {
+        registration.staffId = staffId;
+
+        // Step 4: Create QR code
+        const qrData = {
+          registrationId: registration._id,
+          userId: registration.userId,
+          facilityId: registration.facilityId,
+          bloodGroupId: registration.bloodGroupId,
+          status: registration.status,
+        };
+        try {
+          const qrCodeUrl = await QRCode.toDataURL(JSON.stringify(qrData));
+          registration.qrCodeUrl = qrCodeUrl; // Lưu URL của QR code
+        } catch (error) {
+          throw new BadRequestError("Failed to generate QR code");
+        }
+      }
+    } else {
+      // Other statuses only update status and notes
+      registration.status = status;
+    }
+
+    // Step 5: Update notes if provided
+    if (notes) {
+      registration.notes = notes;
+    }
+
+    // Step 6: Save changes
     await registration.save();
 
+    // Step 7: Populate and return
+    const result = await registration.populate([
+      {
+        path: "userId",
+        select: "fullName email phone",
+      },
+      {
+        path: "facilityId",
+        select: "name street city",
+      },
+      { path: "bloodGroupId", select: "name" },
+      { path: "staffId", select: "position" },
+    ]);
     return getInfoData({
       fields: [
         "_id",
@@ -165,10 +225,12 @@ class BloodDonationService {
         "facilityId",
         "bloodGroupId",
         "status",
+        "notes",
+        "qrCodeUrl",
         "updatedAt",
         "expectedQuantity",
       ],
-      object: registration,
+      object: result,
     });
   };
 

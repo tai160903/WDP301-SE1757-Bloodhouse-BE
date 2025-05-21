@@ -20,7 +20,6 @@ const HEADER = {
   REFRESH_TOKEN: "x-refresh-token",
 };
 
-
 const BLOOD_GROUP = {
   A_POSITIVE: "A+",
   A_NEGATIVE: "A-",
@@ -35,6 +34,7 @@ const BLOOD_GROUP = {
 const SEX = {
   MALE: "male",
   FEMALE: "female",
+  OTHER: "other",
 };
 
 const BLOOD_COMPONENT = {
@@ -63,6 +63,7 @@ const BLOOD_DONATION_REGISTRATION_STATUS = {
   POST_REST_CHECK: "post_rest_check",
   COMPLETED: "completed",
   CANCELLED: "cancelled",
+
 };
 
 const BLOOD_DONATION_REGISTRATION_SOURCE = {

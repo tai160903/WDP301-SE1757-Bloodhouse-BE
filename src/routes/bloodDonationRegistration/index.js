@@ -7,17 +7,31 @@ const { checkAuth, checkRole } = require("../../auth/checkAuth");
 const { USER_ROLE } = require("../../constants/enum");
 // auth routes
 router.use(checkAuth);
-router.post("/", bloodDonationRegistrationController.createBloodDonationRegistration);
+router.post(
+  "/",
+  bloodDonationRegistrationController.createBloodDonationRegistration
+);
 
-router.get("/", bloodDonationRegistrationController.getBloodDonationRegistrations);
+router.get(
+  "/",
+  bloodDonationRegistrationController.getBloodDonationRegistrations
+);
 
-router.get("/user", bloodDonationRegistrationController.getUserBloodDonationRegistrations);
+router.get(
+  "/user",
+  bloodDonationRegistrationController.getUserBloodDonationRegistrations
+);
 
-router.get("/:id", bloodDonationRegistrationController.getBloodDonationRegistrationDetail);
+router.get(
+  "/:id",
+  bloodDonationRegistrationController.getBloodDonationRegistrationDetail
+);
 
 router.use(checkRole([USER_ROLE.MANAGER]));
 
-router.put("/:id", bloodDonationRegistrationController.approveBloodDonationRegistration);
-
+router.put(
+  "/:id",
+  bloodDonationRegistrationController.updateBloodDonationRegistration
+);
 
 module.exports = router;

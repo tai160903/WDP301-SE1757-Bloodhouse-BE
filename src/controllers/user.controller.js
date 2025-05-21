@@ -8,7 +8,12 @@ class UserController {
   // Tìm kiếm người dùng gần vị trí
   findNearbyUsers = asyncHandler(async (req, res) => {
     const { lat, lng, distance, bloodType } = req.query;
-    const result = await userService.findNearbyUsers({ lat, lng, distance, bloodType });
+    const result = await userService.findNearbyUsers({
+      lat,
+      lng,
+      distance,
+      bloodType,
+    });
     new OK({
       message: "Nearby users retrieved successfully",
       data: result,
@@ -17,7 +22,10 @@ class UserController {
 
   // Điền thông tin nhóm máu
   updateBloodGroup = asyncHandler(async (req, res) => {
-    const result = await userService.updateBloodGroup(req.user.userId, req.body.bloodId);
+    const result = await userService.updateBloodGroup(
+      req.user.userId,
+      req.body.bloodId
+    );
     new OK({
       message: "Blood group updated successfully",
       data: result,
@@ -44,7 +52,10 @@ class UserController {
 
   // Xác minh tài khoản
   verifyAccount = asyncHandler(async (req, res) => {
-    const result = await userService.verifyAccount(req.query.token);
+    const result = await userService.verifyAccount(
+      req.user.userId,
+      req.body.OTP
+    );
     new OK({
       message: "Account verified successfully",
       data: result,
@@ -62,7 +73,10 @@ class UserController {
 
   // Cập nhật avatar
   updateAvatar = asyncHandler(async (req, res) => {
-    const result = await userService.updateAvatar(req.user.userId, req.body.avatar);
+    const result = await userService.updateAvatar(
+      req.user.userId,
+      req.body.avatar
+    );
     new OK({
       message: "Avatar updated successfully",
       data: result,
@@ -87,22 +101,22 @@ class UserController {
     }).send(res);
   });
 
-// Quên mật khẩu
-forgotPassword = asyncHandler(async (req, res) => {
+  // Quên mật khẩu
+  forgotPassword = asyncHandler(async (req, res) => {
     const result = await userService.forgotPassword(req.body.email);
-     new OK({
+    new OK({
       message: "Password reset email sent successfully",
       data: result,
-      }).send(res);
+    }).send(res);
   });
-    
-// Đặt lại mật khẩu
-resetPassword = asyncHandler(async (req, res) => {
+
+  // Đặt lại mật khẩu
+  resetPassword = asyncHandler(async (req, res) => {
     const result = await userService.resetPassword(req.body);
-      new OK({
-        message: "Password reset successfully",
-        data: result,
-      }).send(res);
+    new OK({
+      message: "Password reset successfully",
+      data: result,
+    }).send(res);
   });
 }
 
