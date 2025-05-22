@@ -26,6 +26,11 @@ const healthCheckSchema = new mongoose.Schema(
       ref: "FacilityStaff",
       required: true,
     },
+    facilityId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Facility",
+      required: true,
+    },
     checkDate: {
       type: Date,
       required: true,

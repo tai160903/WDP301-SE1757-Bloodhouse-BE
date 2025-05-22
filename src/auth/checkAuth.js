@@ -3,6 +3,7 @@
 const JWT = require("jsonwebtoken");
 const { createTokenPair } = require("./jwt");
 const { HEADER } = require("../constants/enum");
+const FacilityStaff = require("../models/facilityStaff.model");
 
 // Hàm kiểm tra xác thực
 const checkAuth = async (req, res, next) => {
@@ -148,4 +149,53 @@ const checkRole = (allowedRoles) => {
   };
 };
 
-module.exports = { checkAuth, checkRole };
+// Hàm kiểm tra staff có thuộc facility không
+const checkStaff = (allowedPositions) => {
+  return async (req, res, next) => {
+    try {
+      if (!req.user || !req.user.staffId || !req.user.facilityId) {
+        return res.status(403).json({
+          status: "error",
+          code: 403,
+          message: "Staff information not found",
+        });
+      }
+
+      const staff = await FacilityStaff.findOne({
+        _id: req.user.staffId,
+        facilityId: req.user.facilityId,
+        isDeleted: false
+      });
+
+      if (!staff) {
+        return res.status(403).json({
+          status: "error",
+          code: 403,
+          message: "Staff not found or not assigned to this facility",
+        });
+      }
+
+      if (!allowedPositions.includes(staff.position)) {
+        return res.status(403).json({
+          status: "error",
+          code: 403,
+          message: `Staff does not have required position. Required positions: ${allowedPositions.join(
+            ", "
+          )}. Your position: ${staff.position}`,
+        });
+      }
+
+      // Thêm thông tin staff vào request để sử dụng ở các middleware tiếp theo
+      req.staff = staff;
+      next();
+    } catch (error) {
+      return res.status(403).json({
+        status: "error",
+        code: 403,
+        message: error.message || "Staff verification failed",
+      });
+    }
+  };
+};
+
+module.exports = { checkAuth, checkRole, checkStaff };

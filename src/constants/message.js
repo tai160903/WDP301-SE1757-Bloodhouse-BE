@@ -156,6 +156,7 @@ const FEEDBACK_MESSAGE = {
 const HEALTH_CHECK_MESSAGE = {
   CREATE_SUCCESS: "Tạo kiểm tra sức khỏe thành công",
   UPDATE_SUCCESS: "Cập nhật kiểm tra sức khỏe thành công",
+  GET_SUCCESS: "Lấy kiểm tra sức khỏe thành công",
 };
 
 module.exports = {
