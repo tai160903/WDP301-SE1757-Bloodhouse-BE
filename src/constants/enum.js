@@ -13,6 +13,22 @@ const STAFF_POSITION = {
   DOCTOR: "DOCTOR",
 };
 
+const NOTIFICATION_TYPE = {
+  REMINDER: "reminder",
+  REQUEST: "request",
+  MATCH: "match",
+  STATUS: "status",
+  GIFT: "gift",
+};
+
+const ENTITY_TYPE = {
+  BLOOD_DONATION_REGISTRATION: "bloodDonationRegistration",
+  BLOOD_DONATION: "bloodDonation",
+  BLOOD_REQUEST: "bloodRequest",
+  BLOOD_GROUP: "bloodGroup",
+  BLOOD_INVENTORY: "bloodInventory",
+};
+
 const HEADER = {
   API_KEY: "x-api-key",
   CLIENT_ID: "x-client-id",
@@ -120,4 +136,6 @@ module.exports = {
   BLOOD_DONATION_MESSAGE,
   CONTENT_STATUS,
   BLOOD_REQUEST_STATUS,
+  NOTIFICATION_TYPE,
+  ENTITY_TYPE,
 };
