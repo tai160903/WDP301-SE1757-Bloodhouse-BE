@@ -1117,7 +1117,7 @@ paths:
                     type: array
                     items:
                       type: string
-  /blood-donation-registrations:
+  /blood-donation-registration:
     post:
       summary: Đăng ký hiến máu
       tags:
@@ -1218,7 +1218,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /blood-donation-registrations/user:
+  /blood-donation-registration/user:
     get:
       summary: Lấy danh sách đăng ký hiến máu của người dùng
       tags:
@@ -1262,7 +1262,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /blood-donation-registrations/{id}:
+  /blood-donation-registration/{id}:
     get:
       summary: Lấy chi tiết một đăng ký hiến máu
       tags:
