@@ -183,7 +183,7 @@ class BloodRequestService {
       }
       query.status = status;
     }
-
+    
     // Validate sortBy
     const validSortFields = [
       "createdAt",
@@ -208,10 +208,11 @@ class BloodRequestService {
       query,
       page,
       limit,
-      select: this.requestFields.join(" "),
+      select: "_id bloodId userId facilityId patientName patientAge bloodComponent quantity isUrgent status location street city contactName contactPhone contactEmail reason medicalDetails medicalDocumentUrl note preferredDate consent createdAt updatedAt",
       populate: [
         { path: "bloodId", select: "name" },
         { path: "userId", select: "fullName email phone" },
+        { path: "facilityId", select: "name address" },
       ],
       search,
       searchFields: ["patientName", "contactName", "reason"],
