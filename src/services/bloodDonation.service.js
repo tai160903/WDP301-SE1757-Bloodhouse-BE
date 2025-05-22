@@ -10,8 +10,13 @@ const {
 } = require("../constants/enum");
 const userModel = require("../models/user.model");
 const facilityModel = require("../models/facility.model");
+const notificationService = require("./notification.service");
 const bloodGroupModel = require("../models/bloodGroup.model");
-const { USER_MESSAGE, FACILITY_MESSAGE, BLOOD_GROUP_MESSAGE } = require("../constants/message");
+const {
+  USER_MESSAGE,
+  FACILITY_MESSAGE,
+  BLOOD_GROUP_MESSAGE,
+} = require("../constants/message");
 const QRCode = require("qrcode");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
 
@@ -35,7 +40,8 @@ class BloodDonationService {
     ]);
     if (!user) throw new NotFoundError(USER_MESSAGE.USER_NOT_FOUND);
     if (!facility) throw new NotFoundError(FACILITY_MESSAGE.FACILITY_NOT_FOUND);
-    if (!bloodGroup) throw new NotFoundError(BLOOD_GROUP_MESSAGE.BLOOD_GROUP_NOT_FOUND);
+    if (!bloodGroup)
+      throw new NotFoundError(BLOOD_GROUP_MESSAGE.BLOOD_GROUP_NOT_FOUND);
 
     // Kiểm tra xem người dùng có đăng ký nào đang chờ xử lý không
     const pendingRegistration = await bloodDonationRegistrationModel.findOne({
@@ -55,14 +61,17 @@ class BloodDonationService {
     if (lastDonation) {
       const lastDonationDate = new Date(lastDonation.donationDate);
       const currentDate = new Date();
-      const monthsDiff = (currentDate.getFullYear() - lastDonationDate.getFullYear()) * 12 + 
-                        (currentDate.getMonth() - lastDonationDate.getMonth());
+      const monthsDiff =
+        (currentDate.getFullYear() - lastDonationDate.getFullYear()) * 12 +
+        (currentDate.getMonth() - lastDonationDate.getMonth());
 
       // Kiểm tra thời gian chờ dựa trên giới tính
-      const requiredMonths = user.gender === 'female' ? 4 : 3;
+      const requiredMonths = user.gender === "female" ? 4 : 3;
       if (monthsDiff < requiredMonths) {
         throw new BadRequestError(
-          `Bạn cần đợi đủ ${requiredMonths} tháng kể từ lần hiến máu trước (${lastDonationDate.toLocaleDateString('vi-VN')})`
+          `Bạn cần đợi đủ ${requiredMonths} tháng kể từ lần hiến máu trước (${lastDonationDate.toLocaleDateString(
+            "vi-VN"
+          )})`
         );
       }
     }
@@ -116,13 +125,14 @@ class BloodDonationService {
       query,
       page,
       limit,
-      select: "_id userId facilityId bloodGroupId bloodComponent preferredDate status source notes createdAt",
+      select:
+        "_id userId facilityId bloodGroupId bloodComponent preferredDate status source notes createdAt expectedQuantity",
       populate: [
-        { path: "userId", select: "fullName email phone" },
+        { path: "userId", select: "fullName email phone avatar gender" },
         { path: "facilityId", select: "name street city" },
-        { path: "bloodGroupId", select: "name" }
+        { path: "bloodGroupId", select: "name" },
       ],
-      sort: { createdAt: -1 }
+      sort: { createdAt: -1 },
     });
 
     return result;
@@ -136,9 +146,9 @@ class BloodDonationService {
     notes,
   }) => {
     // Step 1: Find registration
-    const registration = await bloodDonationRegistrationModel.findById(
-      registrationId
-    );
+    const registration = await bloodDonationRegistrationModel
+      .findById(registrationId)
+      .populate("facilityId", "name");
     if (!registration) throw new NotFoundError("Registration not found");
 
     // Step 2: Validate status
@@ -193,7 +203,15 @@ class BloodDonationService {
     // Step 6: Save changes
     await registration.save();
 
-    // Step 7: Populate and return
+    // Step 7: Send notification to user
+    await notificationService.sendBloodDonationRegistrationStatusNotification(
+      registration.userId,
+      status,
+      registration.facilityId.name,
+      registration._id
+    );
+
+    // Step 8: Populate and return
     const result = await registration.populate([
       {
         path: "userId",
@@ -235,13 +253,14 @@ class BloodDonationService {
       query,
       page,
       limit,
-      select: "_id userId facilityId bloodGroupId bloodComponent preferredDate status source notes location createdAt",
+      select:
+        "_id userId facilityId bloodGroupId preferredDate status source notes location createdAt expectedQuantity",
       populate: [
         { path: "userId", select: "fullName email phone" },
-        { path: "facilityId", select: "name street city" },
-        { path: "bloodGroupId", select: "name" }
+        { path: "facilityId", select: "name street city address" },
+        { path: "bloodGroupId", select: "name" },
       ],
-      sort: { createdAt: -1 }
+      sort: { createdAt: -1 },
     });
 
     return result;
@@ -285,16 +304,17 @@ class BloodDonationService {
       query: { userId },
       page,
       limit,
-      select: "_id userId bloodGroupId bloodComponent quantity donationDate status bloodDonationRegistrationId createdAt",
+      select:
+        "_id userId bloodGroupId bloodComponent quantity donationDate status bloodDonationRegistrationId createdAt",
       populate: [
         { path: "bloodGroupId", select: "type" },
-        { 
-          path: "bloodDonationRegistrationId", 
+        {
+          path: "bloodDonationRegistrationId",
           select: "preferredDate facilityId",
-          populate: { path: "facilityId", select: "name street city" }
-        }
+          populate: { path: "facilityId", select: "name street city" },
+        },
       ],
-      sort: { createdAt: -1 }
+      sort: { createdAt: -1 },
     });
 
     return result;
@@ -358,17 +378,18 @@ class BloodDonationService {
       query,
       page,
       limit,
-      select: "_id userId bloodGroupId bloodComponent quantity donationDate status bloodDonationRegistrationId createdAt",
+      select:
+        "_id userId bloodGroupId bloodComponent quantity donationDate status bloodDonationRegistrationId createdAt",
       populate: [
         { path: "userId", select: "fullName email phone" },
         { path: "bloodGroupId", select: "type" },
         {
           path: "bloodDonationRegistrationId",
           select: "facilityId preferredDate",
-          populate: { path: "facilityId", select: "name street city" }
-        }
+          populate: { path: "facilityId", select: "name street city" },
+        },
       ],
-      sort: { createdAt: -1 }
+      sort: { createdAt: -1 },
     });
 
     // Lọc theo facilityId nếu có

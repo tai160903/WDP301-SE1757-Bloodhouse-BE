@@ -1,7 +1,6 @@
 "use strict";
 const mongoose = require("mongoose");
 const {
-  BLOOD_COMPONENT,
   BLOOD_DONATION_REGISTRATION_STATUS,
   BLOOD_DONATION_REGISTRATION_SOURCE,
 } = require("../constants/enum");
@@ -19,7 +18,6 @@ const bloodDonationRegistrationSchema = new mongoose.Schema(
     staffId: { type: mongoose.Schema.Types.ObjectId, ref: "FacilityStaff" },
     facilityId: { type: mongoose.Schema.Types.ObjectId, ref: "Facility", required: true },
     bloodGroupId: { type: mongoose.Schema.Types.ObjectId, ref: "BloodGroup", required: true },
-
     preferredDate: { type: Date },
     status: {
       type: String,
