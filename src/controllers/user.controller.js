@@ -118,6 +118,15 @@ class UserController {
       data: result,
     }).send(res);
   });
+
+  // Cập nhật expo push token
+  updateExpoToken = asyncHandler(async (req, res) => {
+    const result = await userService.updateExpoToken(req.user.userId, req.body.expoPushToken);
+    new OK({
+      message: "Expo push token updated successfully",
+      data: result,
+    }).send(res);
+  });
 }
 
 module.exports = new UserController();

@@ -332,6 +332,17 @@ class UserService {
 
     return { message: "Password reset successfully" };
   };
+
+  // Cập nhật expo push token
+  updateExpoToken = async (userId, expoPushToken) => {
+    const user = await userModel.findByIdAndUpdate(userId, {
+      expoPushToken,
+    });
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+    return { message: "Expo push token updated successfully" };
+  };
 }
 
 module.exports = new UserService();

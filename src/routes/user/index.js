@@ -16,5 +16,6 @@ router.post("/verify", userController.verifyAccount);
 router.patch("/password", userController.changePassword);
 router.patch("/avatar", userController.updateAvatar);
 router.delete("/", userController.deleteAccount);
+router.patch("/update-expo-token", userController.updateExpoToken);
 
 module.exports = router;

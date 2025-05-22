@@ -25,6 +25,7 @@ const userSchema = new mongoose.Schema(
       enum: Object.values(USER_STATUS),
       default: USER_STATUS.ACTIVE,
     },
+    expoPushToken: { type: String, trim: true },
     yob: { type: Date },
     sex: { type: String, enum: Object.values(SEX) },
     fullName: { type: String, trim: true },
