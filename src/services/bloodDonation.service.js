@@ -13,6 +13,7 @@ const facilityModel = require("../models/facility.model");
 const bloodGroupModel = require("../models/bloodGroup.model");
 const { USER_MESSAGE, FACILITY_MESSAGE, BLOOD_GROUP_MESSAGE } = require("../constants/message");
 const QRCode = require("qrcode");
+const { getPaginatedData } = require("../helpers/mongooseHelper");
 
 class BloodDonationService {
   /** BLOOD DONATION REGISTRATION */
@@ -110,34 +111,21 @@ class BloodDonationService {
     if (status) query.status = status;
     if (facilityId) query.facilityId = facilityId;
 
-    const skip = (page - 1) * limit;
-    const registrations = await bloodDonationRegistrationModel
-      .find(query)
-      .populate("userId", "fullName email phone avatar")
-      .populate("facilityId", "name street city address")
-      .populate("bloodGroupId", "name")
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    const result = await getPaginatedData({
+      model: bloodDonationRegistrationModel,
+      query,
+      page,
+      limit,
+      select: "_id userId facilityId bloodGroupId bloodComponent preferredDate status source notes createdAt",
+      populate: [
+        { path: "userId", select: "fullName email phone" },
+        { path: "facilityId", select: "name street city" },
+        { path: "bloodGroupId", select: "name" }
+      ],
+      sort: { createdAt: -1 }
+    });
 
-    return registrations.map((reg) =>
-      getInfoData({
-        fields: [
-          "_id",
-          "userId",
-          "facilityId",
-          "bloodGroupId",
-          "bloodComponent",
-          "preferredDate",
-          "status",
-          "source",
-          "notes",
-          "createdAt",
-          "expectedQuantity",
-        ],
-        object: reg,
-      })
-    );
+    return result;
   };
 
   // Cập nhật đăng ký hiến máu
@@ -242,35 +230,21 @@ class BloodDonationService {
     const query = { userId };
     if (status) query.status = status;
 
-    const skip = (page - 1) * limit;
-    const registrations = await bloodDonationRegistrationModel
-      .find(query)
-      .populate("userId", "fullName email phone avatar")
-      .populate("facilityId", "name street city address")
-      .populate("bloodGroupId", "name")
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    const result = await getPaginatedData({
+      model: bloodDonationRegistrationModel,
+      query,
+      page,
+      limit,
+      select: "_id userId facilityId bloodGroupId bloodComponent preferredDate status source notes location createdAt",
+      populate: [
+        { path: "userId", select: "fullName email phone" },
+        { path: "facilityId", select: "name street city" },
+        { path: "bloodGroupId", select: "name" }
+      ],
+      sort: { createdAt: -1 }
+    });
 
-    return registrations.map((reg) =>
-      getInfoData({
-        fields: [
-          "_id",
-          "userId",
-          "facilityId",
-          "bloodGroupId",
-          "bloodComponent",
-          "preferredDate",
-          "status",
-          "source",
-          "notes",
-          "location",
-          "createdAt",
-          "expectedQuantity",
-        ],
-        object: reg,
-      })
-    );
+    return result;
   };
 
   // Lấy chi tiết một đăng ký hiến máu
@@ -306,31 +280,24 @@ class BloodDonationService {
   /** BLOOD DONATION */
   // Lấy lịch sử hiến máu của user
   getUserDonations = async (userId, limit = 10, page = 1) => {
-    const skip = (page - 1) * limit;
-    const donations = await bloodDonationModel
-      .find({ userId })
-      .populate("bloodGroupId", "type")
-      .populate("bloodDonationRegistrationId", "preferredDate facilityId")
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    const result = await getPaginatedData({
+      model: bloodDonationModel,
+      query: { userId },
+      page,
+      limit,
+      select: "_id userId bloodGroupId bloodComponent quantity donationDate status bloodDonationRegistrationId createdAt",
+      populate: [
+        { path: "bloodGroupId", select: "type" },
+        { 
+          path: "bloodDonationRegistrationId", 
+          select: "preferredDate facilityId",
+          populate: { path: "facilityId", select: "name street city" }
+        }
+      ],
+      sort: { createdAt: -1 }
+    });
 
-    return donations.map((donation) =>
-      getInfoData({
-        fields: [
-          "_id",
-          "userId",
-          "bloodGroupId",
-          "bloodComponent",
-          "quantity",
-          "donationDate",
-          "status",
-          "bloodDonationRegistrationId",
-          "createdAt",
-        ],
-        object: donation,
-      })
-    );
+    return result;
   };
 
   // Tạo bản ghi hiến máu
@@ -386,62 +353,34 @@ class BloodDonationService {
     const query = {};
     if (status) query.status = status;
 
-    const skip = (page - 1) * limit;
-    const donations = await bloodDonationModel
-      .find(query)
-      .populate("userId", "fullName email phone")
-      .populate("bloodGroupId", "type")
-      .populate({
-        path: "bloodDonationRegistrationId",
-        select: "facilityId preferredDate",
-        populate: { path: "facilityId", select: "name street city" },
-      })
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    const result = await getPaginatedData({
+      model: bloodDonationModel,
+      query,
+      page,
+      limit,
+      select: "_id userId bloodGroupId bloodComponent quantity donationDate status bloodDonationRegistrationId createdAt",
+      populate: [
+        { path: "userId", select: "fullName email phone" },
+        { path: "bloodGroupId", select: "type" },
+        {
+          path: "bloodDonationRegistrationId",
+          select: "facilityId preferredDate",
+          populate: { path: "facilityId", select: "name street city" }
+        }
+      ],
+      sort: { createdAt: -1 }
+    });
 
     // Lọc theo facilityId nếu có
     if (facilityId) {
-      return donations
-        .filter(
-          (donation) =>
-            donation.bloodDonationRegistrationId?.facilityId?._id.toString() ===
-            facilityId.toString()
-        )
-        .map((donation) =>
-          getInfoData({
-            fields: [
-              "_id",
-              "userId",
-              "bloodGroupId",
-              "bloodComponent",
-              "quantity",
-              "donationDate",
-              "status",
-              "bloodDonationRegistrationId",
-              "createdAt",
-            ],
-            object: donation,
-          })
-        );
+      result.data = result.data.filter(
+        (donation) =>
+          donation.bloodDonationRegistrationId?.facilityId?._id.toString() ===
+          facilityId.toString()
+      );
     }
 
-    return donations.map((donation) =>
-      getInfoData({
-        fields: [
-          "_id",
-          "userId",
-          "bloodGroupId",
-          "bloodComponent",
-          "quantity",
-          "donationDate",
-          "status",
-          "bloodDonationRegistrationId",
-          "createdAt",
-        ],
-        object: donation,
-      })
-    );
+    return result;
   };
 
   // Lấy chi tiết một bản ghi hiến máu
