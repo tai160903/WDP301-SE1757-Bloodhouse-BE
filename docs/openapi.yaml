@@ -2352,7 +2352,7 @@ paths:
                 properties:
                   result:
                     type: boolean
-  /health-checks:
+  /health-check:
     post:
       summary: Create a new health check
       description: Allows a nurse to create a health check record for a blood donation registration. The staff ID is derived from the authenticated user's token.
@@ -2389,11 +2389,6 @@ paths:
                   format: date-time
                   description: The date and time of the health check, must not be in the future
                   example: "2025-05-20T10:00:00Z"
-            example:
-              registrationId: "60f7b3a4b9c4e1234567890"
-              userId: "60f7b3a4b9c4e1234567891"
-              doctorId: "60f7b3a4b9c4e1234567892"
-              checkDate: "2025-05-20T10:00:00Z"
       responses:
         "201":
           description: Health check created successfully
@@ -2411,9 +2406,9 @@ paths:
           description: Invalid input (e.g., missing required fields, invalid IDs, or future checkDate)
         "403":
           description: Forbidden (requires nurse role)
-  /health-checks/{id}:
     patch:
-      summary: Update a health check
+      summary: Update health check
+      description: Update a health check record (doctor only)
       tags:
         - Health Checks
       security:
@@ -2422,7 +2417,8 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
           description: Health check ID
       requestBody:
         required: true
@@ -2432,50 +2428,41 @@ paths:
               type: object
               properties:
                 isEligible:
-                  { type: boolean, description: "Eligibility for donation" }
+                  type: boolean
+                  description: Whether the donor is eligible to donate
                 bloodPressure:
-                  {
-                    type: string,
-                    example: "120/80 mmHg",
-                    description: "Blood pressure",
-                  }
+                  type: string
+                  example: "120/80"
+                  description: Blood pressure reading
                 hemoglobin:
-                  {
-                    type: number,
-                    minimum: 10,
-                    maximum: 20,
-                    description: "Hemoglobin level in g/dL",
-                  }
+                  type: number
+                  minimum: 10
+                  maximum: 20
+                  description: Hemoglobin level in g/dL
                 weight:
-                  {
-                    type: number,
-                    minimum: 40,
-                    maximum: 150,
-                    description: "Weight in kg",
-                  }
+                  type: number
+                  minimum: 40
+                  maximum: 150
+                  description: Weight in kg
                 pulse:
-                  {
-                    type: number,
-                    minimum: 50,
-                    maximum: 120,
-                    description: "Pulse in bpm",
-                  }
+                  type: number
+                  minimum: 50
+                  maximum: 120
+                  description: Pulse rate in bpm
                 temperature:
-                  {
-                    type: number,
-                    minimum: 35,
-                    maximum: 38,
-                    description: "Temperature in °C",
-                  }
+                  type: number
+                  minimum: 35
+                  maximum: 38
+                  description: Temperature in °C
                 generalCondition:
-                  {
-                    type: string,
-                    example: "Good",
-                    description: "General condition",
-                  }
+                  type: string
+                  description: General health condition
                 deferralReason:
-                  { type: string, description: "Reason for ineligibility" }
-                notes: { type: string, description: "Additional notes" }
+                  type: string
+                  description: Reason for deferral if not eligible
+                notes:
+                  type: string
+                  description: Additional notes
       responses:
         "200":
           description: Health check updated successfully
@@ -2485,16 +2472,318 @@ paths:
                 type: object
                 properties:
                   message:
-                    {
-                      type: string,
-                      example: "Update health check successfully",
-                    }
-                  data: { $ref: "#/components/schemas/HealthCheck" }
+                    type: string
+                    example: "Update health check successfully"
+                  data:
+                    $ref: "#/components/schemas/HealthCheck"
         "400":
           description: Invalid input
         "403":
-          description: Forbidden (doctor role required)
-
+          description: Forbidden (requires doctor role)
+        "404":
+          description: Health check not found
+  /health-check/facility:
+    get:
+      summary: Get facility health checks
+      description: Get paginated list of health checks for a facility
+      tags:
+        - Health Checks
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of records per page
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [eligible, not_eligible]
+          description: Filter by eligibility status
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search term for generalCondition, notes, or deferralReason
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [createdAt, updatedAt, checkDate]
+            default: createdAt
+          description: Field to sort by
+        - in: query
+          name: sortOrder
+          schema:
+            type: integer
+            enum: [1, -1]
+            default: -1
+          description: Sort order (1 for ascending, -1 for descending)
+      responses:
+        "200":
+          description: List of health checks retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Get health checks successfully"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/HealthCheck"
+                  metadata:
+                    $ref: "#/components/schemas/Pagination"
+        "400":
+          description: Invalid input
+        "403":
+          description: Forbidden (requires manager role)
+  /health-check/doctor:
+    get:
+      summary: Get doctor's health checks
+      description: Get paginated list of health checks assigned to a doctor
+      tags:
+        - Health Checks
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of records per page
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [eligible, not_eligible]
+          description: Filter by eligibility status
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search term for generalCondition, notes, or deferralReason
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [createdAt, updatedAt, checkDate]
+            default: createdAt
+          description: Field to sort by
+        - in: query
+          name: sortOrder
+          schema:
+            type: integer
+            enum: [1, -1]
+            default: -1
+          description: Sort order (1 for ascending, -1 for descending)
+      responses:
+        "200":
+          description: List of health checks retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Get health checks successfully"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/HealthCheck"
+                  metadata:
+                    $ref: "#/components/schemas/Pagination"
+        "400":
+          description: Invalid input
+        "403":
+          description: Forbidden (requires doctor role)
+  /health-check/user:
+    get:
+      summary: Get user's health checks
+      description: Get paginated list of health checks for the current user
+      tags:
+        - Health Checks
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of records per page
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [eligible, not_eligible]
+          description: Filter by eligibility status
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search term for generalCondition, notes, or deferralReason
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [createdAt, updatedAt, checkDate]
+            default: createdAt
+          description: Field to sort by
+        - in: query
+          name: sortOrder
+          schema:
+            type: integer
+            enum: [1, -1]
+            default: -1
+          description: Sort order (1 for ascending, -1 for descending)
+      responses:
+        "200":
+          description: List of health checks retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Get health checks successfully"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/HealthCheck"
+                  metadata:
+                    $ref: "#/components/schemas/Pagination"
+        "400":
+          description: Invalid input
+        "403":
+          description: Forbidden (requires user role)
+  /health-check/{id}:
+    get:
+      summary: Get health check details
+      description: Get detailed information about a specific health check
+      tags:
+        - Health Checks
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Health check ID
+      responses:
+        "200":
+          description: Health check details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Get health check details successfully"
+                  data:
+                    $ref: "#/components/schemas/HealthCheck"
+        "400":
+          description: Invalid input
+        "403":
+          description: Forbidden (user can only access their own health checks)
+        "404":
+          description: Health check not found
+  /health-check/nurse:
+    get:
+      summary: Get nurse's health checks
+      description: Get paginated list of health checks created by a nurse
+      tags:
+        - Health Checks
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of records per page
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [eligible, not_eligible]
+          description: Filter by eligibility status
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search term for generalCondition, notes, or deferralReason
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [createdAt, updatedAt, checkDate]
+            default: createdAt
+          description: Field to sort by
+        - in: query
+          name: sortOrder
+          schema:
+            type: integer
+            enum: [1, -1]
+            default: -1
+          description: Sort order (1 for ascending, -1 for descending)
+      responses:
+        "200":
+          description: List of health checks retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Get health checks successfully"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/HealthCheck"
+                  metadata:
+                    $ref: "#/components/schemas/Pagination"
+        "400":
+          description: Invalid input
+        "403":
+          description: Forbidden (requires nurse role)
 components:
   securitySchemes:
     bearerAuth:
@@ -2786,6 +3075,7 @@ components:
           }
         doctorId: { type: object, properties: { position: { type: string } } }
         staffId: { type: object, properties: { position: { type: string } } }
+        facilityId: { type: string }
         checkDate: { type: string, format: date-time }
         isEligible: { type: boolean }
         bloodPressure: { type: string }
