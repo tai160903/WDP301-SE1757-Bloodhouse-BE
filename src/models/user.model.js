@@ -30,9 +30,7 @@ const userSchema = new mongoose.Schema(
     sex: { type: String, enum: Object.values(SEX) },
     fullName: { type: String, trim: true },
     phone: { type: String, trim: true, unique: true },
-    street: { type: String, trim: true },
-    city: { type: String, trim: true },
-    country: { type: String, trim: true },
+    address: { type: String, trim: true },
     location: {
       type: {
         type: String,

@@ -1,6 +1,6 @@
 "use strict";
 
-const { ENTITY_TYPE } = require("../constants/enum");
+const { ENTITY_TYPE, NOTIFICATION_TYPE } = require("../constants/enum");
 const notificationModel = require("../models/notification.model");
 const userModel = require("../models/user.model");
 const { Expo } = require("expo-server-sdk");
@@ -10,7 +10,10 @@ class NotificationService {
     this.expo = new Expo();
   }
 
-  sendPushNotification = async (userId, { title, body, data = {}, entityType, relatedEntityId }) => {
+  sendPushNotification = async (
+    userId,
+    { title, body, data = {}, entityType, relatedEntityId }
+  ) => {
     try {
       // Find user and get their Expo push token
       const user = await userModel.findById(userId);
@@ -109,6 +112,32 @@ class NotificationService {
       data: { type, status },
       entityType,
       relatedEntityId,
+    });
+  };
+
+  sendEmergencyRequestNotification = async (
+    userId,
+    bloodGroup,
+    component,
+    quantity,
+    facilityName,
+    campaignId
+  ) => {
+    const title = "Yêu Cầu Hiến Máu Khẩn Cấp";
+    const body = `${facilityName} đang cần ${quantity} đơn vị máu ${component} nhóm ${bloodGroup}. Bạn có thể giúp đỡ?`;
+    
+    return this.sendPushNotification(userId, {
+      title,
+      body,
+      data: { 
+        type: NOTIFICATION_TYPE.EMERGENCY_REQUEST,
+        bloodGroup,
+        component,
+        quantity,
+        facilityName,
+      },
+      entityType: ENTITY_TYPE.EMERGENCY_CAMPAIGN,
+      relatedEntityId: campaignId,
     });
   };
 }

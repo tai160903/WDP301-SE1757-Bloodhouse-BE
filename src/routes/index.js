@@ -19,6 +19,7 @@ router.use("/facility", require("./facility"));
 router.use("/blood-request", require("./bloodRequest"));
 router.use("/facility-staff", require("./facilityStaff"));
 router.use("/feedback", require("./feedback"));
+router.use("/blood-inventory", require("./bloodInventory"));
 router.use("/health-check", require("./healthCheck"));
 router.use("/process-donation-log", require("./processDonationLog"));
 

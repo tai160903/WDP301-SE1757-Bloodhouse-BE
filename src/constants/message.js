@@ -17,6 +17,24 @@ const ACCESS_MESSAGE = {
   GET_FCM_TOKEN_FAILED: "Lấy FCM token thất bại",
 };
 
+const EMERGENCY_CAMPAIGN_MESSAGE = {
+  CREATE_SUCCESS: "Tạo chiến dịch khẩn cấp thành công",
+  CREATE_FAILED: "Tạo chiến dịch khẩn cấp thất bại",
+  UPDATE_SUCCESS: "Cập nhật chiến dịch khẩn cấp thành công",
+  UPDATE_FAILED: "Cập nhật chiến dịch khẩn cấp thất bại",
+  GET_SUCCESS: "Lấy chiến dịch khẩn cấp thành công",
+  GET_FAILED: "Lấy chiến dịch khẩn cấp thất bại",
+};
+
+const BLOOD_INVENTORY_MESSAGE = {
+  CREATE_SUCCESS: "Tạo tương hợp máu thành công",
+  CREATE_FAILED: "Tạo tương hợp máu thất bại",
+  UPDATE_SUCCESS: "Cập nhật tương hợp máu thành công",
+  UPDATE_FAILED: "Cập nhật tương hợp máu thất bại",
+  GET_SUCCESS: "Lấy tương hợp máu thành công",
+  GET_FAILED: "Lấy tương hợp máu thất bại",
+};
+
 const BLOOD_COMPATIBILITY_MESSAGE = {
   CREATE_SUCCESS: "Tạo tương hợp máu thành công",
   CREATE_FAILED: "Tạo tương hợp máu thất bại",
@@ -203,6 +221,8 @@ module.exports = {
   USER_MESSAGE,
   FEEDBACK_MESSAGE,
   HEALTH_CHECK_MESSAGE,
+  BLOOD_INVENTORY_MESSAGE,
+  EMERGENCY_CAMPAIGN_MESSAGE,
   DONATION_PROCESS_LOG_MESSAGE,
   BLOOD_DONATION_PROCESS_MESSAGE
 };
