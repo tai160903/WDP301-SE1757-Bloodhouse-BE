@@ -9,11 +9,8 @@ const { createTokenPair } = require("../auth/jwt");
 const crypto = require("crypto");
 
 class AccessService {
-  signUp = async ({ full_name, email, password }) => {
+  signUp = async ({ full_name, email, password, yob, sex, phone }) => {
     // Step 1: Check if email exists
-    console.log("email", email);
-    console.log("password", password);
-    console.log("full_name", full_name);
     const existingUser = await userModel.findOne({ email });
     if (existingUser) {
       throw new BadRequestError("Email already exists");
@@ -25,6 +22,9 @@ class AccessService {
     const newUser = await userModel.create({
       full_name,
       email,
+      yob,
+      sex,
+      phone,
       password: passwordHash,
       role: USER_ROLE.MEMBER,
       verifyToken,
@@ -46,7 +46,7 @@ class AccessService {
       // Step 5: Trả về kết quả
       return {
         user: getInfoData({
-          fields: ["_id", "full_name", "email", "role"],
+          fields: ["_id", "full_name", "email", "role", "yob", "sex", "phone"],
           object: newUser,
         }),
         tokens,
