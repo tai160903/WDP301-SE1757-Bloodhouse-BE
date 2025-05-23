@@ -20,14 +20,97 @@ class HealthCheckController {
 
   updateHealthCheck = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
-    const doctorId = req.user.userId;
+    const staffId = req.user.staffId;
     const result = await healthCheckService.updateHealthCheck(
       id,
       req.body,
-      doctorId
+      staffId
     );
     new OK({
       message: HEALTH_CHECK_MESSAGE.UPDATE_SUCCESS,
+      data: result.data,
+    }).send(res);
+  });
+
+  // Lấy danh sách kiểm tra sức khỏe của cơ sở
+  getFacilityHealthChecks = asyncHandler(async (req, res) => {
+    const facilityId = req.user.facilityId;
+    const { page, limit, status, search, sortBy, sortOrder } = req.query;
+    const result = await healthCheckService.getFacilityHealthChecks(facilityId, {
+      page: parseInt(page) || 1,
+      limit: parseInt(limit) || 10,
+      status,
+      search,
+      sortBy,
+      sortOrder: parseInt(sortOrder) || -1,
+    });
+    new OK({
+      message: HEALTH_CHECK_MESSAGE.GET_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  // Lấy danh sách kiểm tra sức khỏe của bác sĩ
+  getDoctorHealthChecks = asyncHandler(async (req, res) => {
+    const staffId = req.user.staffId;
+    const { page, limit, status, search, sortBy, sortOrder } = req.query;
+    const result = await healthCheckService.getDoctorHealthChecks(staffId, {
+      page: parseInt(page) || 1,
+      limit: parseInt(limit) || 10,
+      status,
+      search,
+      sortBy,
+      sortOrder: parseInt(sortOrder) || -1,
+    });
+    new OK({
+      message: HEALTH_CHECK_MESSAGE.GET_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  // Lấy danh sách kiểm tra sức khỏe của người dùng
+  getUserHealthChecks = asyncHandler(async (req, res) => {
+    const userId = req.user.userId;
+    const { page, limit, status, search, sortBy, sortOrder } = req.query;
+    const result = await healthCheckService.getUserHealthChecks(userId, {
+      page: parseInt(page) || 1,
+      limit: parseInt(limit) || 10,
+      status,
+      search,
+      sortBy,
+      sortOrder: parseInt(sortOrder) || -1,
+    });
+    new OK({
+      message: HEALTH_CHECK_MESSAGE.GET_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  // Lấy danh sách kiểm tra sức khỏe của nurse
+  getNurseHealthChecks = asyncHandler(async (req, res) => {
+    const staffId = req.user.staffId;
+    const { page, limit, status, search, sortBy, sortOrder } = req.query;
+    const result = await healthCheckService.getNurseHealthChecks(staffId, {
+      page: parseInt(page) || 1,
+      limit: parseInt(limit) || 10,
+      status,
+      search,
+      sortBy,
+      sortOrder: parseInt(sortOrder) || -1,
+    });
+    new OK({
+      message: HEALTH_CHECK_MESSAGE.GET_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  // Lấy chi tiết kiểm tra sức khỏe
+  getHealthCheckDetail = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { userId, role, staffId } = req.user;
+    const result = await healthCheckService.getHealthCheckDetail(id, userId, role, staffId);
+    new OK({
+      message: HEALTH_CHECK_MESSAGE.GET_DETAIL_SUCCESS,
       data: result.data,
     }).send(res);
   });
