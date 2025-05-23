@@ -125,6 +125,13 @@ const BLOOD_REQUEST_STATUS = {
   CANCELLED: "cancelled",
 };
 
+const DONOR_STATUS = {
+  STABLE: "stable",
+  FATIGUED: "fatigued",
+  NEEDS_MONITORING: "needs_monitoring",
+  OTHER: "other",
+};
+
 module.exports = {
   USER_ROLE,
   STAFF_POSITION,
@@ -142,4 +149,5 @@ module.exports = {
   BLOOD_REQUEST_STATUS,
   NOTIFICATION_TYPE,
   ENTITY_TYPE,
+  DONOR_STATUS,
 };

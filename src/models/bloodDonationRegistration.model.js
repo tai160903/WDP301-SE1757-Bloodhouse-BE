@@ -43,6 +43,14 @@ const bloodDonationRegistrationSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    checkInAt: {
+      type: Date,
+      default: null,
+    },
+    completedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" },

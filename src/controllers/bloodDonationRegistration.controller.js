@@ -4,6 +4,7 @@ const { OK, CREATED } = require("../configs/success.response");
 const asyncHandler = require("../helpers/asyncHandler");
 const bloodDonationService = require("../services/bloodDonation.service");
 const { BLOOD_DONATION_REGISTRATION_MESSAGE } = require("../constants/message");
+
 class BloodDonationRegistrationController {
   // Đăng ký hiến máu
   createBloodDonationRegistration = asyncHandler(async (req, res) => {
@@ -36,6 +37,7 @@ class BloodDonationRegistrationController {
   updateBloodDonationRegistration = asyncHandler(async (req, res) => {
     const result = await bloodDonationService.updateBloodDonationRegistration({
       registrationId: req.params.id,
+      changedBy: req.user.staffId,
       ...req.body,
     });
     new OK({
@@ -70,6 +72,105 @@ class BloodDonationRegistrationController {
       );
     new OK({
       message: BLOOD_DONATION_REGISTRATION_MESSAGE.GET_DETAIL_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  // API cho NURSE: Lấy danh sách đăng ký hiến máu được gán cho mình
+  getStaffAssignedRegistrations = asyncHandler(async (req, res) => {
+    const { 
+      status, 
+      page = 1, 
+      limit = 10, 
+      search,
+      startDate,
+      endDate,
+      bloodGroupId 
+    } = req.query;
+
+    const result = await bloodDonationService.getStaffAssignedRegistrations({
+      staffId: req.user.staffId,
+      status,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      search,
+      startDate,
+      endDate,
+      bloodGroupId
+    });
+
+    new OK({
+      message: BLOOD_DONATION_REGISTRATION_MESSAGE.GET_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  // API cho MANAGER: Lấy danh sách đăng ký hiến máu của facility với thống kê
+  getFacilityRegistrations = asyncHandler(async (req, res) => {
+    const { 
+      status, 
+      page = 1, 
+      limit = 10, 
+      search,
+      startDate,
+      endDate,
+      bloodGroupId,
+      staffId,
+      includeStats = false
+    } = req.query;
+
+    const result = await bloodDonationService.getFacilityRegistrations({
+      facilityId: req.user.facilityId, // Lấy từ staff info trong token
+      status,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      search,
+      startDate,
+      endDate,
+      bloodGroupId,
+      staffId,
+      includeStats: includeStats === 'true'
+    });
+
+    new OK({
+      message: BLOOD_DONATION_REGISTRATION_MESSAGE.GET_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  // API cho MANAGER: Lấy thống kê tổng quan về đăng ký hiến máu
+  getRegistrationStatistics = asyncHandler(async (req, res) => {
+    const { 
+      startDate,
+      endDate,
+      groupBy = 'day' // day, week, month
+    } = req.query;
+
+    const result = await bloodDonationService.getRegistrationStatistics({
+      facilityId: req.user.facilityId,
+      startDate,
+      endDate,
+      groupBy
+    });
+
+    new OK({
+      message: BLOOD_DONATION_REGISTRATION_MESSAGE.GET_STATISTICS_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  // API cho STAFF: Cập nhật trạng thái check-in qua QR code
+  updateCheckInStatus = asyncHandler(async (req, res) => {
+    const { qrData } = req.body;
+    
+    const result = await bloodDonationService.processCheckIn({
+      qrData,
+      staffId: req.user.staffId,
+      checkedBy: req.user.userId
+    });
+
+    new OK({
+      message: BLOOD_DONATION_REGISTRATION_MESSAGE.CHECK_IN_SUCCESS,
       data: result,
     }).send(res);
   });

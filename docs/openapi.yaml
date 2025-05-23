@@ -2784,6 +2784,550 @@ paths:
           description: Invalid input
         "403":
           description: Forbidden (requires nurse role)
+
+  # Staff and Manager APIs for Blood Donation Registration
+  /blood-donation-registration/staff/assigned:
+    get:
+      summary: Get staff assigned blood donation registrations (for Nurse)
+      description: Get paginated list of blood donation registrations assigned to the authenticated staff member
+      tags:
+        - Blood Donation Registration - Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending_approval, registered, checked_in, in_consult, rejected, waiting_donation, donating, donated, resting, post_rest_check, completed, cancelled]
+          description: Filter by registration status
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of records per page
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search term in notes
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+          description: Start date for preferred date filter
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+          description: End date for preferred date filter
+        - in: query
+          name: bloodGroupId
+          schema:
+            type: string
+          description: Filter by blood group ID
+      responses:
+        "200":
+          description: Staff assigned registrations retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Get registrations successfully"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BloodDonationRegistration"
+                  metadata:
+                    $ref: "#/components/schemas/Pagination"
+        "403":
+          description: Forbidden (requires staff role)
+
+  /blood-donation-registration/facility/all:
+    get:
+      summary: Get facility blood donation registrations (for Manager)
+      description: Get paginated list of all blood donation registrations for the facility with optional statistics
+      tags:
+        - Blood Donation Registration - Manager
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending_approval, registered, checked_in, in_consult, rejected, waiting_donation, donating, donated, resting, post_rest_check, completed, cancelled]
+          description: Filter by registration status
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of records per page
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search term in notes
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+          description: Start date for preferred date filter
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+          description: End date for preferred date filter
+        - in: query
+          name: bloodGroupId
+          schema:
+            type: string
+          description: Filter by blood group ID
+        - in: query
+          name: staffId
+          schema:
+            type: string
+          description: Filter by assigned staff ID
+        - in: query
+          name: includeStats
+          schema:
+            type: boolean
+            default: false
+          description: Include statistics in response
+      responses:
+        "200":
+          description: Facility registrations retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Get registrations successfully"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BloodDonationRegistration"
+                  metadata:
+                    $ref: "#/components/schemas/Pagination"
+                  statistics:
+                    type: object
+                    description: Statistics if includeStats=true
+        "403":
+          description: Forbidden (requires manager role)
+
+  /blood-donation-registration/facility/statistics:
+    get:
+      summary: Get blood donation registration statistics (for Manager)
+      description: Get comprehensive statistics for blood donation registrations in the facility
+      tags:
+        - Blood Donation Registration - Manager
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+          description: Start date for statistics
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+          description: End date for statistics
+        - in: query
+          name: groupBy
+          schema:
+            type: string
+            enum: [day, week, month]
+            default: day
+          description: Group statistics by time period
+      responses:
+        "200":
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Get statistics successfully"
+                  data:
+                    $ref: "#/components/schemas/RegistrationStatistics"
+        "403":
+          description: Forbidden (requires manager role)
+
+  /blood-donation-registration/check-in:
+    post:
+      summary: Process check-in via QR code
+      description: Update registration status to checked-in using QR code data
+      tags:
+        - Blood Donation Registration - Staff
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                qrData:
+                  oneOf:
+                    - type: string
+                      description: QR code data as JSON string
+                      example: '{"registrationId":"675a1b2c3d4e5f6789012345","userId":"675a1b2c3d4e5f6789012346","bloodGroupId":"675a1b2c3d4e5f6789012347"}'
+                    - type: object
+                      description: QR code data as JSON object
+                      properties:
+                        registrationId:
+                          type: string
+                          example: "675a1b2c3d4e5f6789012345"
+                        userId:
+                          type: string
+                          example: "675a1b2c3d4e5f6789012346"
+                        bloodGroupId:
+                          type: string
+                          example: "675a1b2c3d4e5f6789012347"
+              required:
+                - qrData
+            examples:
+              json_string:
+                summary: QR Data as JSON String
+                value:
+                  qrData: '{"registrationId":"675a1b2c3d4e5f6789012345","userId":"675a1b2c3d4e5f6789012346","bloodGroupId":"675a1b2c3d4e5f6789012347"}'
+              json_object:
+                summary: QR Data as JSON Object
+                value:
+                  qrData:
+                    registrationId: "675a1b2c3d4e5f6789012345"
+                    userId: "675a1b2c3d4e5f6789012346"
+                    bloodGroupId: "675a1b2c3d4e5f6789012347"
+      responses:
+        "200":
+          description: Check-in successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Check-in successful"
+                  data:
+                    $ref: "#/components/schemas/BloodDonationRegistration"
+              example:
+                message: "Check-in successful"
+                data:
+                  _id: "675a1b2c3d4e5f6789012345"
+                  status: "checked_in"
+                  checkInAt: "2024-01-15T09:30:00.000Z"
+                  userId:
+                    _id: "675a1b2c3d4e5f6789012346"
+                    fullName: "Nguyen Van A"
+                    email: "nguyenvana@example.com"
+                    phone: "0123456789"
+                  facilityId:
+                    _id: "675a1b2c3d4e5f6789012348"
+                    name: "Hospital ABC"
+                    street: "123 Main Street"
+                    city: "Ho Chi Minh City"
+                  bloodGroupId:
+                    _id: "675a1b2c3d4e5f6789012347"
+                    name: "A+"
+                  preferredDate: "2024-01-15T09:00:00.000Z"
+                  expectedQuantity: 450
+        "400":
+          description: Invalid QR code or registration already checked in
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              examples:
+                invalid_qr:
+                  summary: Invalid QR Code Format
+                  value:
+                    message: "QR code data không hợp lệ"
+                missing_registration_id:
+                  summary: Missing Registration ID
+                  value:
+                    message: "QR code không chứa thông tin registration ID"
+                already_checked_in:
+                  summary: Already Checked In
+                  value:
+                    message: "Đăng ký này đã được check-in hoặc không ở trạng thái cho phép check-in"
+        "403":
+          description: Forbidden (requires nurse or manager role)
+        "404":
+          description: Registration not found
+
+  # Process Donation Log APIs
+  /process-donation-log:
+    get:
+      summary: Get process donation logs
+      description: Get paginated list of process donation logs with filtering and search
+      tags:
+        - Process Donation Log
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending_approval, registered, checked_in, in_consult, rejected, waiting_donation, donating, donated, resting, post_rest_check, completed, cancelled]
+          description: Filter by status
+        - in: query
+          name: registrationId
+          schema:
+            type: string
+          description: Filter by registration ID
+        - in: query
+          name: changedBy
+          schema:
+            type: string
+          description: Filter by staff who made the change
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search term in notes
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of records per page
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+          description: Start date for changedAt filter
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+          description: End date for changedAt filter
+      responses:
+        "200":
+          description: Process donation logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Get logs successfully"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProcessDonationLog"
+                  metadata:
+                    $ref: "#/components/schemas/Pagination"
+        "403":
+          description: Forbidden (requires staff role)
+
+    post:
+      summary: Create process donation log
+      description: Create a new process donation log entry
+      tags:
+        - Process Donation Log
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                registrationId:
+                  type: string
+                  description: Blood donation registration ID
+                  example: "60d0fe4f5311236168a109ca"
+                userId:
+                  type: string
+                  description: User ID
+                  example: "60d0fe4f5311236168a109cb"
+                status:
+                  type: string
+                  enum: [pending_approval, registered, checked_in, in_consult, rejected, waiting_donation, donating, donated, resting, post_rest_check, completed, cancelled]
+                  description: New status
+                  example: "checked_in"
+                notes:
+                  type: string
+                  description: Additional notes
+                  example: "Patient arrived on time"
+              required:
+                - registrationId
+                - userId
+                - status
+      responses:
+        "201":
+          description: Process donation log created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Log created successfully"
+                  data:
+                    $ref: "#/components/schemas/ProcessDonationLog"
+        "400":
+          description: Invalid input data
+        "403":
+          description: Forbidden (requires staff role)
+
+  /process-donation-log/registration/{registrationId}:
+    get:
+      summary: Get logs by registration ID
+      description: Get all process donation logs for a specific registration (timeline)
+      tags:
+        - Process Donation Log
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: registrationId
+          required: true
+          schema:
+            type: string
+          description: Blood donation registration ID
+      responses:
+        "200":
+          description: Registration logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Get logs successfully"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProcessDonationLog"
+        "400":
+          description: Invalid registration ID
+        "403":
+          description: Forbidden (requires staff role)
+
+  /process-donation-log/staff/my-logs:
+    get:
+      summary: Get staff's process donation logs
+      description: Get process donation logs created by the authenticated staff member
+      tags:
+        - Process Donation Log
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of records per page
+      responses:
+        "200":
+          description: Staff logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Get logs successfully"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProcessDonationLog"
+                  metadata:
+                    $ref: "#/components/schemas/Pagination"
+        "403":
+          description: Forbidden (requires staff role)
+
+  /process-donation-log/{logId}:
+    get:
+      summary: Get process donation log by ID
+      description: Get detailed information of a specific process donation log
+      tags:
+        - Process Donation Log
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: logId
+          required: true
+          schema:
+            type: string
+          description: Process donation log ID
+      responses:
+        "200":
+          description: Process donation log details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Get log details successfully"
+                  data:
+                    $ref: "#/components/schemas/ProcessDonationLog"
+        "400":
+          description: Invalid log ID
+        "403":
+          description: Forbidden (requires staff role)
+        "404":
+          description: Process donation log not found
+
 components:
   securitySchemes:
     bearerAuth:
@@ -3088,8 +3632,116 @@ components:
         notes: { type: string }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+    ProcessDonationLog:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Log ID
+        registrationId:
+          type: string
+          description: Blood donation registration ID
+        userId:
+          type: string
+          description: User ID
+        changedBy:
+          type: object
+          description: Staff who made the change
+          properties:
+            _id:
+              type: string
+            userId:
+              type: object
+              properties:
+                _id:
+                  type: string
+                fullName:
+                  type: string
+                email:
+                  type: string
+                phone:
+                  type: string
+                avatar:
+                  type: string
+            position:
+              type: string
+              enum: [MANAGER, NURSE, DOCTOR]
+        status:
+          type: string
+          enum: [pending_approval, rejected_registration, registered, checked_in, in_consult, rejected, waiting_donation, donating, donated, resting, post_rest_check, completed, cancelled]
+          description: Status of the registration
+        notes:
+          type: string
+          description: Additional notes
+        changedAt:
+          type: string
+          format: date-time
+          description: When the change was made
+        createdAt:
+          type: string
+          format: date-time
+          description: When the log was created
+    RegistrationStatistics:
+      type: object
+      properties:
+        statusDistribution:
+          type: array
+          description: Distribution of registrations by status
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                description: Status
+              count:
+                type: integer
+                description: Number of registrations with this status
+        bloodTypeDistribution:
+          type: array
+          description: Distribution of registrations by blood type
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                description: Blood type
+              count:
+                type: integer
+                description: Number of registrations with this blood type
+        timeSeries:
+          type: array
+          description: Time series data for registrations
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                description: Time period (depends on groupBy parameter)
+              count:
+                type: integer
+                description: Number of registrations in this period
+              totalExpectedQuantity:
+                type: number
+                description: Total expected blood quantity in this period
+        summary:
+          type: object
+          description: Summary statistics
+          properties:
+            total:
+              type: integer
+              description: Total number of registrations
+            pending:
+              type: integer
+              description: Number of pending registrations
+            registered:
+              type: integer
+              description: Number of registered (approved) registrations
+            completed:
+              type: integer
+              description: Number of completed registrations
     ErrorResponse:
       type: object
       properties:
         message:
           type: string
+
