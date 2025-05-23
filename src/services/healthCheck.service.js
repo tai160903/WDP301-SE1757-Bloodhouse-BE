@@ -6,9 +6,10 @@ const User = require("../models/user.model");
 const FacilityStaff = require("../models/facilityStaff.model");
 const { getInfoData } = require("../utils");
 const { BadRequestError } = require("../configs/error.response");
-const { STAFF_POSITION, USER_ROLE } = require("../constants/enum");
+const { STAFF_POSITION, USER_ROLE, BLOOD_DONATION_REGISTRATION_STATUS } = require("../constants/enum");
 const healthCheckModel = require("../models/healthCheck.model");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
+const processDonationLogService = require("./processDonationLog.service");
 
 class HealthCheckService {
   // Nhân viên tạo đơn kiểm tra sức khỏe
@@ -78,7 +79,16 @@ class HealthCheckService {
       checkDate: new Date(checkDate),
     });
 
-    // Step 7: Populate and return
+    // Step 7: Create process health check log
+    await processDonationLogService.createProcessDonationLog({
+      registrationId,
+      userId,
+      changedBy: staffId,
+      status: BLOOD_DONATION_REGISTRATION_STATUS.IN_CONSULT,
+      notes: "Kiểm tra sức khỏe",
+    });
+
+    // Step 8: Populate and return
     const result = await healthCheck.populate([
       { path: "userId", select: "fullName email" },
       { path: "staffId", select: "position" },
@@ -162,8 +172,30 @@ class HealthCheckService {
       updateData,
       { new: true }
     );
+
+    
+
     if (!updatedHealthCheck) {
       throw new BadRequestError("Cập nhật kiểm tra sức khỏe không thành công");
+    }
+
+    // Step 7: Create process donation  log
+    if(updateData.isEligible === true) {
+      await processDonationLogService.createProcessDonationLog({
+        registrationId: updatedHealthCheck.registrationId,
+        userId: updatedHealthCheck.userId,
+        changedBy: staffId,
+        status: BLOOD_DONATION_REGISTRATION_STATUS.WAITING_DONATION,
+        notes: "Đã đủ điều kiện hiến máu",
+      });
+    } else {
+      await processDonationLogService.createProcessDonationLog({
+        registrationId: updatedHealthCheck.registrationId,
+        userId: updatedHealthCheck.userId,
+        changedBy: staffId,
+        status: BLOOD_DONATION_REGISTRATION_STATUS.REGISTERED,
+        notes: "Không đủ điều kiện hiến máu",
+      });
     }
 
     // Step 7: Populate and return
