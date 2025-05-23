@@ -12,7 +12,7 @@ const { getPaginatedData } = require("../helpers/mongooseHelper");
 class BloodRequestService {
   requestFields = [
     "_id",
-    "bloodId",
+    "groupId",
     "userId",
     "patientName",
     "patientAge",
@@ -21,8 +21,7 @@ class BloodRequestService {
     "isUrgent",
     "status",
     "location",
-    "street",
-    "city",
+    "address",
     "contactName",
     "contactPhone",
     "contactEmail",
@@ -37,7 +36,7 @@ class BloodRequestService {
   ];
 
   // Tạo yêu cầu máu
-  createBloodRequest = async ({ bloodType, files, ...requestData }, userId) => {
+  createBloodRequest = async ({ groupId, files, ...requestData }, userId) => {
     // Step 1: Lấy thông tin người dùng
     const user = await userModel.findById(userId);
     if (!user) {
@@ -45,14 +44,14 @@ class BloodRequestService {
     }
 
     // Step 2: Resolve bloodId từ bloodType
-    const bloodGroup = await bloodGroupModel.findOne({ name: bloodType });
+    const bloodGroup = await bloodGroupModel.findOne({ _id: groupId });
     if (!bloodGroup) {
       throw new BadRequestError("Nhóm máu không hợp lệ");
     }
 
     // Step 3: Validate dữ liệu bắt buộc
     if (
-      !requestData.bloodComponent ||
+      !requestData.componentId ||
       !requestData.quantity ||
       !requestData.preferredDate ||
       !requestData.consent
@@ -64,10 +63,6 @@ class BloodRequestService {
 
     if (requestData.consent !== "true" && requestData.consent !== true) {
       throw new BadRequestError("Cần đồng ý với các điều khoản và điều kiện");
-    }
-
-    if (!Object.values(BLOOD_COMPONENT).includes(requestData.bloodComponent)) {
-      throw new BadRequestError("Thành phần máu không hợp lệ");
     }
 
     if (parseInt(requestData.quantity) < 1) {
@@ -98,34 +93,27 @@ class BloodRequestService {
 
     // Step 5: Tạo yêu cầu máu
     const bloodRequest = await BloodRequest.create({
-      bloodId: bloodGroup._id,
+      groupId: bloodGroup._id,
       userId,
-      patientName: user.fullName,
-      patientAge: user.age || "",
-      contactName: user.fullName,
-      contactPhone: user.phone || "",
-      contactEmail: user.email,
-      bloodComponent: requestData.bloodComponent,
+      facilityId: requestData.facilityId,
+      componentId: requestData.componentId,
       quantity: parseInt(requestData.quantity),
       isUrgent:
         requestData.isUrgent === "true" || requestData.isUrgent === true,
-      status: BLOOD_REQUEST_STATUS.PENDING,
+      status: BLOOD_REQUEST_STATUS.PENDING_APPROVAL,
+      patientName: user.fullName,
+      patientPhone: user.phone,
+      address: requestData.address,
       location: {
         type: "Point",
         coordinates: [
-          parseFloat(requestData.lng) || 0,
-          parseFloat(requestData.lat) || 0,
+          parseFloat(requestData.longitude) || 0,
+          parseFloat(requestData.latitude) || 0,
         ],
       },
-      street: requestData.street,
-      city: requestData.city,
-      reason: requestData.reason,
-      medicalDetails: requestData.medicalDetails,
       medicalDocumentUrl: medicalDocumentUrls,
       note: requestData.note,
       preferredDate: new Date(requestData.preferredDate),
-      consent: requestData.consent === "true" || requestData.consent === true,
-      facilityId: requestData.facilityId,
     });
 
     // Step 6: Populate và trả về dữ liệu
@@ -136,7 +124,7 @@ class BloodRequestService {
     return getInfoData({
       fields: [
         "_id",
-        "bloodId",
+        "groupId",
         "userId",
         "facilityId",
         "patientName",
@@ -146,8 +134,7 @@ class BloodRequestService {
         "isUrgent",
         "status",
         "location",
-        "street",
-        "city",
+        "address",
         "contactName",
         "contactPhone",
         "contactEmail",
@@ -171,6 +158,7 @@ class BloodRequestService {
       page = 1,
       limit = 10,
       status,
+      isUrgent,
       search,
       sortBy = "createdAt",
       sortOrder = -1,
@@ -183,7 +171,10 @@ class BloodRequestService {
       }
       query.status = status;
     }
-    
+    if (isUrgent) {
+      query.isUrgent = isUrgent;
+    }
+
     // Validate sortBy
     const validSortFields = [
       "createdAt",
@@ -208,11 +199,13 @@ class BloodRequestService {
       query,
       page,
       limit,
-      select: "_id bloodId userId facilityId patientName patientAge bloodComponent quantity isUrgent status location street city contactName contactPhone contactEmail reason medicalDetails medicalDocumentUrl note preferredDate consent createdAt updatedAt",
+      select:
+        "_id bloodId patientPhone componentId userId facilityId patientName patientAge bloodComponent quantity isUrgent status location address contactName contactPhone contactEmail reason medicalDetails medicalDocumentUrl note preferredDate consent createdAt updatedAt",
       populate: [
-        { path: "bloodId", select: "name" },
+        { path: "groupId", select: "name" },
         { path: "userId", select: "fullName email phone" },
         { path: "facilityId", select: "name address" },
+        { path: "componentId", select: "name" },
       ],
       search,
       searchFields: ["patientName", "contactName", "reason"],
@@ -223,7 +216,7 @@ class BloodRequestService {
   // Lấy chi tiết yêu cầu máu của người dùng
   getUserBloodRequestDetails = async (id, userId) => {
     const bloodRequest = await BloodRequest.findOne({ _id: id, userId })
-      .populate("bloodId", "name")
+      .populate("groupId", "name")
       .populate("userId", "fullName email phone")
       .populate("facilityId", "name address")
       .populate("staffId", "fullName email phone")
@@ -289,7 +282,7 @@ class BloodRequestService {
       limit,
       select: this.requestFields.join(" "),
       populate: [
-        { path: "bloodId", select: "name" },
+        { path: "groupId", select: "name" },
         { path: "userId", select: "fullName email phone" },
         { path: "facilityId", select: "name address" },
       ],
@@ -314,7 +307,7 @@ class BloodRequestService {
     }
 
     const bloodRequest = await BloodRequest.findOne(query)
-      .populate("bloodId", "name")
+      .populate("groupId", "name")
       .populate("userId", "fullName email phone")
       .populate("facilityId", "name address")
       .populate("staffId", "fullName email phone")
@@ -381,8 +374,9 @@ class BloodRequestService {
       limit,
       select: this.requestFields.join(" "),
       populate: [
-        { path: "bloodId", select: "name" },
+        { path: "groupId", select: "name" },
         { path: "userId", select: "fullName email phone" },
+        { path: "facilityId", select: "name address" },
       ],
       search,
       searchFields: ["patientName", "contactName", "reason"],
@@ -393,7 +387,7 @@ class BloodRequestService {
   // Lấy chi tiết yêu cầu máu của cơ sở
   getFacilityBloodRequestDetails = async (id, facilityId) => {
     const bloodRequest = await BloodRequest.findOne({ _id: id, facilityId })
-      .populate("bloodId", "name")
+      .populate("groupId", "name")
       .populate("userId", "fullName email phone")
       .populate("facilityId", "name address")
       .populate("staffId", "fullName email phone")
@@ -414,11 +408,20 @@ class BloodRequestService {
   };
 
   // Cập nhật trạng thái yêu cầu máu
-  updateBloodRequestStatus = async (id, facilityId, { status, staffId }) => {
+  updateBloodRequestStatus = async (id, facilityId, { status, staffId, scheduleDate }) => {
     if (!Object.values(BLOOD_REQUEST_STATUS).includes(status)) {
       throw new BadRequestError("Trạng thái không hợp lệ");
     }
-
+    if (status === "approved") {
+      if (!scheduleDate) {
+        throw new BadRequestError("Ngày thực hiện không được để trống");
+      }
+    }
+    console.log("scheduleDate", scheduleDate);
+    console.log("status", status);
+    console.log("id", id);
+    console.log("facilityId", facilityId);
+    console.log("staffId", staffId);
     const bloodRequest = await BloodRequest.findOne({ _id: id, facilityId });
     if (!bloodRequest) {
       throw new BadRequestError(
@@ -429,6 +432,9 @@ class BloodRequestService {
     bloodRequest.status = status;
     if (staffId) {
       bloodRequest.staffId = staffId;
+    }
+    if (scheduleDate) {
+      bloodRequest.scheduleDate = scheduleDate;
     }
     await bloodRequest.save();
 

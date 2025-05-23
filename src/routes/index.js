@@ -20,5 +20,6 @@ router.use("/blood-request", require("./bloodRequest"));
 router.use("/facility-staff", require("./facilityStaff"));
 router.use("/feedback", require("./feedback"));
 router.use("/health-checks", require("./healthCheck"));
+router.use("/blood-inventory", require("./bloodInventory"));
 
 module.exports = router;

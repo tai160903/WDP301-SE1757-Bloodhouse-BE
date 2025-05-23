@@ -14,6 +14,7 @@ const STAFF_POSITION = {
 };
 
 const NOTIFICATION_TYPE = {
+  EMERGENCY_CAMPAIGN: "emergencyCampaign",
   REMINDER: "reminder",
   REQUEST: "request",
   MATCH: "match",
@@ -27,6 +28,7 @@ const ENTITY_TYPE = {
   BLOOD_REQUEST: "bloodRequest",
   BLOOD_GROUP: "bloodGroup",
   BLOOD_INVENTORY: "bloodInventory",
+  EMERGENCY_CAMPAIGN: "emergencyCampaign",
 };
 
 const HEADER = {
@@ -79,7 +81,6 @@ const BLOOD_DONATION_REGISTRATION_STATUS = {
   POST_REST_CHECK: "post_rest_check",
   COMPLETED: "completed",
   CANCELLED: "cancelled",
-
 };
 
 const BLOOD_DONATION_REGISTRATION_SOURCE = {
@@ -115,8 +116,11 @@ const CONTENT_STATUS = {
 };
 
 const BLOOD_REQUEST_STATUS = {
-  PENDING: "pending",
-  IN_PROGRESS: "in_progress",
+  PENDING_APPROVAL: "pending_approval",
+  REJECTED_REGISTRATION: "rejected_registration",
+  APPROVED: "approved",
+  ASSIGNED: "assigned",
+  READY_FOR_HANDOVER: "ready_for_handover",
   COMPLETED: "completed",
   CANCELLED: "cancelled",
 };

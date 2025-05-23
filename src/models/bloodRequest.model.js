@@ -1,19 +1,27 @@
 "use strict";
 const mongoose = require("mongoose");
-const { BLOOD_COMPONENT, BLOOD_REQUEST_STATUS } = require("../constants/enum");
+const { BLOOD_REQUEST_STATUS } = require("../constants/enum");
 
 const DOCUMENT_NAME = "BloodRequest";
 const COLLECTION_NAME = "BloodRequests";
 
 const bloodRequestSchema = new mongoose.Schema(
   {
-    bloodId: { type: mongoose.Schema.Types.ObjectId, ref: "BloodGroup", required: true },
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    groupId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "BloodGroup",
+      required: true,
+    },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     staffId: { type: mongoose.Schema.Types.ObjectId, ref: "FacilityStaff" },
     facilityId: { type: mongoose.Schema.Types.ObjectId, ref: "Facility" },
-    bloodComponent: {
-      type: String,
-      enum: Object.values(BLOOD_COMPONENT),
+    componentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "BloodComponent",
       required: true,
     },
     quantity: { type: Number },
@@ -21,12 +29,22 @@ const bloodRequestSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: Object.values(BLOOD_REQUEST_STATUS),
-      default: BLOOD_REQUEST_STATUS.PENDING,
+      default: BLOOD_REQUEST_STATUS.PENDING_APPROVAL,
     },
-    street: { type: String, trim: true },
-    city: { type: String, trim: true },
-    lat: { type: Number },
-    lng: { type: Number },
+    patientName: { type: String, trim: true },
+    patientPhone: { type: String, trim: true },
+    address: { type: String, trim: true },
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+        default: [0, 0],
+      },
+    },
     medicalDocumentUrl: {
       type: [String],
       validate: {
@@ -37,8 +55,12 @@ const bloodRequestSchema = new mongoose.Schema(
     },
     note: { type: String, trim: true },
     preferredDate: { type: Date },
+    scheduleDate: { type: Date },
   },
-  { timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" }, collection: COLLECTION_NAME }
+  {
+    timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" },
+    collection: COLLECTION_NAME,
+  }
 );
 
 module.exports = mongoose.model(DOCUMENT_NAME, bloodRequestSchema);
