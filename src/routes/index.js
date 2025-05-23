@@ -9,7 +9,7 @@ router.use("/blood-group", require("./bloodGroup"));
 router.use("/blood-compatibility", require("./bloodCompatibility"));
 router.use("/user", require("./user"));
 router.use(
-  "/blood-donation-registrations",
+  "/blood-donation-registration",
   require("./bloodDonationRegistration")
 );
 router.use("/blood-donations", require("./bloodDonation"));
@@ -19,5 +19,6 @@ router.use("/facility", require("./facility"));
 router.use("/blood-request", require("./bloodRequest"));
 router.use("/facility-staff", require("./facilityStaff"));
 router.use("/feedback", require("./feedback"));
+router.use("/health-check", require("./healthCheck"));
 
 module.exports = router;

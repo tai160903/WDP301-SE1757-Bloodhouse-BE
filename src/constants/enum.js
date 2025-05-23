@@ -13,13 +13,28 @@ const STAFF_POSITION = {
   DOCTOR: "DOCTOR",
 };
 
+const NOTIFICATION_TYPE = {
+  REMINDER: "reminder",
+  REQUEST: "request",
+  MATCH: "match",
+  STATUS: "status",
+  GIFT: "gift",
+};
+
+const ENTITY_TYPE = {
+  BLOOD_DONATION_REGISTRATION: "bloodDonationRegistration",
+  BLOOD_DONATION: "bloodDonation",
+  BLOOD_REQUEST: "bloodRequest",
+  BLOOD_GROUP: "bloodGroup",
+  BLOOD_INVENTORY: "bloodInventory",
+};
+
 const HEADER = {
   API_KEY: "x-api-key",
   CLIENT_ID: "x-client-id",
   AUTHORIZATION: "authorization",
   REFRESH_TOKEN: "x-refresh-token",
 };
-
 
 const BLOOD_GROUP = {
   A_POSITIVE: "A+",
@@ -35,6 +50,7 @@ const BLOOD_GROUP = {
 const SEX = {
   MALE: "male",
   FEMALE: "female",
+  OTHER: "other",
 };
 
 const BLOOD_COMPONENT = {
@@ -50,11 +66,20 @@ const REPORT_TYPE = {
 };
 
 const BLOOD_DONATION_REGISTRATION_STATUS = {
-  PENDING: "pending",
-  APPROVED: "approved",
+  PENDING_APPROVAL: "pending_approval",
+  REJECTED_REGISTRATION: "rejected_registration",
+  REGISTERED: "registered",
+  CHECKED_IN: "checked_in",
+  IN_CONSULT: "in_consult",
   REJECTED: "rejected",
-  CANCELLED: "cancelled",
+  WAITING_DONATION: "waiting_donation",
+  DONATING: "donating",
+  DONATED: "donated",
+  RESTING: "resting",
+  POST_REST_CHECK: "post_rest_check",
   COMPLETED: "completed",
+  CANCELLED: "cancelled",
+
 };
 
 const BLOOD_DONATION_REGISTRATION_SOURCE = {
@@ -111,4 +136,6 @@ module.exports = {
   BLOOD_DONATION_MESSAGE,
   CONTENT_STATUS,
   BLOOD_REQUEST_STATUS,
+  NOTIFICATION_TYPE,
+  ENTITY_TYPE,
 };

@@ -36,7 +36,7 @@ class BloodRequestController {
     new OK({
       message: BLOOD_REQUEST_MESSAGE.GET_USER_SUCCESS,
       data: result.data,
-      metadata: result.metadata,
+
     }).send(res);
   });
 
@@ -65,8 +65,7 @@ class BloodRequestController {
     });
     new OK({
       message: BLOOD_REQUEST_MESSAGE.GET_FACILITY_SUCCESS,
-      data: result.data,
-      metadata: result.metadata,
+      data: result
     }).send(res);
   });
 
@@ -88,8 +87,7 @@ class BloodRequestController {
     );
     new OK({
       message: BLOOD_REQUEST_MESSAGE.GET_FACILITY_USER_SUCCESS,
-      data: result.data,
-      metadata: result.metadata,
+      data: result
     }).send(res);
   });
 

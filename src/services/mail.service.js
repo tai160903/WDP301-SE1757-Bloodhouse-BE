@@ -42,16 +42,22 @@ class MailService {
               <p style="font-size: 16px; color: #555555; line-height: 1.5; margin: 0 0 20px;">
                 ${message}
               </p>
+              ${
+                buttonText && link
+                  ? `
               <a href="${link}" style="display: inline-block; padding: 12px 24px; background-color: #d32f2f; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: bold; border-radius: 4px; margin: 20px 0;">
                 ${buttonText}
               </a>
               <p style="font-size: 14px; color: #777777; margin: 10px 0;">
-                ${secondaryMessage}
-              </p>
-              <p style="font-size: 14px; color: #777777; margin: 10px 0;">
                 Nếu nút trên không hoạt động, vui lòng sao chép và dán liên kết sau vào trình duyệt:
                 <br>
                 <a href="${link}" style="color: #d32f2f; word-break: break-all;">${link}</a>
+              </p>
+              `
+                  : ""
+              }
+              <p style="font-size: 14px; color: #777777; margin: 10px 0;">
+                ${secondaryMessage}
               </p>
             </td>
           </tr>
@@ -75,8 +81,16 @@ class MailService {
   };
 
   // Gửi email với template tùy chỉnh
-  sendEmail = async ({ to, subject, title, message, buttonText, link, secondaryMessage = "" }) => {
-    if (!to || !subject || !title || !message || !buttonText || !link) {
+  sendEmail = async ({
+    to,
+    subject,
+    title,
+    message,
+    buttonText,
+    link,
+    secondaryMessage = "",
+  }) => {
+    if (!to || !subject || !title || !message) {
       throw new BadRequestError("Thiếu thông tin email bắt buộc");
     }
 
@@ -84,7 +98,13 @@ class MailService {
       from: process.env.GMAIL_USER,
       to,
       subject,
-      html: this.#generateEmailTemplate({ title, message, buttonText, link, secondaryMessage }),
+      html: this.#generateEmailTemplate({
+        title,
+        message,
+        buttonText,
+        link,
+        secondaryMessage,
+      }),
     };
 
     try {
@@ -96,17 +116,22 @@ class MailService {
   };
 
   // Gửi email xác minh tài khoản
-  sendVerificationEmail = async (to, verifyToken) => {
-    const verificationLink = `${process.env.APP_URL}/api/v1/users/verify?token=${verifyToken}`;
+  sendVerificationEmail = async (to, OTP) => {
     return this.sendEmail({
       to,
       subject: "Xác minh tài khoản BloodHouse",
-      title: "Chào mừng đến với BloodHouse!",
-      message:
-        "Cảm ơn bạn đã tham gia sứ mệnh cứu người thông qua việc hiến máu. Vui lòng xác minh tài khoản để bắt đầu.",
-      buttonText: "Xác minh tài khoản",
-      link: verificationLink,
-      secondaryMessage: "Liên kết này sẽ hết hạn sau <strong>24 giờ</strong>.",
+      title: "Xác minh tài khoản của bạn",
+      message: `
+        Chào bạn,<br><br>
+        Cảm ơn bạn đã tham gia sứ mệnh cứu người thông qua việc hiến máu.<br>
+        Mã OTP xác minh tài khoản của bạn là: <strong>${OTP}</strong><br>
+        Vui lòng sử dụng mã này để hoàn tất quá trình xác minh.
+      `,
+      secondaryMessage: `
+        Mã này sẽ hết hạn sau <strong>1 giờ</strong>.<br>
+        Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email này.<br><br>
+        Trân trọng,<br>BloodHouse Team
+      `,
     });
   };
 
