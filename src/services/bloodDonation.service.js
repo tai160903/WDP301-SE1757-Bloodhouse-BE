@@ -189,9 +189,7 @@ class BloodDonationService {
         const qrData = {
           registrationId: registration._id,
           userId: registration.userId,
-          facilityId: registration.facilityId,
           bloodGroupId: registration.bloodGroupId,
-          status: registration.status,
         };
         try {
           const qrCodeUrl = await QRCode.toDataURL(JSON.stringify(qrData));
@@ -203,9 +201,8 @@ class BloodDonationService {
     } else {
       // Other statuses only update status and notes
       registration.status = status;
-
       if(status === BLOOD_DONATION_REGISTRATION_STATUS.CHECKED_IN) {
-        registration.checkedInAt = new Date();
+        registration.checkInAt = new Date();
       }
     }
 
@@ -457,6 +454,294 @@ class BloodDonationService {
         "updatedAt",
       ],
       object: donation,
+    });
+  };
+
+  /** STAFF AND MANAGER APIs */
+  
+  // Lấy danh sách đăng ký hiến máu được gán cho staff (cho nurse)
+  getStaffAssignedRegistrations = async ({
+    staffId,
+    status,
+    page = 1,
+    limit = 10,
+    search,
+    startDate,
+    endDate,
+    bloodGroupId
+  }) => {
+    let query = { staffId };
+    
+    console.log("🚀 ~ BloodDonationService ~ staffId:", staffId)
+    // Filter by status
+    if (status) {
+      if (Array.isArray(status)) {
+        query.status = { $in: status };
+      } else {
+        query.status = status;
+      }
+    }
+    
+    // Filter by blood group
+    if (bloodGroupId) {
+      query.bloodGroupId = bloodGroupId;
+    }
+    
+    // Date range filter
+    if (startDate || endDate) {
+      query.preferredDate = {};
+      if (startDate) query.preferredDate.$gte = new Date(startDate);
+      if (endDate) query.preferredDate.$lte = new Date(endDate);
+    }
+
+    const result = await getPaginatedData({
+      model: bloodDonationRegistrationModel,
+      query,
+      page,
+      limit,
+      select: "_id userId facilityId bloodGroupId staffId preferredDate status notes expectedQuantity createdAt checkedInAt qrCodeUrl",
+      populate: [
+        { path: "userId", select: "fullName email phone bloodId", 
+          populate: { path: "bloodId", select: "type" }
+        },
+        { path: "facilityId", select: "name street city" },
+        { path: "bloodGroupId", select: "name" },
+        { path: "staffId", select: "userId position",
+          populate: { path: "userId", select: "fullName" }
+        }
+      ],
+      search,
+      searchFields: ["notes"],
+      sort: { preferredDate: -1 },
+    });
+    console.log("🚀 ~ BloodDonationService ~ result:", result)
+
+    return result;
+  };
+
+  // Lấy danh sách đăng ký hiến máu của facility (cho manager)
+  getFacilityRegistrations = async ({
+    facilityId,
+    status,
+    page = 1,
+    limit = 10,
+    search,
+    startDate,
+    endDate,
+    bloodGroupId,
+    staffId,
+    includeStats = false
+  }) => {
+    let query = { facilityId };
+    
+    // Filter by status
+    if (status) {
+      if (Array.isArray(status)) {
+        query.status = { $in: status };
+      } else {
+        query.status = status;
+      }
+    }
+    
+    // Filter by blood group
+    if (bloodGroupId) {
+      query.bloodGroupId = bloodGroupId;
+    }
+    
+    // Filter by staff
+    if (staffId) {
+      query.staffId = staffId;
+    }
+    
+    // Date range filter
+    if (startDate || endDate) {
+      query.preferredDate = {};
+      if (startDate) query.preferredDate.$gte = new Date(startDate);
+      if (endDate) query.preferredDate.$lte = new Date(endDate);
+    }
+
+    const result = await getPaginatedData({
+      model: bloodDonationRegistrationModel,
+      query,
+      page,
+      limit,
+      select: "_id userId facilityId bloodGroupId staffId preferredDate status notes expectedQuantity createdAt checkedInAt completedAt qrCodeUrl",
+      populate: [
+        { path: "userId", select: "fullName email phone bloodId", 
+          populate: { path: "bloodId", select: "type" }
+        },
+        { path: "facilityId", select: "name street city" },
+        { path: "bloodGroupId", select: "name" },
+        { path: "staffId", select: "userId position",
+          populate: { path: "userId", select: "fullName" }
+        }
+      ],
+      search,
+      searchFields: ["notes"],
+      sort: { createdAt: -1 },
+    });
+
+    // Include statistics if requested
+    if (includeStats) {
+      const stats = await this.getRegistrationStatistics({
+        facilityId,
+        startDate,
+        endDate,
+        groupBy: 'status'
+      });
+      result.statistics = stats;
+    }
+
+    return result;
+  };
+
+  // Lấy thống kê đăng ký hiến máu
+  getRegistrationStatistics = async ({
+    facilityId,
+    startDate,
+    endDate,
+    groupBy = 'day'
+  }) => {
+    let matchQuery = { facilityId };
+    
+    // Date range filter
+    if (startDate || endDate) {
+      matchQuery.createdAt = {};
+      if (startDate) matchQuery.createdAt.$gte = new Date(startDate);
+      if (endDate) matchQuery.createdAt.$lte = new Date(endDate);
+    }
+
+    const pipeline = [
+      { $match: matchQuery },
+      {
+        $group: {
+          _id: groupBy === 'status' ? '$status' : {
+            $dateToString: {
+              format: groupBy === 'day' ? '%Y-%m-%d' : 
+                     groupBy === 'week' ? '%Y-W%U' : '%Y-%m',
+              date: '$createdAt'
+            }
+          },
+          count: { $sum: 1 },
+          totalExpectedQuantity: { $sum: '$expectedQuantity' }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ];
+
+    // Status distribution
+    const statusStats = await bloodDonationRegistrationModel.aggregate([
+      { $match: matchQuery },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Blood type distribution
+    const bloodTypeStats = await bloodDonationRegistrationModel.aggregate([
+      { $match: matchQuery },
+      {
+        $lookup: {
+          from: 'bloodgroups',
+          localField: 'bloodGroupId',
+          foreignField: '_id',
+          as: 'bloodGroup'
+        }
+      },
+      { $unwind: '$bloodGroup' },
+      {
+        $group: {
+          _id: '$bloodGroup.type',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const timeSeriesStats = await bloodDonationRegistrationModel.aggregate(pipeline);
+
+    return {
+      statusDistribution: statusStats,
+      bloodTypeDistribution: bloodTypeStats,
+      timeSeries: timeSeriesStats,
+      summary: {
+        total: statusStats.reduce((sum, stat) => sum + stat.count, 0),
+        pending: statusStats.find(s => s._id === BLOOD_DONATION_REGISTRATION_STATUS.PENDING_APPROVAL)?.count || 0,
+        registered: statusStats.find(s => s._id === BLOOD_DONATION_REGISTRATION_STATUS.REGISTERED)?.count || 0,
+        completed: statusStats.find(s => s._id === BLOOD_DONATION_REGISTRATION_STATUS.COMPLETED)?.count || 0,
+      }
+    };
+  };
+
+  // Xử lý check-in qua QR code
+  processCheckIn = async ({ qrData, staffId, checkedBy }) => {
+    let parsedData;
+    try {
+      parsedData = typeof qrData === 'string' ? JSON.parse(qrData) : qrData;
+    } catch (error) {
+      throw new BadRequestError("QR code data không hợp lệ");
+    }
+
+    const { registrationId } = parsedData;
+    if (!registrationId) {
+      throw new BadRequestError("QR code không chứa thông tin registration ID");
+    }
+
+    // Find and validate registration
+    const registration = await bloodDonationRegistrationModel.findById(registrationId);
+    if (!registration) {
+      throw new NotFoundError("Không tìm thấy đăng ký hiến máu");
+    }
+
+    // Check if already checked in
+    if (registration.status !== BLOOD_DONATION_REGISTRATION_STATUS.REGISTERED) {
+      throw new BadRequestError("Đăng ký này đã được check-in hoặc không ở trạng thái cho phép check-in");
+    }
+
+    // Update registration status
+    registration.status = BLOOD_DONATION_REGISTRATION_STATUS.CHECKED_IN;
+    registration.checkInAt = new Date();
+    
+    await registration.save();
+
+    // Notify user
+    await notificationService.sendBloodDonationRegistrationStatusNotification(
+      registration.userId,
+      BLOOD_DONATION_REGISTRATION_STATUS.CHECKED_IN,
+      registration.facilityId.name,
+      registration._id
+    );
+
+    // Create process log
+    await processDonationLogService.createProcessDonationLog({
+      registrationId: registration._id,
+      userId: registration.userId,
+      changedBy: staffId,
+      status: BLOOD_DONATION_REGISTRATION_STATUS.CHECKED_IN,
+      notes: "Check-in thành công qua QR code",
+    });
+
+    // Populate result
+    const result = await registration.populate([
+      { path: "userId", select: "fullName email phone" },
+      { path: "facilityId", select: "name street city" },
+      { path: "bloodGroupId", select: "name" }
+    ]);
+
+    return getInfoData({
+      fields: [
+        "_id",
+        "userId",
+        "facilityId",
+        "bloodGroupId",
+        "status",
+        "checkInAt",
+        "preferredDate",
+        "expectedQuantity"
+      ],
+      object: result,
     });
   };
 }
