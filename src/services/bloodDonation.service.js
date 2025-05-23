@@ -16,9 +16,11 @@ const {
   USER_MESSAGE,
   FACILITY_MESSAGE,
   BLOOD_GROUP_MESSAGE,
+  BLOOD_DONATION_REGISTRATION_MESSAGE
 } = require("../constants/message");
 const QRCode = require("qrcode");
-const { getPaginatedData } = require("../helpers/mongooseHelper");
+const { getPaginatedData, populateExistingDocument, createNestedPopulateConfig } = require("../helpers/mongooseHelper");
+const processDonationLogService = require("./processDonationLog.service");
 
 class BloodDonationService {
   /** BLOOD DONATION REGISTRATION */
@@ -90,6 +92,15 @@ class BloodDonationService {
       location,
     });
 
+    // Tạo log
+    await processDonationLogService.createProcessDonationLog({
+      registrationId: registration._id,
+      userId,
+      changedBy: null,
+      status: BLOOD_DONATION_REGISTRATION_STATUS.PENDING_APPROVAL,
+      notes: "Đăng ký hiến máu",
+    });
+
     return getInfoData({
       fields: [
         "_id",
@@ -141,6 +152,7 @@ class BloodDonationService {
   // Cập nhật đăng ký hiến máu
   updateBloodDonationRegistration = async ({
     registrationId,
+    changedBy,
     status,
     staffId,
     notes,
@@ -149,30 +161,28 @@ class BloodDonationService {
     const registration = await bloodDonationRegistrationModel
       .findById(registrationId)
       .populate("facilityId", "name");
-    if (!registration) throw new NotFoundError("Registration not found");
+    if (!registration) throw new NotFoundError(BLOOD_DONATION_REGISTRATION_MESSAGE.BLOOD_DONATION_REGISTRATION_NOT_FOUND);
 
     // Step 2: Validate status
     if (!Object.values(BLOOD_DONATION_REGISTRATION_STATUS).includes(status)) {
-      throw new BadRequestError("Invalid status");
+      throw new BadRequestError(BLOOD_DONATION_REGISTRATION_MESSAGE.INVALID_STATUS);
     }
 
-    // Step 3: Handle APPROVED or REJECTED status
+    // Step 3: Handle REGISTERED or REJECTED_REGISTRATION status
     if (
       [
-        BLOOD_DONATION_REGISTRATION_STATUS.APPROVED,
-        BLOOD_DONATION_REGISTRATION_STATUS.REJECTED,
+        BLOOD_DONATION_REGISTRATION_STATUS.REGISTERED,
+        BLOOD_DONATION_REGISTRATION_STATUS.REJECTED_REGISTRATION,
       ].includes(status)
     ) {
-      // If APPROVED, staffId is required
-      if (status === BLOOD_DONATION_REGISTRATION_STATUS.APPROVED && !staffId) {
-        throw new BadRequestError(
-          "staffId is required when approving registration"
-        );
+      // If REGISTERED, staffId is required
+      if (status === BLOOD_DONATION_REGISTRATION_STATUS.REGISTERED && !staffId) {
+        throw new BadRequestError(BLOOD_DONATION_REGISTRATION_MESSAGE.STAFF_ID_REQUIRED);
       }
 
       registration.status = status;
 
-      if (status === BLOOD_DONATION_REGISTRATION_STATUS.APPROVED) {
+      if (status === BLOOD_DONATION_REGISTRATION_STATUS.REGISTERED) {
         registration.staffId = staffId;
 
         // Step 4: Create QR code
@@ -185,14 +195,18 @@ class BloodDonationService {
         };
         try {
           const qrCodeUrl = await QRCode.toDataURL(JSON.stringify(qrData));
-          registration.qrCodeUrl = qrCodeUrl; // Lưu URL của QR code
+          registration.qrCodeUrl = qrCodeUrl;
         } catch (error) {
-          throw new BadRequestError("Failed to generate QR code");
+          throw new BadRequestError(BLOOD_DONATION_REGISTRATION_MESSAGE.FAILED_TO_GENERATE_QR_CODE);
         }
       }
     } else {
       // Other statuses only update status and notes
       registration.status = status;
+
+      if(status === BLOOD_DONATION_REGISTRATION_STATUS.CHECKED_IN) {
+        registration.checkedInAt = new Date();
+      }
     }
 
     // Step 5: Update notes if provided
@@ -211,19 +225,21 @@ class BloodDonationService {
       registration._id
     );
 
-    // Step 8: Populate and return
-    const result = await registration.populate([
-      {
-        path: "userId",
-        select: "fullName email phone",
-      },
-      {
-        path: "facilityId",
-        select: "name street city",
-      },
-      { path: "bloodGroupId", select: "name" },
-      { path: "staffId", select: "position" },
-    ]);
+    // Step 8: Create process donation log
+    await processDonationLogService.createProcessDonationLog({
+      registrationId: registration._id,
+      userId: registration.userId,
+      changedBy,
+      status: status,
+      notes: notes,
+    });
+
+    // Step 9: Populate and return
+   const result = await registration.populate([
+    { path: "userId", select: "fullName email phone" },
+    { path: "facilityId", select: "name street city" },
+    { path: "bloodGroupId", select: "name" },
+   ]);
     return getInfoData({
       fields: [
         "_id",
@@ -265,6 +281,7 @@ class BloodDonationService {
 
     return result;
   };
+
 
   // Lấy chi tiết một đăng ký hiến máu
   getBloodDonationRegistrationDetail = async (registrationId, userId) => {

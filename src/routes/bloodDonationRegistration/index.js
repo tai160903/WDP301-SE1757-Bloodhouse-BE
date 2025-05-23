@@ -3,8 +3,8 @@
 const express = require("express");
 const router = express.Router();
 const bloodDonationRegistrationController = require("../../controllers/bloodDonationRegistration.controller");
-const { checkAuth, checkRole } = require("../../auth/checkAuth");
-const { USER_ROLE } = require("../../constants/enum");
+const { checkAuth, checkRole, checkStaff } = require("../../auth/checkAuth");
+const { USER_ROLE, STAFF_POSITION } = require("../../constants/enum");
 // auth routes
 router.use(checkAuth);
 router.post(
@@ -27,10 +27,10 @@ router.get(
   bloodDonationRegistrationController.getBloodDonationRegistrationDetail
 );
 
-router.use(checkRole([USER_ROLE.MANAGER]));
+router.use(checkRole([USER_ROLE.MANAGER, USER_ROLE.NURSE]));
 
 router.put(
-  "/:id",
+  "/:id", checkStaff([STAFF_POSITION.MANAGER, STAFF_POSITION.NURSE]),
   bloodDonationRegistrationController.updateBloodDonationRegistration
 );
 

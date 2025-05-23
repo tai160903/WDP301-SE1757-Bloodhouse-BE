@@ -48,6 +48,10 @@ const BLOOD_DONATION_REGISTRATION_MESSAGE = {
   REJECT_FAILED: "Từ chối đăng ký hiến máu thất bại",
   GET_DETAIL_SUCCESS: "Lấy chi tiết đăng ký hiến máu thành công",
   GET_DETAIL_FAILED: "Lấy chi tiết đăng ký hiến máu thất bại",
+  BLOOD_DONATION_REGISTRATION_NOT_FOUND: "Đăng ký hiến máu không tồn tại",
+  INVALID_STATUS: "Trạng thái không hợp lệ",
+  STAFF_ID_REQUIRED: "Mã nhân viên không được để trống khi phê duyệt đăng ký",
+  FAILED_TO_GENERATE_QR_CODE: "Lỗi khi tạo QR code",
 };
 
 const BLOOD_GROUP_MESSAGE = {
@@ -159,6 +163,18 @@ const HEALTH_CHECK_MESSAGE = {
   GET_SUCCESS: "Lấy kiểm tra sức khỏe thành công",
 };
 
+const DONATION_PROCESS_LOG_MESSAGE = {
+  CREATE_SUCCESS: "Tạo log thành công",
+  CREATE_FAILED: "Tạo log thất bại",
+  GET_SUCCESS: "Lấy log thành công",
+  GET_FAILED: "Lấy log thất bại",
+  REGISTRATION_ID_REQUIRED_OR_INVALID: "ID đăng ký hiến máu không hợp lệ",
+  REGISTRATION_NOT_FOUND: "Đăng ký hiến máu không tồn tại",
+  STATUS_REQUIRED_OR_INVALID: "Trạng thái không hợp lệ",
+  CHANGED_BY_REQUIRED_OR_INVALID: "Mã nhân viên không hợp lệ",
+  NOTES_REQUIRED_OR_INVALID: "Ghi chú không hợp lệ",
+};  
+
 module.exports = {
   ACCESS_MESSAGE,
   BLOOD_COMPATIBILITY_MESSAGE,
@@ -173,4 +189,5 @@ module.exports = {
   USER_MESSAGE,
   FEEDBACK_MESSAGE,
   HEALTH_CHECK_MESSAGE,
+  DONATION_PROCESS_LOG_MESSAGE,
 };

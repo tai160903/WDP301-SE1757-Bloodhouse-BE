@@ -39,6 +39,10 @@ const healthCheckSchema = new mongoose.Schema(
       type: Boolean,
       default: null,
     },
+    consultStartAt: {
+      type: Date,
+      default: null, // Thời gian bắt đầu khám
+    },
     bloodPressure: {
       type: String, // e.g., "120/80 mmHg" (huyết áp)
       default: null,

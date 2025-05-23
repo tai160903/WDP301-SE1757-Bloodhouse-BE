@@ -36,6 +36,7 @@ class BloodDonationRegistrationController {
   updateBloodDonationRegistration = asyncHandler(async (req, res) => {
     const result = await bloodDonationService.updateBloodDonationRegistration({
       registrationId: req.params.id,
+      changedBy: req.user.staffId,
       ...req.body,
     });
     new OK({
