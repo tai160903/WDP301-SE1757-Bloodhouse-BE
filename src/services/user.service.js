@@ -5,7 +5,7 @@ const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const { BadRequestError, NotFoundError } = require("../configs/error.response");
 const { getInfoData } = require("../utils");
-const { USER_STATUS } = require("../constants/enum");
+const { USER_STATUS, SEX } = require("../constants/enum");
 const crypto = require("crypto");
 const mailService = require("./mail.service");
 
@@ -211,6 +211,48 @@ class UserService {
     });
   };
 
+  // Xác minh tài khoản level 2
+  verifyLevel2 = async (userId, verifyData) => {
+    const user = await userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+    if (user.profileLevel !== 1) {
+      throw new BadRequestError("User is not at level 1");
+    }
+    if (verifyData.sex === "Nam") {
+      user.sex = SEX.MALE;
+    } else {
+      user.sex = SEX.FEMALE;
+    }
+    user.idCard = verifyData.idCard;
+    user.address = verifyData.address;
+    user.phone = verifyData.phone;
+    user.bloodId = verifyData.bloodId;
+    user.yob = verifyData.yob;
+    user.fullName = verifyData.fullName;
+    user.profileLevel = 2;
+
+    await user.save();
+    return getInfoData({
+      fields: [
+        "_id",
+        "idCard",
+        "fullName",
+        "email",
+        "address",
+        "phone",
+        "bloodId",
+        "sex",
+        "yob",
+        "profileLevel",
+        "role",
+        "avatar",
+      ],
+      object: user,
+    });
+  };
+
   // Đổi mật khẩu
   changePassword = async (userId, { oldPassword, newPassword }) => {
     const user = await userModel.findById(userId);
@@ -247,9 +289,9 @@ class UserService {
     const user = await userModel
       .findById(userId)
       .select(
-        "_id fullName email phone street city country location sex yob bloodId avatar isAvailable isVerified status"
+        "_id fullName profileLevel address email phone street city country location sex yob bloodId avatar isAvailable isVerified status idCard"
       )
-      .populate("bloodId", "type");
+      .populate("bloodId", "name");
     if (!user) {
       throw new NotFoundError("User not found");
     }
@@ -270,6 +312,11 @@ class UserService {
         "isAvailable",
         "isVerified",
         "status",
+        "profileLevel",
+        "role",
+        "idCard",
+        "address",
+        "phone",
       ],
       object: user,
     });
