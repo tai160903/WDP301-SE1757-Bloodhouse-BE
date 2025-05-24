@@ -11,11 +11,16 @@ const os = require("os");
 const router = require("./routes/index");
 const { swaggerUi, swaggerSetup } = require("./configs/swagger.config");
 const initSocket = require("./socket/socket");
+const schedulerService = require("./services/scheduler.service");
 
 
 // init app
 const app = express();
 const server = http.createServer(app);
+
+// Initialize scheduler
+console.log('Initializing background jobs...');
+schedulerService.runManually(); // Run once at startup
 
 // init Socket.IO
 const { io, emitNotification } = initSocket(server);
