@@ -18,6 +18,10 @@ const bloodDonationSchema = new mongoose.Schema(
     },
     quantity: { type: Number },
     donationDate: { type: Date },
+    donationStartAt: {
+      type: Date,
+      default: null, // Thời gian bắt đầu hiến
+    },
     status: {
       type: String,
       enum: Object.values(BLOOD_DONATION_STATUS),

@@ -66,6 +66,14 @@ const BLOOD_DONATION_REGISTRATION_MESSAGE = {
   REJECT_FAILED: "Từ chối đăng ký hiến máu thất bại",
   GET_DETAIL_SUCCESS: "Lấy chi tiết đăng ký hiến máu thành công",
   GET_DETAIL_FAILED: "Lấy chi tiết đăng ký hiến máu thất bại",
+  BLOOD_DONATION_REGISTRATION_NOT_FOUND: "Đăng ký hiến máu không tồn tại",
+  INVALID_STATUS: "Trạng thái không hợp lệ",
+  STAFF_ID_REQUIRED: "Mã nhân viên không được để trống khi phê duyệt đăng ký",
+  FAILED_TO_GENERATE_QR_CODE: "Lỗi khi tạo QR code",
+  CHECK_IN_SUCCESS: "Check-in thành công",
+  CHECK_IN_FAILED: "Check-in thất bại",
+  GET_STATISTICS_SUCCESS: "Lấy thống kê thành công",
+  GET_STATISTICS_FAILED: "Lấy thống kê thất bại",
 };
 
 const NOTIFICATION_MESSAGE = {
@@ -182,6 +190,28 @@ const HEALTH_CHECK_MESSAGE = {
   GET_SUCCESS: "Lấy kiểm tra sức khỏe thành công",
 };
 
+const DONATION_PROCESS_LOG_MESSAGE = {
+  CREATE_SUCCESS: "Tạo log thành công",
+  CREATE_FAILED: "Tạo log thất bại",
+  GET_SUCCESS: "Lấy log thành công",
+  GET_FAILED: "Lấy log thất bại",
+  GET_DETAIL_SUCCESS: "Lấy chi tiết log thành công",
+  GET_DETAIL_FAILED: "Lấy chi tiết log thất bại",
+  REGISTRATION_ID_REQUIRED_OR_INVALID: "ID đăng ký hiến máu không hợp lệ",
+  REGISTRATION_NOT_FOUND: "Đăng ký hiến máu không tồn tại",
+  STATUS_REQUIRED_OR_INVALID: "Trạng thái không hợp lệ",
+  CHANGED_BY_REQUIRED_OR_INVALID: "Mã nhân viên không hợp lệ",
+  NOTES_REQUIRED_OR_INVALID: "Ghi chú không hợp lệ",
+}; 
+
+const BLOOD_DONATION_PROCESS_MESSAGE = {
+  CREATE_SUCCESS: "Tạo quy trình thành công",
+  CREATE_FAILED: "Tạo quy trình thất bại",
+  GET_SUCCESS: "Lấy quy trình thành công",
+  GET_FAILED: "Lấy quy trình thất bại",
+  GET_DETAIL_SUCCESS: "Lấy chi tiết quy trình thành công",
+};
+
 module.exports = {
   ACCESS_MESSAGE,
   BLOOD_COMPATIBILITY_MESSAGE,
@@ -199,4 +229,6 @@ module.exports = {
   BLOOD_INVENTORY_MESSAGE,
   EMERGENCY_CAMPAIGN_MESSAGE,
   NOTIFICATION_MESSAGE,
+  DONATION_PROCESS_LOG_MESSAGE,
+  BLOOD_DONATION_PROCESS_MESSAGE
 };
