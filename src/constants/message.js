@@ -31,8 +31,8 @@ const BLOOD_INVENTORY_MESSAGE = {
   CREATE_FAILED: "Tạo tương hợp máu thất bại",
   UPDATE_SUCCESS: "Cập nhật tương hợp máu thành công",
   UPDATE_FAILED: "Cập nhật tương hợp máu thất bại",
-  GET_SUCCESS: "Lấy tương hợp máu thành công",
-  GET_FAILED: "Lấy tương hợp máu thất bại",
+  GET_SUCCESS: "Lấy kho máu thành công",
+  GET_FAILED: "Lấy kho máu thất bại",
 };
 
 const BLOOD_COMPATIBILITY_MESSAGE = {
@@ -66,6 +66,11 @@ const BLOOD_DONATION_REGISTRATION_MESSAGE = {
   REJECT_FAILED: "Từ chối đăng ký hiến máu thất bại",
   GET_DETAIL_SUCCESS: "Lấy chi tiết đăng ký hiến máu thành công",
   GET_DETAIL_FAILED: "Lấy chi tiết đăng ký hiến máu thất bại",
+};
+
+const NOTIFICATION_MESSAGE = {
+  GET_SUCCESS: "Lấy thông báo thành công",
+  GET_FAILED: "Lấy thông báo thất bại",
 };
 
 const BLOOD_GROUP_MESSAGE = {
@@ -193,4 +198,5 @@ module.exports = {
   HEALTH_CHECK_MESSAGE,
   BLOOD_INVENTORY_MESSAGE,
   EMERGENCY_CAMPAIGN_MESSAGE,
+  NOTIFICATION_MESSAGE,
 };
