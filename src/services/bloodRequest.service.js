@@ -15,7 +15,9 @@ class BloodRequestService {
     "_id",
     "groupId",
     "userId",
+    "facilityId",
     "patientName",
+    "patientPhone",
     "patientAge",
     "bloodComponent",
     "quantity",
@@ -31,6 +33,7 @@ class BloodRequestService {
     "medicalDocumentUrl",
     "note",
     "preferredDate",
+    "scheduleDate",
     "consent",
     "createdAt",
     "updatedAt",
@@ -129,6 +132,7 @@ class BloodRequestService {
         "userId",
         "facilityId",
         "patientName",
+        "patientPhone",
         "patientAge",
         "bloodComponent",
         "quantity",
@@ -218,6 +222,7 @@ class BloodRequestService {
   getUserBloodRequestDetails = async (id, userId) => {
     const bloodRequest = await BloodRequest.findOne({ _id: id, userId })
       .populate("groupId", "name")
+      .populate("componentId", "name")
       .populate("userId", "fullName email phone")
       .populate("facilityId", "name address")
       .populate("staffId", "fullName email phone")
@@ -286,6 +291,7 @@ class BloodRequestService {
         { path: "groupId", select: "name" },
         { path: "userId", select: "fullName email phone" },
         { path: "facilityId", select: "name address" },
+        { path: "componentId", select: "name" },
       ],
       search,
       searchFields: ["patientName", "contactName", "reason"],

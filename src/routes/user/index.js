@@ -13,6 +13,7 @@ router.patch("/blood-group", userController.updateBloodGroup);
 router.patch("/profile", userController.updateProfile);
 router.post("/verify-email", userController.sendVerificationEmail);
 router.post("/verify", userController.verifyAccount);
+router.post("/verify-level2", userController.verifyLevel2);
 router.patch("/password", userController.changePassword);
 router.patch("/avatar", userController.updateAvatar);
 router.delete("/", userController.deleteAccount);
