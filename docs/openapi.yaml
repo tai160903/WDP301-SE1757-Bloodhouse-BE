@@ -2394,6 +2394,419 @@ paths:
                 properties:
                   result:
                     type: boolean
+  /feedback/{facilityId}:
+    get:
+      summary: Get all feedback for a facility
+      tags:
+        - Feedback
+      parameters:
+        - in: path
+          name: facilityId
+          required: true
+          schema:
+            type: string
+          description: Facility ID
+      responses:
+        '200':
+          description: Successfully retrieved feedback
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  feedback:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Feedback'
+        '404':
+          description: Feedback not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /feedback:
+    post:
+      summary: Create new feedback
+      tags:
+        - Feedback
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                facilityId:
+                  type: string
+                rating:
+                  type: number
+                  minimum: 1
+                  maximum: 5
+                comment:
+                  type: string
+              required:
+                - userId
+                - facilityId
+                - rating
+      responses:
+        '201':
+          description: Feedback created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /feedback/{id}:
+    get:
+      summary: Get feedback by ID
+      tags:
+        - Feedback
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Feedback ID
+      responses:
+        '200':
+          description: Successfully retrieved feedback
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+        '404':
+          description: Feedback not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update feedback
+      tags:
+        - Feedback
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Feedback ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rating:
+                  type: number
+                  minimum: 1
+                  maximum: 5
+                comment:
+                  type: string
+      responses:
+        '200':
+          description: Feedback updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Feedback not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /feedback/delete/{id}:
+    put:
+      summary: Delete feedback (soft delete)
+      tags:
+        - Feedback
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Feedback ID
+      responses:
+        '200':
+          description: Feedback deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Feedback not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /content-category:
+    post:
+      summary: Create a new content category
+      tags:
+        - Content Category
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Name of the category
+                description:
+                  type: string
+                  description: Description of the category
+              required:
+                - name
+      responses:
+        '201':
+          description: Content category created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentCategory'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: Get all content categories
+      tags:
+        - Content Category
+      responses:
+        '200':
+          description: Successfully retrieved content categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContentCategory'
+
+  /content-category/{id}:
+    put:
+      summary: Update a content category
+      tags:
+        - Content Category
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Content Category ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Name of the category
+                description:
+                  type: string
+                  description: Description of the category
+      responses:
+        '200':
+          description: Content category updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentCategory'
+        '404':
+          description: Content category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /content:
+    post:
+      summary: Create new content
+      tags:
+        - Content
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum: [introduction, document, blog]
+                categoryId:
+                  type: string
+                title:
+                  type: string
+                content:
+                  type: string
+                summary:
+                  type: string
+                authorId:
+                  type: string
+                image:
+                  type: string
+                  format: binary
+              required:
+                - type
+                - categoryId
+                - title
+                - content
+                - authorId
+      responses:
+        '201':
+          description: Content created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Content'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: Get all contents
+      tags:
+        - Content
+      responses:
+        '200':
+          description: Successfully retrieved contents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Content'
+
+  /content/{id}:
+    get:
+      summary: Get content by ID
+      tags:
+        - Content
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Content ID
+      responses:
+        '200':
+          description: Successfully retrieved content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Content'
+        '404':
+          description: Content not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update content
+      tags:
+        - Content
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Content ID
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum: [introduction, document, blog]
+                categoryId:
+                  type: string
+                title:
+                  type: string
+                content:
+                  type: string
+                summary:
+                  type: string
+                status:
+                  type: string
+                  enum: [draft, published, archived]
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Content updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Content'
+        '404':
+          description: Content not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  
   /health-check:
     post:
       summary: Create a new health check
