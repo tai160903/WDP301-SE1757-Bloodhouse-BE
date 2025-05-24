@@ -1,13 +1,24 @@
 const { BadRequestError } = require("../configs/error.response");
-const { STAFF_POSITION } = require("../constants/enum");
-const { FACILITY_MESSAGE, FACILITY_STAFF_MESSAGE } = require("../constants/message");
+const {
+  STAFF_POSITION,
+  BLOOD_DONATION_REGISTRATION_STATUS,
+  BLOOD_REQUEST_STATUS,
+} = require("../constants/enum");
+const {
+  FACILITY_MESSAGE,
+  FACILITY_STAFF_MESSAGE,
+} = require("../constants/message");
 const { uploadSingleImage } = require("../helpers/cloudinaryHelper");
 const facilityModel = require("../models/facility.model");
 const facilityImageModel = require("../models/facilityImage.model");
 const crypto = require("crypto");
 const facilityStaffModel = require("../models/facilityStaff.model");
 const facilityScheduleModel = require("../models/facilitySchedule.model");
+const bloodInventoryModel = require("../models/bloodInventory.model");
+const bloodDonationRegistrationModel = require("../models/bloodDonationRegistration.model");
+const bloodRequestModel = require("../models/bloodRequest.model");
 const { calculateDistance } = require("../utils/distanceCaculate");
+const { default: mongoose } = require("mongoose");
 
 class FacilityService {
   getAllFacilities = async ({ latitude, longitude, distance }) => {
@@ -23,7 +34,7 @@ class FacilityService {
         match: { isMain: true },
       })
       .exec();
-      
+
     let filteredFacilities = facilities;
     if (latitude && longitude && distance) {
       filteredFacilities = facilities.filter((facility) => {
@@ -60,6 +71,54 @@ class FacilityService {
       throw new BadRequestError(FACILITY_MESSAGE.FACILITY_NOT_FOUND);
     }
     return result;
+  };
+
+  getFacilityStats = async (facilityId) => {
+    const facility = await facilityModel.findById(facilityId);
+    if (!facility) {
+      throw new BadRequestError(FACILITY_MESSAGE.FACILITY_NOT_FOUND);
+    }
+
+    const bloodInventoryStats = await bloodInventoryModel.aggregate([
+      { $match: { facilityId: facility._id } },
+      {
+        $group: {
+          _id: null,
+          totalQuantity: { $sum: "$totalQuantity" },
+        },
+      },
+    ]);
+
+    const totalBloodQuantity =
+      bloodInventoryStats.length > 0 ? bloodInventoryStats[0].totalQuantity : 0;
+
+    const totalDonationRequestPending = await bloodDonationRegistrationModel
+      .find({
+        facilityId,
+        status: BLOOD_DONATION_REGISTRATION_STATUS.PENDING_APPROVAL,
+      })
+      .countDocuments();
+
+    const totalReceiveRequestPending = await bloodRequestModel
+      .find({
+        facilityId,
+        status: BLOOD_REQUEST_STATUS.PENDING_APPROVAL,
+      })
+      .countDocuments();
+
+    const totalEmergencyRequest = await bloodRequestModel
+      .find({
+        facilityId,
+        isUrgent: true,
+      })
+      .countDocuments();
+      
+    return {
+      totalBloodInventory: totalBloodQuantity,
+      totalDonationRequestPending,
+      totalReceiveRequestPending,
+      totalEmergencyRequest,
+    };
   };
 
   createFacility = async (
@@ -119,7 +178,7 @@ class FacilityService {
     // Validate manager
     const manager = await facilityStaffModel.findOne({
       userId: managerId,
-      facilityId: { $exists: false },  // Make sure not assigned to any facility
+      facilityId: { $exists: false }, // Make sure not assigned to any facility
       isDeleted: { $ne: true },
       position: STAFF_POSITION.MANAGER,
     });
@@ -130,7 +189,7 @@ class FacilityService {
       facilityId,
       userId: managerId,
       position: STAFF_POSITION.MANAGER,
-      assignedAt: new Date()
+      assignedAt: new Date(),
     });
 
     // Validate doctors
@@ -139,7 +198,7 @@ class FacilityService {
         userId: { $in: doctorIds },
         facilityId: { $exists: false },
         isDeleted: { $ne: true },
-        position: STAFF_POSITION.DOCTOR
+        position: STAFF_POSITION.DOCTOR,
       });
 
       if (existingDoctors.length !== doctorIds.length) {
@@ -150,7 +209,7 @@ class FacilityService {
         facilityId,
         userId: doctorId,
         position: STAFF_POSITION.DOCTOR,
-        assignedAt: new Date()
+        assignedAt: new Date(),
       }));
       staffEntries.push(...doctorEntries);
     }
@@ -161,7 +220,7 @@ class FacilityService {
         userId: { $in: nurseIds },
         facilityId: { $exists: false },
         isDeleted: { $ne: true },
-        position: STAFF_POSITION.NURSE
+        position: STAFF_POSITION.NURSE,
       });
 
       if (existingNurses.length !== nurseIds.length) {
@@ -172,14 +231,14 @@ class FacilityService {
         facilityId,
         userId: nurseId,
         position: STAFF_POSITION.NURSE,
-        assignedAt: new Date()
+        assignedAt: new Date(),
       }));
       staffEntries.push(...nurseEntries);
     }
 
     // Update all staff entries at once
     await facilityStaffModel.updateMany(
-      { userId: { $in: staffEntries.map(entry => entry.userId) } },
+      { userId: { $in: staffEntries.map((entry) => entry.userId) } },
       { $set: { facilityId: facilityId, assignedAt: new Date() } }
     );
 
