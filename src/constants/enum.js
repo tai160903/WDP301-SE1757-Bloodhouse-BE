@@ -109,6 +109,11 @@ const USER_STATUS = {
   BLOCKED: "blocked",
 };
 
+const PROFILE_LEVEL = {
+  BASIC: 1,
+  VERIFIED_CCCD: 2,
+}
+
 const CONTENT_STATUS = {
   DRAFT: "draft",
   PUBLISHED: "published",
@@ -150,4 +155,5 @@ module.exports = {
   NOTIFICATION_TYPE,
   ENTITY_TYPE,
   DONOR_STATUS,
+  PROFILE_LEVEL,
 };
