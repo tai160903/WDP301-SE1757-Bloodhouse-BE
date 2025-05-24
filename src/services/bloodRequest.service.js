@@ -8,6 +8,7 @@ const bloodGroupModel = require("../models/bloodGroup.model");
 const userModel = require("../models/user.model");
 const { uploadSingleImage } = require("../helpers/cloudinaryHelper");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
+const notificationService = require("./notification.service");
 
 class BloodRequestService {
   requestFields = [
@@ -408,7 +409,11 @@ class BloodRequestService {
   };
 
   // Cập nhật trạng thái yêu cầu máu
-  updateBloodRequestStatus = async (id, facilityId, { status, staffId, scheduleDate }) => {
+  updateBloodRequestStatus = async (
+    id,
+    facilityId,
+    { status, staffId, scheduleDate }
+  ) => {
     if (!Object.values(BLOOD_REQUEST_STATUS).includes(status)) {
       throw new BadRequestError("Trạng thái không hợp lệ");
     }
@@ -417,12 +422,12 @@ class BloodRequestService {
         throw new BadRequestError("Ngày thực hiện không được để trống");
       }
     }
-    console.log("scheduleDate", scheduleDate);
-    console.log("status", status);
-    console.log("id", id);
-    console.log("facilityId", facilityId);
-    console.log("staffId", staffId);
-    const bloodRequest = await BloodRequest.findOne({ _id: id, facilityId });
+    const bloodRequest = await BloodRequest.findOne({
+      _id: id,
+      facilityId,
+    })
+      .populate("userId", "fullName email phone")
+      .populate("facilityId", "name");
     if (!bloodRequest) {
       throw new BadRequestError(
         "Không tìm thấy yêu cầu máu hoặc không thuộc cơ sở này"
@@ -437,6 +442,13 @@ class BloodRequestService {
       bloodRequest.scheduleDate = scheduleDate;
     }
     await bloodRequest.save();
+
+    await notificationService.sendBloodRequestStatusNotification(
+      bloodRequest.userId,
+      status,
+      bloodRequest.facilityId.name,
+      bloodRequest._id
+    );
 
     return {
       data: getInfoData({

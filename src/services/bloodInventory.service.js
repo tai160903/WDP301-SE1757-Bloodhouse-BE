@@ -4,7 +4,7 @@ const bloodGroupModel = require("../models/bloodGroup.model");
 const bloodInventoryModel = require("../models/bloodInventory.model");
 const facilityModel = require("../models/facility.model");
 const bloodComponentModel = require("../models/bloodComponent.model");
-
+const { FACILITY_MESSAGE } = require("../constants/message");
 
 class BloodInventoryService {
   createBloodInventory = async ({
@@ -47,16 +47,30 @@ class BloodInventoryService {
   };
 
   getBloodInventoryByFacilityId = async (facilityId) => {
-    const bloodInventory = await bloodInventoryModel.find({ facilityId });
+    const facility = await facilityModel.findById(facilityId);
+    if (!facility) {
+      throw new Error(FACILITY_MESSAGE.FACILITY_NOT_FOUND);
+    }
+    const bloodInventory = await bloodInventoryModel
+      .find({ facilityId })
+      .populate("groupId", "name")
+      .populate("componentId", "name");
     return bloodInventory;
   };
 
-  getBloodInventoryByFacilityIdAvailable = async (facilityId, { groupId, componentId }) => {
+  getBloodInventoryByFacilityIdAvailable = async (
+    facilityId,
+    { groupId, componentId }
+  ) => {
     if (!groupId || !componentId) {
       throw new Error("Vui lòng nhập đầy đủ thông tin");
     }
 
-    const bloodInventory = await bloodInventoryModel.findOne({ facilityId, groupId, componentId });
+    const bloodInventory = await bloodInventoryModel.findOne({
+      facilityId,
+      groupId,
+      componentId,
+    });
     if (!bloodInventory) {
       return {
         totalQuantity: 0,

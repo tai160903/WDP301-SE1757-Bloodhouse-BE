@@ -140,6 +140,47 @@ class NotificationService {
       relatedEntityId: campaignId,
     });
   };
+
+  sendBloodRequestStatusNotification = async (
+    userId,
+    status,
+    facilityName,
+    entityId
+  ) => {
+    let title = "Cập nhật đơn yêu cầu máu";
+    let body = "";
+    let type = "request";
+    let relatedEntityId = entityId;
+    let entityType = "bloodRequest";
+
+    switch (status) {
+      case "pending_approval":
+        body = `Đơn yêu cầu máu của bạn tại ${facilityName} đang chờ xác nhận.`;
+        break;
+      case "approved":
+        body = `Đơn yêu cầu máu của bạn tại ${facilityName} đã được duyệt.`;
+        break;
+      case "rejected":
+        body = `Đơn yêu cầu máu của bạn tại ${facilityName} đã bị từ chối.`;
+        break;
+      default:
+        body = `Trạng thái đơn yêu cầu máu của bạn tại ${facilityName} đã được cập nhật thành ${status}.`;
+    }
+
+    return this.sendPushNotification(userId, {
+      title,
+      body,
+      data: { type, status },
+      entityType,
+      relatedEntityId,
+    });
+  };
+
+
+  getNotificationUser = async (userId) => {
+    const user = await notificationModel.find({ userId });
+    return user;
+  };
 }
 
 module.exports = new NotificationService();
