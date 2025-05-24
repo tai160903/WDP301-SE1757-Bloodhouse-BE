@@ -13,6 +13,7 @@ router.use(
   require("./bloodDonationRegistration")
 );
 router.use("/blood-donation", require("./bloodDonation"));
+router.use("/blood-unit", require("./bloodUnit"));
 router.use("/content-category", require("./contentCategory"));
 router.use("/content", require("./content"));
 router.use("/facility", require("./facility"));
