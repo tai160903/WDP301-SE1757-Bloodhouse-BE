@@ -2,11 +2,12 @@
 
 const bloodUnitModel = require("../models/bloodUnit.model");
 const bloodDonationModel = require("../models/bloodDonation.model");
-const bloodInventoryModel = require("../models/bloodInventory.model");
+const bloodInventoryService = require("./bloodInventory.service");
 const { BadRequestError, NotFoundError } = require("../configs/error.response");
 const { getInfoData } = require("../utils");
 const { BLOOD_COMPONENT, BLOOD_DONATION_STATUS } = require("../constants/enum");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
+const bloodComponentModel = require("../models/bloodComponent.model");
 
 class BloodUnitService {
   // Tạo blood units từ blood donation (Doctor)
@@ -114,7 +115,6 @@ class BloodUnitService {
       if (status === "available") {
         bloodUnit.approvedBy = staffId;
         bloodUnit.approvedAt = new Date();
-        
         // Cập nhật inventory khi approve
         await this.updateInventoryFromUnit(bloodUnit);
       }
@@ -211,7 +211,6 @@ class BloodUnitService {
         { path: "processedBy", select: "userId position", populate: { path: "userId", select: "fullName" } },
         { path: "approvedBy", select: "userId position", populate: { path: "userId", select: "fullName" } }
       ],
-      search,
       sort: { createdAt: -1 },
     });
 
@@ -295,34 +294,9 @@ class BloodUnitService {
     return expiryDate;
   };
 
-  // Helper: Cập nhật inventory khi approve unit
+  // Helper method: Cập nhật inventory khi blood unit được approve
   updateInventoryFromUnit = async (bloodUnit) => {
-    const { facilityId, bloodGroupId, component, quantity } = bloodUnit;
-
-    // Tìm component ID
-    const bloodComponentModel = require("../models/bloodComponent.model");
-    const componentDoc = await bloodComponentModel.findOne({ name: component });
-    if (!componentDoc) return;
-
-    // Tìm hoặc tạo inventory record
-    let inventory = await bloodInventoryModel.findOne({
-      facilityId,
-      componentId: componentDoc._id,
-      groupId: bloodGroupId
-    });
-    console.log("🚀 ~ BloodUnitService ~ updateInventoryFromUnit= ~ inventory:", inventory)
-
-    if (inventory) {
-      inventory.totalQuantity += quantity;
-      await inventory.save();
-    } else {
-      await bloodInventoryModel.create({
-        facilityId,
-        componentId: componentDoc._id,
-        groupId: bloodGroupId,
-        totalQuantity: quantity
-      });
-    }
+    await bloodInventoryService.updateInventoryFromUnit(bloodUnit);
   };
 
   // Thống kê blood units

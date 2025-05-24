@@ -3485,48 +3485,7 @@ paths:
         "403":
           description: Forbidden (requires staff role)
 
-  /blood-donation/transition-to-resting/{registrationId}:
-    patch:
-      summary: Transition to resting phase
-      description: Transition registration from DONATED to RESTING status
-      tags:
-        - Blood Donation
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: registrationId
-          schema:
-            type: string
-          required: true
-          description: Blood donation registration ID
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                notes:
-                  type: string
-                  description: Additional notes for the transition
-                  example: "Patient moved to resting area"
-      responses:
-        "200":
-          description: Successfully transitioned to resting
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Chuyển sang giai đoạn nghỉ ngơi thành công"
-                  data:
-                    $ref: "#/components/schemas/BloodDonationRegistration"
-        "400":
-          description: Invalid status transition
-        "404":
-          description: Registration not found
+  
 
   # Donor Status Log APIs
   /donor-status-log:
@@ -4013,47 +3972,8 @@ paths:
                       pagination:
                         $ref: "#/components/schemas/Pagination"
 
-  /blood-unit/facility/{facilityId}/statistics:
-    get:
-      summary: Get blood units statistics (Manager)
-      description: Get statistics for blood units in facility
-      tags:
-        - Blood Units
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: facilityId
-          schema:
-            type: string
-          required: true
-          description: Facility ID
-        - in: query
-          name: startDate
-          schema:
-            type: string
-            format: date
-        - in: query
-          name: endDate
-          schema:
-            type: string
-            format: date
-      responses:
-        "200":
-          description: Statistics retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Lấy thống kê blood units thành công"
-                  data:
-                    $ref: "#/components/schemas/BloodUnitStatistics"
-
   # Blood Inventory APIs
-    /blood-inventory/facility/{facilityId}:
+  /blood-inventory/facility/{facilityId}:
     get:
       summary: Get inventory by facility (Manager)
       description: Get blood inventory for facility management
@@ -4138,34 +4058,17 @@ paths:
                   data:
                     $ref: "#/components/schemas/BloodInventoryDetail"
 
-  /blood-inventory/facility/{facilityId}/statistics:
+  /blood-inventory:
     get:
-      summary: Get inventory statistics (Manager)
-      description: Get comprehensive inventory statistics for facility
+      summary: Get all blood inventory
+      description: Get all blood inventory records across all facilities
       tags:
         - Blood Inventory
       security:
         - bearerAuth: []
-      parameters:
-        - in: path
-          name: facilityId
-          schema:
-            type: string
-          required: true
-          description: Facility ID
-        - in: query
-          name: startDate
-          schema:
-            type: string
-            format: date
-        - in: query
-          name: endDate
-          schema:
-            type: string
-            format: date
       responses:
         "200":
-          description: Statistics retrieved successfully
+          description: Inventory retrieved successfully
           content:
             application/json:
               schema:
@@ -4173,14 +4076,38 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Lấy thống kê inventory thành công"
+                    example: "Lấy kho máu thành công"
                   data:
-                    $ref: "#/components/schemas/InventoryStatistics"
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BloodInventory"
+              example:
+                message: "Lấy kho máu thành công"
+                data:
+                  - _id: "60d0fe4f5311236168a109ca"
+                    facilityId:
+                      _id: "60d0fe4f5311236168a109cb"
+                      name: "Bệnh viện Chợ Rẫy"
+                      code: "CR001"
+                    componentId:
+                      _id: "60d0fe4f5311236168a109cc"
+                      name: "Máu toàn phần"
+                    groupId:
+                      _id: "60d0fe4f5311236168a109cd"
+                      name: "O+"
+                      type: "O"
+                    totalQuantity: 2500
+                    createdAt: "2023-01-01T10:00:00.000Z"
+                    updatedAt: "2023-01-02T15:30:00.000Z"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden (requires staff role)
 
-  /blood-inventory/facility/{facilityId}/expiring:
+  /blood-inventory/facility/{facilityId}/available:
     get:
-      summary: Get expiring units (Manager)
-      description: Get blood units that are expiring soon
+      summary: Get available inventory by facility
+      description: Get available blood inventory for a specific facility (totalQuantity > 0)
       tags:
         - Blood Inventory
       security:
@@ -4192,25 +4119,100 @@ paths:
             type: string
           required: true
           description: Facility ID
+          example: "60d0fe4f5311236168a109cb"
         - in: query
-          name: days
+          name: componentId
           schema:
-            type: integer
-            default: 7
-          description: Days until expiry
+            type: string
+          description: Filter by blood component ID
+          example: "60d0fe4f5311236168a109cc"
+        - in: query
+          name: groupId
+          schema:
+            type: string
+          description: Filter by blood group ID
+          example: "60d0fe4f5311236168a109cd"
+      responses:
+        "200":
+          description: Available inventory retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lấy kho máu thành công"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BloodInventory"
+              example:
+                message: "Lấy kho máu thành công"
+                data:
+                  - _id: "60d0fe4f5311236168a109ca"
+                    facilityId:
+                      _id: "60d0fe4f5311236168a109cb"
+                      name: "Bệnh viện Chợ Rẫy"
+                      code: "CR001"
+                    componentId:
+                      _id: "60d0fe4f5311236168a109cc"
+                      name: "Máu toàn phần"
+                    groupId:
+                      _id: "60d0fe4f5311236168a109cd"
+                      name: "O+"
+                      type: "O"
+                    totalQuantity: 1500
+        "404":
+          description: Facility not found
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden (requires staff role)
+
+  /blood-inventory/facility/{facilityId}:
+    get:
+      summary: Get inventory by facility (Manager)
+      description: Get blood inventory for facility management with pagination and detailed unit stats
+      tags:
+        - Blood Inventory
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: facilityId
+          schema:
+            type: string
+          required: true
+          description: Facility ID
+          example: "60d0fe4f5311236168a109cb"
+        - in: query
+          name: componentId
+          schema:
+            type: string
+          description: Filter by blood component ID
+          example: "60d0fe4f5311236168a109cc"
+        - in: query
+          name: groupId
+          schema:
+            type: string
+          description: Filter by blood group ID
+          example: "60d0fe4f5311236168a109cd"
         - in: query
           name: page
           schema:
             type: integer
             default: 1
+          description: Page number
         - in: query
           name: limit
           schema:
             type: integer
             default: 10
+          description: Items per page
       responses:
         "200":
-          description: Expiring units retrieved successfully
+          description: Inventory retrieved successfully
           content:
             application/json:
               schema:
@@ -4218,123 +4220,20 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Lấy danh sách units sắp hết hạn thành công"
+                    example: "Lấy inventory theo facility thành công"
                   data:
                     type: object
                     properties:
                       data:
                         type: array
                         items:
-                          $ref: "#/components/schemas/BloodUnit"
+                          $ref: "#/components/schemas/BloodInventoryWithStats"
                       pagination:
                         $ref: "#/components/schemas/Pagination"
-
-  /blood-inventory/facility/{facilityId}/update-expired:
-    patch:
-      summary: Update expired units (Manager)
-      description: Mark expired units as expired and update inventory
-      tags:
-        - Blood Inventory
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: facilityId
-          schema:
-            type: string
-          required: true
-          description: Facility ID
-      responses:
-        "200":
-          description: Expired units updated successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Đã cập nhật 5 units hết hạn"
-                  data:
-                    type: object
-                    properties:
-                      expiredUnitsCount:
-                        type: integer
-                        example: 5
-                      message:
-                        type: string
-                        example: "Đã cập nhật 5 units hết hạn"
-
-  /blood-inventory/facility/{facilityId}/reserve:
-    post:
-      summary: Reserve units for blood request (Manager)
-      description: Reserve blood units for a blood request
-      tags:
-        - Blood Inventory
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: facilityId
-          schema:
-            type: string
-          required: true
-          description: Facility ID
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                component:
-                  type: string
-                  enum: ["Máu toàn phần", "Hồng cầu", "Huyết tương", "Tiểu cầu"]
-                  example: "Máu toàn phần"
-                bloodGroupId:
-                  type: string
-                  description: Blood group ID
-                  example: "60d0fe4f5311236168a109cc"
-                quantity:
-                  type: number
-                  description: Required quantity in ml
-                  example: 450
-                requestId:
-                  type: string
-                  description: Blood request ID
-                  example: "60d0fe4f5311236168a109cf"
-              required:
-                - component
-                - bloodGroupId
-                - quantity
-                - requestId
-      responses:
-        "200":
-          description: Units reserved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Reserve units thành công"
-                  data:
-                    type: object
-                    properties:
-                      reservedUnits:
-                        type: array
-                        items:
-                          $ref: "#/components/schemas/BloodUnit"
-                      reservedQuantity:
-                        type: number
-                        example: 450
-                      requestedQuantity:
-                        type: number
-                        example: 450
-                      fulfilled:
-                        type: boolean
-                        example: true
+        "403":
+          description: Forbidden (requires manager role)
+        "404":
+          description: Facility not found
 
 components:
   securitySchemes:
@@ -5068,6 +4967,74 @@ components:
               type: integer
             usedUnits:
               type: integer
+    
+    BloodInventoryWithStats:
+      allOf:
+        - $ref: "#/components/schemas/BloodInventory"
+        - type: object
+          properties:
+            unitStats:
+              type: array
+              description: Statistics by unit status
+              items:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    description: Status (available, reserved, expired, etc.)
+                  count:
+                    type: integer
+                  totalQuantity:
+                    type: number
+
+    BloodInventoryDetail:
+      allOf:
+        - $ref: "#/components/schemas/BloodInventory"
+        - type: object
+          properties:
+            unitStats:
+              type: array
+              description: Detailed unit statistics
+              items:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                  count:
+                    type: integer
+                  totalQuantity:
+                    type: number
+            expiringUnits:
+              type: array
+              description: Units expiring soon
+              items:
+                type: object
+                properties:
+                  quantity:
+                    type: number
+                  expiresAt:
+                    type: string
+                    format: date-time
+    
+    BloodInventoryWithStats:
+      allOf:
+        - $ref: "#/components/schemas/BloodInventory"
+        - type: object
+          properties:
+            unitStats:
+              type: array
+              description: Statistics by unit status
+              items:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    description: Status (available, reserved, expired, etc.)
+                  count:
+                    type: integer
+                  totalQuantity:
+                    type: number
+    
     ErrorResponse:
       type: object
       properties:
