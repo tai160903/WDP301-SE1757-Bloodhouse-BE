@@ -44,8 +44,6 @@ const getPaginatedData = async ({
     .sort(sort)
     .skip(skip)
     .limit(limitNum)
-    
-
 
 
     const totalPromise = model.countDocuments(finalQuery);

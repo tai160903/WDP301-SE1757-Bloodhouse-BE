@@ -24,9 +24,7 @@ class AccessService {
     sex,
     yob,
     phone,
-    street,
-    city,
-    country,
+    address,
     idCard,
   }) => {
     // Validate required fields
@@ -69,17 +67,10 @@ class AccessService {
       throw new BadRequestError("Phone number is invalid");
     }
 
-    if (street && (typeof street !== "string" || street.trim() === "")) {
-      throw new BadRequestError("Street must be a non-empty string");
+    if (address && (typeof address !== "string" || address.trim() === "")) {
+      throw new BadRequestError("Address must be a non-empty string");
     }
 
-    if (city && (typeof city !== "string" || city.trim() === "")) {
-      throw new BadRequestError("City must be a non-empty string");
-    }
-
-    if (country && (typeof country !== "string" || country.trim() === "")) {
-      throw new BadRequestError("Country must be a non-empty string");
-    }
 
     // Step 1: Check if email, phone, idCard exists
     const existingUser = await userModel.findOne({
@@ -113,9 +104,7 @@ class AccessService {
       sex,
       yob: yob ? new Date(yob) : undefined,
       phone: phone ? phone.trim() : undefined,
-      street: street ? street.trim() : undefined,
-      city: city ? city.trim() : undefined,
-      country: country ? country.trim() : undefined,
+      address: address ? address.trim() : undefined,
       idCard: idCard ? idCard.trim() : undefined,
     });
 
@@ -218,7 +207,7 @@ class AccessService {
 
     // Step 6: Get user info
     const userData = getInfoData({
-      fields: ["_id", "fullName", "email", "role", "avatar"],
+      fields: ["_id", "fullName", "email", "role", "avatar", "address", "phone", "sex", "yob"],
       object: foundUser,
     });
 

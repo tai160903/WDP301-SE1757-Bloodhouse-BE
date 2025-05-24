@@ -12,20 +12,19 @@ const bloodInventorySchema = new mongoose.Schema(
       ref: "Facility",
       required: true,
     },
-    bloodComponent: {
-      type: String,
-      enum: Object.values(BLOOD_COMPONENT),
+    componentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "BloodComponent",
       required: true,
     },
-    bloodGroup: {
-      type: String,
-      enum: Object.values(BLOOD_GROUP),
+    groupId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "BloodGroup",
       required: true,
     },
     totalQuantity: { type: Number, required: true },
-    lastUpdate: { type: Date },
   },
-  { timestamps: false, collection: COLLECTION_NAME }
+  { timestamps: true, collection: COLLECTION_NAME }
 );
 
 module.exports = mongoose.model(DOCUMENT_NAME, bloodInventorySchema);

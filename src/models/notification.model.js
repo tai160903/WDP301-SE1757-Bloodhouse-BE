@@ -7,7 +7,11 @@ const COLLECTION_NAME = "Notifications";
 
 const notificationSchema = new mongoose.Schema(
   {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     type: { type: String, enum: Object.values(NOTIFICATION_TYPE), trim: true },
     title: { type: String, trim: true },
     subject: { type: String, trim: true },
