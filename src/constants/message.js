@@ -235,6 +235,22 @@ const BLOOD_DONATION_MESSAGE = {
   TRANSITION_TO_RESTING_FAILED: "Chuyển sang giai đoạn nghỉ ngơi thất bại",
 };
 
+const BLOOD_UNIT_MESSAGE = {
+  CREATE_SUCCESS: "Tạo blood units thành công",
+  CREATE_FAILED: "Tạo blood units thất bại",
+  UPDATE_SUCCESS: "Cập nhật blood unit thành công",
+  UPDATE_FAILED: "Cập nhật blood unit thất bại",
+  GET_SUCCESS: "Lấy blood units thành công",
+  GET_FAILED: "Lấy blood units thất bại",
+  GET_DETAIL_SUCCESS: "Lấy chi tiết blood unit thành công",
+  GET_DETAIL_FAILED: "Lấy chi tiết blood unit thất bại",
+  GET_STATISTICS_SUCCESS: "Lấy thống kê blood units thành công",
+  GET_STATISTICS_FAILED: "Lấy thống kê blood units thất bại",
+  BLOOD_UNIT_NOT_FOUND: "Blood unit không tồn tại",
+  INVALID_STATUS: "Trạng thái blood unit không hợp lệ",
+  INVALID_COMPONENT: "Thành phần máu không hợp lệ",
+  DONATION_NOT_COMPLETED: "Chỉ có thể tạo blood units từ donation đã hoàn thành",
+};
 
 module.exports = {
   ACCESS_MESSAGE,
@@ -256,5 +272,6 @@ module.exports = {
   DONATION_PROCESS_LOG_MESSAGE,
   BLOOD_DONATION_PROCESS_MESSAGE,
   DONOR_STATUS_LOG_MESSAGE,
-  BLOOD_DONATION_MESSAGE
+  BLOOD_DONATION_MESSAGE,
+  BLOOD_UNIT_MESSAGE
 };
