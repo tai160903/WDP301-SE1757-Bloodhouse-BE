@@ -1,7 +1,7 @@
 "use strict";
 
 const { OK, CREATED } = require("../configs/success.response");
-const { BLOOD_DONATION_MESSAGE } = require("../constants/enum");
+const { BLOOD_DONATION_MESSAGE } = require("../constants/message");
 const asyncHandler = require("../helpers/asyncHandler");
 const bloodDonationService = require("../services/bloodDonation.service");
 
@@ -22,12 +22,39 @@ class BloodDonationController {
 
   // Tạo bản ghi hiến máu
   createBloodDonation = asyncHandler(async (req, res) => {
+    const staffId = req.user.staffId
     const result = await bloodDonationService.createBloodDonation({
-      staffId: req.user.userId,
+      staffId,
       ...req.body,
     });
     new CREATED({
       message: BLOOD_DONATION_MESSAGE.CREATE_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  // Cập nhật bản ghi hiến máu (PATCH)
+  updateBloodDonation = asyncHandler(async (req, res) => {
+    const result = await bloodDonationService.updateBloodDonation({
+      donationId: req.params.id,
+      staffId: req.user.staffId,
+      ...req.body,
+    });
+    new OK({
+      message: BLOOD_DONATION_MESSAGE.UPDATE_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  // Chuyển sang giai đoạn nghỉ ngơi
+  transitionToResting = asyncHandler(async (req, res) => {
+    const result = await bloodDonationService.transitionToResting({
+      registrationId: req.params.registrationId,
+      staffId: req.user.staffId,
+      notes: req.body.notes,
+    });
+    new OK({
+      message: BLOOD_DONATION_MESSAGE.TRANSITION_TO_RESTING_SUCCESS,
       data: result,
     }).send(res);
   });
@@ -59,6 +86,6 @@ class BloodDonationController {
       data: result,
     }).send(res);
   });
-  }
+}
 
 module.exports = new BloodDonationController();
