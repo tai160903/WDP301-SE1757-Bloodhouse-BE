@@ -10,11 +10,12 @@ const { STAFF_POSITION, USER_ROLE, BLOOD_DONATION_REGISTRATION_STATUS } = requir
 const healthCheckModel = require("../models/healthCheck.model");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
 const processDonationLogService = require("./processDonationLog.service");
+const notificationService = require("./notification.service");
 
 class HealthCheckService {
   // Nhân viên tạo đơn kiểm tra sức khỏe
   createHealthCheck = async (
-    { userId, doctorId, registrationId, checkDate },
+    { userId, doctorId, registrationId },
     staffId
   ) => {
     // Step 1: Validate staff
@@ -28,9 +29,9 @@ class HealthCheckService {
     }
 
     // Step 2: Validate required fields
-    if (!registrationId || !userId || !checkDate || !doctorId) {
+    if (!registrationId || !userId || !doctorId) {
       throw new BadRequestError(
-        "Thiếu registrationId, userId, checkDate hoặc doctorId"
+        "Thiếu registrationId, userId hoặc doctorId"
       );
     }
 
@@ -63,23 +64,28 @@ class HealthCheckService {
     if (!doctor) {
       throw new BadRequestError("Bác sĩ không tồn tại hoặc không thuộc cơ sở này");
     }
-
-    // Step 5: Validate checkDate
-    if (new Date(checkDate) > new Date()) {
-      throw new BadRequestError("checkDate không được ở tương lai");
+    
+    // check if registration is in CHECKED_IN status
+    if (registration.status !== BLOOD_DONATION_REGISTRATION_STATUS.CHECKED_IN) {
+      throw new BadRequestError("Đăng ký hiến máu không ở trạng thái đã check-in");
     }
 
-    // Step 6: Create health check
+    // update registration status to IN_CONSULT
+    registration.status = BLOOD_DONATION_REGISTRATION_STATUS.IN_CONSULT;
+    registration.checkInAt = new Date();
+    await registration.save();
+
+    // Step 5: Create health check
     const healthCheck = await healthCheckModel.create({
       registrationId,
       userId,
       staffId,
       doctorId,
       facilityId: staff.facilityId,
-      checkDate: new Date(checkDate),
+      checkDate: registration.checkInAt,
     });
 
-    // Step 7: Create process health check log
+    // Step 6: Create process health check log
     await processDonationLogService.createProcessDonationLog({
       registrationId,
       userId,
@@ -88,7 +94,15 @@ class HealthCheckService {
       notes: "Kiểm tra sức khỏe",
     });
 
-    // Step 8: Populate and return
+    // Step 7: Send notification to user
+    await notificationService.sendBloodDonationRegistrationStatusNotification(
+      userId,
+      BLOOD_DONATION_REGISTRATION_STATUS.IN_CONSULT,
+      registration.facilityId.name,
+      registration._id
+    );
+
+    // Step 7: Populate and return
     const result = await healthCheck.populate([
       { path: "userId", select: "fullName email" },
       { path: "staffId", select: "position" },
@@ -162,9 +176,33 @@ class HealthCheckService {
         "Cần cung cấp lý do không đủ điều kiện (deferralReason)"
       );
     }
-    if (updateData.isEligible === true && updateData.deferralReason) {
+    const registration = await BloodDonationRegistration.findById(healthCheck.registrationId);
+    // Update registration status if eligible
+    if (updateData.isEligible === true ) {
+      // Send notification to user
       updateData.deferralReason = null;
+      await notificationService.sendBloodDonationRegistrationStatusNotification(
+        registration.userId,
+        BLOOD_DONATION_REGISTRATION_STATUS.WAITING_DONATION,
+        registration.facilityId.name,
+        registration._id
+      );
+      // Update registration status
+      registration.status = BLOOD_DONATION_REGISTRATION_STATUS.WAITING_DONATION;
+      await registration.save();
+    } else {
+      // Send notification to user
+      await notificationService.sendBloodDonationRegistrationStatusNotification(
+        registration.userId,
+        BLOOD_DONATION_REGISTRATION_STATUS.REGISTERED,
+        registration.facilityId.name,
+        registration._id
+      );  
+      // Update registration status
+      registration.status = BLOOD_DONATION_REGISTRATION_STATUS.REGISTERED;
+      await registration.save();
     }
+    
 
     // Step 6: Update health check
     const updatedHealthCheck = await healthCheckModel.findByIdAndUpdate(

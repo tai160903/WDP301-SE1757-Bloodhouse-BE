@@ -1,8 +1,7 @@
 "use strict";
 
-import { BLOOD_DONATION_REGISTRATION_STATUS, DONOR_STATUS } from "../constants/enum";
-
 const mongoose = require("mongoose");
+const { BLOOD_DONATION_REGISTRATION_STATUS, DONOR_STATUS } = require("../constants/enum");
 
 const DOCUMENT_NAME = "DonorStatusLog";
 const COLLECTION_NAME = "DonorStatusLogs";
@@ -27,20 +26,19 @@ const donorStatusLogSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: Object.values(DONOR_STATUS),    
-      required: true,
+      required: false,
     },
     phase: {
       type: String,
       enum: [BLOOD_DONATION_REGISTRATION_STATUS.RESTING, BLOOD_DONATION_REGISTRATION_STATUS.POST_REST_CHECK],
-      required: true, // Giai đoạn: nghỉ ngơi hoặc kiểm tra sau nghỉ
+      default: BLOOD_DONATION_REGISTRATION_STATUS.RESTING,
     },
     notes: {
       type: String,
       default: null,
     },
     recordedAt: {
-      type: Date,
-      required: true,
+      type: Date
     },
   },
   {
