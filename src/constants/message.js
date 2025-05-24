@@ -119,7 +119,8 @@ const FACILITY_MESSAGE = {
   FACILITY_NOT_FOUND: "Cơ sở không tồn tại",
   FACILITY_ALREADY_EXISTS: "Cơ sở đã tồn tại",
   MANAGER_REQUIRED: "Cơ sở phải có ít nhất 1 quản lý",
-  FACILITY_NOT_FOUND: "Cơ sở không tồn tại",
+  GET_FACILITY_STATS_SUCCESS: "Lấy thống kê cơ sở thành công",
+  GET_FACILITY_STATS_FAILED: "Lấy thống kê cơ sở thất bại",
 };
 
 const FACILITY_STAFF_MESSAGE = {

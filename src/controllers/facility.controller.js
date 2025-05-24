@@ -20,6 +20,14 @@ class FacilityController {
     }).send(res);
   });
 
+  getFacilityStats = asyncHandler(async (req, res, next) => {
+    const result = await facilityService.getFacilityStats(req.params.id);
+    new OK({
+      message: FACILITY_MESSAGE.GET_FACILITY_STATS_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
   createFacility = asyncHandler(async (req, res, next) => {
     const result = await facilityService.createFacility(req.body, req.file);
     new CREATED({
