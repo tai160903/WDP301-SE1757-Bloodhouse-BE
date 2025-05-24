@@ -210,7 +210,31 @@ const BLOOD_DONATION_PROCESS_MESSAGE = {
   GET_SUCCESS: "Lấy quy trình thành công",
   GET_FAILED: "Lấy quy trình thất bại",
   GET_DETAIL_SUCCESS: "Lấy chi tiết quy trình thành công",
+  NOTE_REGISTRATION_CREATED: "Đã tạo đăng ký hiến máu"
 };
+
+const DONOR_STATUS_LOG_MESSAGE = {
+  CREATE_SUCCESS: "Tạo bản ghi trạng thái thành công",
+  CREATE_FAILED: "Tạo bản ghi trạng thái thất bại",
+  GET_SUCCESS: "Lấy bản ghi trạng thái thành công",
+  GET_FAILED: "Lấy bản ghi trạng thái thất bại",
+  GET_DETAIL_SUCCESS: "Lấy chi tiết bản ghi trạng thái thành công",
+  UPDATE_SUCCESS: "Cập nhật bản ghi trạng thái thành công",
+};
+
+const BLOOD_DONATION_MESSAGE = {
+  CREATE_SUCCESS: "Tạo hiến máu thành công",
+  CREATE_FAILED: "Tạo hiến máu thất bại",
+  GET_SUCCESS: "Lấy hiến máu thành công",
+  GET_FAILED: "Lấy hiến máu thất bại",
+  GET_DETAIL_SUCCESS: "Lấy chi tiết hiến máu thành công",
+  GET_DETAIL_FAILED: "Lấy chi tiết hiến máu thất bại",
+  UPDATE_SUCCESS: "Cập nhật hiến máu thành công",
+  UPDATE_FAILED: "Cập nhật hiến máu thất bại",
+  TRANSITION_TO_RESTING_SUCCESS: "Chuyển sang giai đoạn nghỉ ngơi thành công",
+  TRANSITION_TO_RESTING_FAILED: "Chuyển sang giai đoạn nghỉ ngơi thất bại",
+};
+
 
 module.exports = {
   ACCESS_MESSAGE,
@@ -230,5 +254,7 @@ module.exports = {
   EMERGENCY_CAMPAIGN_MESSAGE,
   NOTIFICATION_MESSAGE,
   DONATION_PROCESS_LOG_MESSAGE,
-  BLOOD_DONATION_PROCESS_MESSAGE
+  BLOOD_DONATION_PROCESS_MESSAGE,
+  DONOR_STATUS_LOG_MESSAGE,
+  BLOOD_DONATION_MESSAGE
 };

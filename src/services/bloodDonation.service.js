@@ -7,6 +7,7 @@ const { getInfoData } = require("../utils");
 const {
   BLOOD_DONATION_REGISTRATION_STATUS,
   USER_ROLE,
+  BLOOD_DONATION_STATUS,
 } = require("../constants/enum");
 const userModel = require("../models/user.model");
 const facilityModel = require("../models/facility.model");
@@ -21,6 +22,7 @@ const {
 const QRCode = require("qrcode");
 const { getPaginatedData, populateExistingDocument, createNestedPopulateConfig } = require("../helpers/mongooseHelper");
 const processDonationLogService = require("./processDonationLog.service");
+const donorStatusLogService = require("./donorStatusLog.service");
 
 class BloodDonationService {
   /** BLOOD DONATION REGISTRATION */
@@ -321,7 +323,7 @@ class BloodDonationService {
       select:
         "_id userId bloodGroupId bloodComponent quantity donationDate status bloodDonationRegistrationId createdAt",
       populate: [
-        { path: "bloodGroupId", select: "type" },
+        { path: "bloodGroupId", select: "name" },
         {
           path: "bloodDonationRegistrationId",
           select: "preferredDate facilityId",
@@ -341,18 +343,23 @@ class BloodDonationService {
     bloodGroupId,
     bloodDonationRegistrationId,
     bloodComponent,
-    quantity,
-    donationDate,
   }) => {
+
+    // Kiểm tra required fields
+    if (!userId) throw new BadRequestError("User ID is required");
+    if (!staffId) throw new BadRequestError("Staff ID is required");
+    if (!bloodGroupId) throw new BadRequestError("Blood group ID is required");
+    if (!bloodDonationRegistrationId) throw new BadRequestError("Blood donation registration ID is required");
+    if (!bloodComponent) throw new BadRequestError("Blood component is required");
+
     // Kiểm tra user và registration
     const [user, registration] = await Promise.all([
       userModel.findOne({ _id: userId }),
-      bloodDonationRegistrationId
-        ? bloodDonationRegistrationModel.findById(bloodDonationRegistrationId)
-        : Promise.resolve(null),
+      bloodDonationRegistrationModel.findOne({ _id: bloodDonationRegistrationId }).populate("facilityId", "name")
     ]);
+    
     if (!user) throw new NotFoundError("User not found");
-    if (bloodDonationRegistrationId && !registration) {
+    if (!registration) {
       throw new NotFoundError("Registration not found");
     }
 
@@ -362,8 +369,46 @@ class BloodDonationService {
       bloodGroupId,
       bloodDonationRegistrationId,
       bloodComponent,
-      quantity,
-      donationDate,
+      donationDate: new Date(),
+      status: BLOOD_DONATION_STATUS.DONATING,
+    });
+
+    // Update registration status
+    registration.status = BLOOD_DONATION_REGISTRATION_STATUS.DONATING;
+    await registration.save();
+
+    // Update process donation log
+    await processDonationLogService.createProcessDonationLog({
+      registrationId: registration._id,
+      userId,
+      changedBy: staffId,
+      status: BLOOD_DONATION_REGISTRATION_STATUS.DONATING,
+      notes: "Đang hiến máu",
+    });
+
+    // Send notification to user
+    await notificationService.sendBloodDonationRegistrationStatusNotification(
+      userId,
+      BLOOD_DONATION_REGISTRATION_STATUS.DONATING,
+      registration.facilityId.name,
+      registration._id
+    );
+
+    // Populate and return
+    const result = await populateExistingDocument({
+      document: donation,
+      nestedPopulate: [
+        createNestedPopulateConfig("bloodGroupId", "name" ),
+        createNestedPopulateConfig("bloodDonationRegistrationId", "facilityId preferredDate", {
+          path: "facilityId",
+          select: "name street city"
+        }),
+        createNestedPopulateConfig("staffId", "userId position", {
+          path: "userId",
+          select: "fullName"
+        }),
+        createNestedPopulateConfig("userId", "fullName email phone"),
+      ]
     });
 
     return getInfoData({
@@ -374,7 +419,6 @@ class BloodDonationService {
         "bloodGroupId",
         "bloodDonationRegistrationId",
         "bloodComponent",
-        "quantity",
         "donationDate",
         "status",
       ],
@@ -472,7 +516,6 @@ class BloodDonationService {
   }) => {
     let query = { staffId };
     
-    console.log("🚀 ~ BloodDonationService ~ staffId:", staffId)
     // Filter by status
     if (status) {
       if (Array.isArray(status)) {
@@ -514,7 +557,6 @@ class BloodDonationService {
       searchFields: ["notes"],
       sort: { preferredDate: -1 },
     });
-    console.log("🚀 ~ BloodDonationService ~ result:", result)
 
     return result;
   };
@@ -742,6 +784,165 @@ class BloodDonationService {
         "expectedQuantity"
       ],
       object: result,
+    });
+  };
+
+  // Cập nhật bản ghi hiến máu (cho luồng hiến máu)
+  updateBloodDonation = async ({
+    donationId,
+    staffId,
+    quantity,
+    status,
+    notes
+  }) => {
+    // Tìm bản ghi hiến máu
+    const donation = await bloodDonationModel.findById(donationId);
+    if (!donation) {
+      throw new NotFoundError("Không tìm thấy bản ghi hiến máu");
+    }
+
+    if (status) {
+      donation.status = status;
+    }
+    if (notes) {
+      donation.notes = notes;
+    }
+    if (quantity) {
+      donation.quantity = quantity;
+    }
+
+    await donation.save();
+
+    // Nếu có registration ID, cập nhật trạng thái registration tương ứng
+    if (donation.bloodDonationRegistrationId) {
+      const registration = await bloodDonationRegistrationModel.findById(
+        donation.bloodDonationRegistrationId
+      ).populate("facilityId", "name");
+      
+      if (registration) {
+        // Logic chuyển trạng thái registration dựa vào donation status
+        if (donation.status === BLOOD_DONATION_STATUS.COMPLETED && donation.quantity) {
+          registration.status = BLOOD_DONATION_REGISTRATION_STATUS.DONATED;
+          // Tạo log
+          await processDonationLogService.createProcessDonationLog({
+            registrationId: registration._id,
+            userId: registration.userId,
+            changedBy: staffId,
+            status: BLOOD_DONATION_REGISTRATION_STATUS.DONATED,
+            notes: "Hiến máu thành công",
+          });
+
+          // Tạo bản ghi trạng thái người hiến
+          await donorStatusLogService.createDonorStatusLog({
+            donationId: donation._id,
+            userId: registration.userId,
+            staffId: staffId,
+          });
+
+        } else if (donation.status === BLOOD_DONATION_STATUS.CANCELLED) {
+          // Khi huỷ hiến máu
+          registration.status = BLOOD_DONATION_REGISTRATION_STATUS.CANCELLED;
+          
+          // Tạo log
+          await processDonationLogService.createProcessDonationLog({
+            registrationId: registration._id,
+            userId: registration.userId,
+            changedBy: staffId,
+            status: BLOOD_DONATION_REGISTRATION_STATUS.CANCELLED,
+            notes: "Huỷ hiến máu",
+          });
+        }
+        
+        await registration.save();
+
+        // Gửi thông báo cho user
+        await notificationService.sendBloodDonationRegistrationStatusNotification(
+          registration.userId,
+          registration.status,
+          registration.facilityId.name,
+          registration._id
+        );
+      }
+    }
+
+    // Populate result
+    const result = await donation.populate([
+      { path: "userId", select: "fullName email phone" },
+      { path: "bloodGroupId", select: "name" },
+      { 
+        path: "bloodDonationRegistrationId", 
+        select: "preferredDate facilityId status",
+        populate: { path: "facilityId", select: "name street city" }
+      }
+    ]);
+
+    return getInfoData({
+      fields: [
+        "_id",
+        "userId",
+        "staffId",
+        "bloodGroupId",
+        "bloodDonationRegistrationId",
+        "bloodComponent",
+        "quantity",
+        "donationDate",
+        "donationStartAt",
+        "status",
+        "notes",
+        "updatedAt"
+      ],
+      object: result,
+    });
+  };
+
+  // Chuyển registration từ DONATED sang RESTING
+  transitionToResting = async ({
+    registrationId,
+    staffId,
+    notes
+  }) => {
+    const registration = await bloodDonationRegistrationModel.findById(registrationId);
+    if (!registration) {
+      throw new NotFoundError("Không tìm thấy đăng ký hiến máu");
+    }
+
+    // Kiểm tra trạng thái hiện tại
+    if (registration.status !== BLOOD_DONATION_REGISTRATION_STATUS.DONATED) {
+      throw new BadRequestError("Chỉ có thể chuyển sang nghỉ ngơi từ trạng thái đã hiến máu");
+    }
+
+    // Cập nhật trạng thái
+    registration.status = BLOOD_DONATION_REGISTRATION_STATUS.RESTING;
+    await registration.save();
+
+    // Tạo log
+    await processDonationLogService.createProcessDonationLog({
+      registrationId: registration._id,
+      userId: registration.userId,
+      changedBy: staffId,
+      status: BLOOD_DONATION_REGISTRATION_STATUS.RESTING,
+      notes: notes || "Chuyển sang giai đoạn nghỉ ngơi",
+    });
+
+    // Gửi thông báo
+    await notificationService.sendBloodDonationRegistrationStatusNotification(
+      registration.userId,
+      BLOOD_DONATION_REGISTRATION_STATUS.RESTING,
+      registration.facilityId?.name || "Facility",
+      registration._id
+    );
+
+    return getInfoData({
+      fields: [
+        "_id",
+        "userId",
+        "facilityId",
+        "bloodGroupId",
+        "status",
+        "notes",
+        "updatedAt"
+      ],
+      object: registration,
     });
   };
 }
