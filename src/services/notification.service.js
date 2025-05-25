@@ -4,6 +4,7 @@ const { ENTITY_TYPE, NOTIFICATION_TYPE } = require("../constants/enum");
 const notificationModel = require("../models/notification.model");
 const userModel = require("../models/user.model");
 const { Expo } = require("expo-server-sdk");
+const dayjs = require("dayjs");
 
 class NotificationService {
   constructor() {
@@ -176,6 +177,18 @@ class NotificationService {
     });
   };
 
+  sendReminderDonationNotification = async (userId, preferredDate, entityId) => {
+    const title = "Nhắc lịch hiến máu";
+    const body = `Bạn có lịch hiến máu lúc ${dayjs(preferredDate).format("HH:mm DD/MM/YYYY")}. Vui lòng đến đúng giờ!`;
+
+    return this.sendPushNotification(userId, {
+      title,
+      body,
+      data: { type: NOTIFICATION_TYPE.REMINDER, preferredDate },
+      entityType: ENTITY_TYPE.BLOOD_DONATION_REGISTRATION,
+      relatedEntityId: entityId,
+    });
+  };
 
   getNotificationUser = async (userId) => {
     const user = await notificationModel.find({ userId });
