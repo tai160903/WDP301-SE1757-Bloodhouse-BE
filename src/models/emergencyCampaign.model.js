@@ -11,11 +11,17 @@ const emergencyCampaignsSchema = new mongoose.Schema(
       ref: "BloodRequest",
       required: true,
     },
+    facilityId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Facility",
+      required: true,
+    },
     quantityNeeded: { type: Number, required: true },
-    quantityReceived: { type: Number, default: 0 },
+    deadline: { type: Date },
+    note: { type: String },
     status: {
       type: String,
-      enum: ["open", "closed", "completed"],
+      enum: ["open", "closed", "completed", "expired"],
       default: "open",
     },
     createdBy: {

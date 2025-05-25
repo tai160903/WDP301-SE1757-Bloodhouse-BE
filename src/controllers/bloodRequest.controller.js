@@ -55,13 +55,15 @@ class BloodRequestController {
   // Lấy danh sách yêu cầu máu của cơ sở
   getFacilityBloodRequests = asyncHandler(async (req, res, next) => {
     const { facilityId } = req.params;
-    const { page, isUrgent, limit, status, search, sortBy, sortOrder } =
+    const { page, isUrgent, hasCampaign, isFulfilled, limit, status, search, sortBy, sortOrder } =
       req.query;
     const result = await bloodRequestService.getFacilityBloodRequests(
       facilityId,
       {
         page: parseInt(page) || 1,
         isUrgent,
+        hasCampaign,
+        isFulfilled,
         limit: parseInt(limit) || 10,
         status,
         search,

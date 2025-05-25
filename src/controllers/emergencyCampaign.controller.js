@@ -11,8 +11,18 @@ class EmergencyCampaignController {
     new CREATED({ message: EMERGENCY_CAMPAIGN_MESSAGE.CREATE_SUCCESS, data: result }).send(res);
   });
 
-  getEmergencyCampaigns = asyncHandler(async (req, res, next) => {
-    const result = await emergencyCampaignService.getEmergencyCampaigns();
+  getAllEmergencyCampaigns = asyncHandler(async (req, res, next) => {
+    const result = await emergencyCampaignService.getAllEmergencyCampaigns();
+    new OK({ message: EMERGENCY_CAMPAIGN_MESSAGE.GET_SUCCESS, data: result }).send(res);
+  });
+
+  getEmergencyCampaignById = asyncHandler(async (req, res, next) => {
+    const result = await emergencyCampaignService.getEmergencyCampaignById(req.params.id);
+    new OK({ message: EMERGENCY_CAMPAIGN_MESSAGE.GET_SUCCESS, data: result }).send(res);
+  });
+
+  getFacilityEmergencyCampaigns = asyncHandler(async (req, res, next) => {
+    const result = await emergencyCampaignService.getFacilityEmergencyCampaigns(req.params.id);
     new OK({ message: EMERGENCY_CAMPAIGN_MESSAGE.GET_SUCCESS, data: result }).send(res);
   });
 }

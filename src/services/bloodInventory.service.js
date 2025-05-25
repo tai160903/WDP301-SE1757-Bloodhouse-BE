@@ -44,6 +44,7 @@ class BloodInventoryService {
       .populate("facilityId", "name code address")
       .populate("componentId", "name")
       .populate("groupId", "name type");
+
     return bloodInventories;
   };
 

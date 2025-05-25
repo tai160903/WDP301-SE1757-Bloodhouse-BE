@@ -37,6 +37,8 @@ class BloodRequestService {
     "consent",
     "createdAt",
     "updatedAt",
+    "hasCampaign",
+    "isFulfilled",
   ];
 
   // Tạo yêu cầu máu
@@ -151,6 +153,8 @@ class BloodRequestService {
         "consent",
         "createdAt",
         "updatedAt",
+        "hasCampaign",
+        "isFulfilled",
       ],
       object: result,
     });
@@ -164,6 +168,8 @@ class BloodRequestService {
       limit = 10,
       status,
       isUrgent,
+      hasCampaign,
+      isFulfilled,
       search,
       sortBy = "createdAt",
       sortOrder = -1,
@@ -179,7 +185,12 @@ class BloodRequestService {
     if (isUrgent) {
       query.isUrgent = isUrgent;
     }
-
+    if (hasCampaign) {
+      query.hasCampaign = hasCampaign;
+    }
+    if (isFulfilled) {
+      query.isFulfilled = isFulfilled;
+    }
     // Validate sortBy
     const validSortFields = [
       "createdAt",
@@ -205,7 +216,7 @@ class BloodRequestService {
       page,
       limit,
       select:
-        "_id bloodId patientPhone componentId userId facilityId patientName patientAge bloodComponent quantity isUrgent status location address contactName contactPhone contactEmail reason medicalDetails medicalDocumentUrl note preferredDate consent createdAt updatedAt",
+        "_id bloodId patientPhone hasCampaign isFulfilled componentId userId facilityId patientName patientAge bloodComponent quantity isUrgent status location address contactName contactPhone contactEmail reason medicalDetails medicalDocumentUrl note preferredDate consent createdAt updatedAt",
       populate: [
         { path: "groupId", select: "name" },
         { path: "userId", select: "fullName email phone" },
