@@ -56,6 +56,9 @@ const bloodRequestSchema = new mongoose.Schema(
     note: { type: String, trim: true },
     preferredDate: { type: Date },
     scheduleDate: { type: Date },
+    // scheduledDeliveryDate: { type: Date },
+    hasCampaign: { type: Boolean, default: false },
+    isFulfilled: { type: Boolean, default: false },
   },
   {
     timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" },

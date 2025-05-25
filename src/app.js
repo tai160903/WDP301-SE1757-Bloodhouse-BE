@@ -23,7 +23,7 @@ const server = http.createServer(app);
 // Initialize scheduler
 console.log("Initializing background jobs...");
 initJobScheduler();
-runManually();
+// runManually();
 
 // init Socket.IO
 const { io, emitNotification } = initSocket(server);
