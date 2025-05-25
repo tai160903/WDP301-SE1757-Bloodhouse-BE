@@ -1,10 +1,12 @@
 const schedule = require("node-schedule");
 const bloodRequestModel = require("../models/bloodRequest.model");
 const { BLOOD_REQUEST_STATUS } = require("../constants/enum");
+const dayjs = require("dayjs");
 
 async function cancelExpiredRequests() {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    const JOB_ID = "CHECK_EXPIRED_REGISTRATION_JOB";
+    console.log(`[${JOB_ID}] Starting job...`);
+    const yesterday = dayjs().subtract(1, "day").toDate();
 
     try {
         const result = await bloodRequestModel.updateMany(
@@ -19,10 +21,10 @@ async function cancelExpiredRequests() {
                 }
             }
         );
-        console.log(`Đã hủy ${result.modifiedCount} yêu cầu máu hết hạn`);
+        console.log(`[${JOB_ID}] Job completed - Success: ${result.modifiedCount}, Errors: ${result.modifiedCount}, Total: ${result.modifiedCount}`);
     } catch (error) {
-        console.error('Error cancelling expired requests:', error);
-  }
+        console.error(`[${JOB_ID}] Error cancelling expired requests:`, error);
+    }
 }
 
 module.exports = cancelExpiredRequests;

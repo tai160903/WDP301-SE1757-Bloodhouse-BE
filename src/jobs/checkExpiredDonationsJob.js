@@ -1,10 +1,12 @@
 const schedule = require("node-schedule");
 const bloodDonationRegistrationModel = require("../models/bloodDonationRegistration.model");
 const { BLOOD_DONATION_REGISTRATION_STATUS } = require("../constants/enum");
+const dayjs = require("dayjs");
 
 async function cancelExpiredDonations() {
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
+  const JOB_ID = "CHECK_EXPIRED_DONATIONS_JOB";
+  console.log(`[${JOB_ID}] Starting job...`);
+  const yesterday = dayjs().subtract(1, "day").toDate();
 
   try {
     const result = await bloodDonationRegistrationModel.updateMany(
@@ -19,9 +21,9 @@ async function cancelExpiredDonations() {
         },
       }
     );
-    console.log(`Đã hủy ${result.modifiedCount} đơn đăng ký hiến máu hết hạn`);
+    console.log(`[${JOB_ID}] Job completed - Success: ${result.modifiedCount}, Errors: ${result.modifiedCount}, Total: ${result.modifiedCount}`);
   } catch (error) {
-    console.error("Error cancelling expired donations:", error);
+    console.error(`[${JOB_ID}] Error cancelling expired donations:`, error);
   }
 }
 

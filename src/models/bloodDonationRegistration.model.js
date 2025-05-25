@@ -51,6 +51,16 @@ const bloodDonationRegistrationSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    reminderStatus: {
+      oneDay: {
+        type: Boolean,
+        default: false,
+      },
+      twoHours: {
+        type: Boolean,
+        default: false,
+      },
+    },
   },
   {
     timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" },
