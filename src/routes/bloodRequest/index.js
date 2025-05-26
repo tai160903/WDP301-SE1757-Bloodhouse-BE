@@ -9,7 +9,7 @@ const { USER_ROLE } = require("../../constants/enum");
 
 
 router.use(checkAuth)
-router.post("/", BloodRequestController.createBloodRequest);
+router.post("/", upload.array("medicalDocuments"), BloodRequestController.createBloodRequest);
 router.get("/user", BloodRequestController.getUserBloodRequests);
 router.get("/user/:id", BloodRequestController.getUserBloodRequestDetails);
 

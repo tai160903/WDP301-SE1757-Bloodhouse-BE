@@ -3,7 +3,12 @@
 const userModel = require("../models/user.model");
 const bcrypt = require("bcryptjs");
 const { getInfoData } = require("../utils");
-const { USER_ROLE, USER_STATUS, STAFF_POSITION, SEX } = require("../constants/enum");
+const {
+  USER_ROLE,
+  USER_STATUS,
+  STAFF_POSITION,
+  SEX,
+} = require("../constants/enum");
 
 const { BadRequestError } = require("../configs/error.response");
 const { createTokenPair, verifyToken } = require("../auth/jwt");
@@ -17,32 +22,126 @@ const {
 const facilityStaffModel = require("../models/facilityStaff.model");
 
 class AccessService {
-  signUp = async ({
-    fullName,
-    email,
-    password,
-    sex,
-    yob,
-    phone,
-    street,
-    city,
-    country,
-    idCard,
-  }) => {
+  // signUp = async ({
+  //   fullName,
+  //   email,
+  //   password,
+  //   sex,
+  //   yob,
+  //   phone,
+  //   address,
+  //   idCard,
+  // }) => {
+  //   // Validate required fields
+  //   if (!fullName || typeof fullName !== "string" || fullName.trim() === "") {
+  //     throw new BadRequestError(
+  //       "Full name is required and must be a non-empty string"
+  //     );
+  //   }
+
+  //   if (idCard && !validateIdCard(idCard)) {
+  //     throw new BadRequestError("Id card number is invalid");
+  //   }
+
+  //   if (typeof idCard !== "string" || idCard.trim() === "") {
+  //     throw new BadRequestError("idCard must be a non-empty string");
+  //   }
+
+  //   if (!email || !validateEmail(email)) {
+  //     throw new BadRequestError("Email is required and must be valid");
+  //   }
+
+  //   if (!password || typeof password !== "string" || password.length < 6) {
+  //     throw new BadRequestError(
+  //       "Password is required and must be at least 6 characters"
+  //     );
+  //   }
+
+  //   // Validate optional fields
+  //   if (sex && !Object.values(SEX).includes(sex)) {
+  //     throw new BadRequestError(
+  //       `Sex must be one of: ${Object.values(SEX).join(", ")}`
+  //     );
+  //   }
+
+  //   if (yob && isNaN(Date.parse(yob))) {
+  //     throw new BadRequestError("Year of birth (yob) must be a valid date");
+  //   }
+
+  //   if (phone && !validatePhone(phone)) {
+  //     throw new BadRequestError("Phone number is invalid");
+  //   }
+
+  //   if (address && (typeof address !== "string" || address.trim() === "")) {
+  //     throw new BadRequestError("Address must be a non-empty string");
+  //   }
+
+  //   // Step 1: Check if email, phone, idCard exists
+  //   const existingUser = await userModel.findOne({
+  //     email: email.trim().toLowerCase(),
+  //   });
+  //   if (existingUser) {
+  //     throw new BadRequestError("Email already exists");
+  //   }
+  //   const existingPhone = await userModel.findOne({ phone: phone?.trim() });
+  //   if (existingPhone) {
+  //     throw new BadRequestError("Phone number already exists");
+  //   }
+
+  //   const existingIdCard = await userModel.findOne({
+  //     idCard: idCard?.trim(),
+  //   });
+  //   if (existingIdCard) {
+  //     throw new BadRequestError("Id card number already exists");
+  //   }
+
+  //   // Step 2: Hash password and create new user
+  //   const passwordHash = await bcrypt.hash(password, 10);
+  //   const verifyToken = crypto.randomBytes(32).toString("hex");
+
+  //   const newUser = await userModel.create({
+  //     fullName: fullName.trim(),
+  //     email: email.trim().toLowerCase(),
+  //     password: passwordHash,
+  //     role: USER_ROLE.MEMBER,
+  //     verifyToken,
+  //     sex,
+  //     yob: yob ? new Date(yob) : undefined,
+  //     phone: phone ? phone.trim() : undefined,
+  //     address: address ? address.trim() : undefined,
+  //     idCard: idCard ? idCard.trim() : undefined,
+  //   });
+
+  //   if (newUser) {
+  //     // Step 3: Create token pair
+  //     const accessTokenKey = process.env.ACCESS_TOKEN_SECRET_SIGNATURE;
+  //     const refreshTokenKey = process.env.REFRESH_TOKEN_SECRET_SIGNATURE;
+
+  //     const tokens = await createTokenPair(
+  //       { userId: newUser._id, email: newUser.email, role: newUser.role },
+  //       accessTokenKey,
+  //       refreshTokenKey,
+  //       process.env.ACCESS_TOKEN_EXPIRES_IN,
+  //       process.env.REFRESH_TOKEN_EXPIRES_IN
+  //     );
+
+  //     // Step 4: Return result
+  //     return {
+  //       user: getInfoData({
+  //         fields: ["_id", "fullName", "email", "role"],
+  //         object: newUser,
+  //       }),
+  //       tokens,
+  //     };
+  //   }
+
+  //   throw new BadRequestError("User registration failed");
+  // };
+
+  signUp = async ({ email, password }) => {
     // Validate required fields
-    if (!fullName || typeof fullName !== "string" || fullName.trim() === "") {
-      throw new BadRequestError(
-        "Full name is required and must be a non-empty string"
-      );
-    }
-
-    if (idCard && !validateIdCard(idCard)) {
-      throw new BadRequestError("Id card number is invalid");
-    }
-
-    if (typeof idCard !== "string" || idCard.trim() === "") {
-      throw new BadRequestError("idCard must be a non-empty string");
-    }
+    console.log("email", email);
+    console.log("password", password);
 
     if (!email || !validateEmail(email)) {
       throw new BadRequestError("Email is required and must be valid");
@@ -55,31 +154,6 @@ class AccessService {
     }
 
     // Validate optional fields
-    if (sex && !Object.values(SEX).includes(sex)) {
-      throw new BadRequestError(
-        `Sex must be one of: ${Object.values(SEX).join(", ")}`
-      );
-    }
-
-    if (yob && isNaN(Date.parse(yob))) {
-      throw new BadRequestError("Year of birth (yob) must be a valid date");
-    }
-
-    if (phone && !validatePhone(phone)) {
-      throw new BadRequestError("Phone number is invalid");
-    }
-
-    if (street && (typeof street !== "string" || street.trim() === "")) {
-      throw new BadRequestError("Street must be a non-empty string");
-    }
-
-    if (city && (typeof city !== "string" || city.trim() === "")) {
-      throw new BadRequestError("City must be a non-empty string");
-    }
-
-    if (country && (typeof country !== "string" || country.trim() === "")) {
-      throw new BadRequestError("Country must be a non-empty string");
-    }
 
     // Step 1: Check if email, phone, idCard exists
     const existingUser = await userModel.findOne({
@@ -88,35 +162,16 @@ class AccessService {
     if (existingUser) {
       throw new BadRequestError("Email already exists");
     }
-    const existingPhone = await userModel.findOne({ phone: phone?.trim() });
-    if (existingPhone) {
-      throw new BadRequestError("Phone number already exists");
-    }
-
-    const existingIdCard = await userModel.findOne({
-      idCard: idCard?.trim(),
-    });
-    if (existingIdCard) {
-      throw new BadRequestError("Id card number already exists");
-    }
 
     // Step 2: Hash password and create new user
     const passwordHash = await bcrypt.hash(password, 10);
     const verifyToken = crypto.randomBytes(32).toString("hex");
 
     const newUser = await userModel.create({
-      fullName: fullName.trim(),
       email: email.trim().toLowerCase(),
       password: passwordHash,
       role: USER_ROLE.MEMBER,
       verifyToken,
-      sex,
-      yob: yob ? new Date(yob) : undefined,
-      phone: phone ? phone.trim() : undefined,
-      street: street ? street.trim() : undefined,
-      city: city ? city.trim() : undefined,
-      country: country ? country.trim() : undefined,
-      idCard: idCard ? idCard.trim() : undefined,
     });
 
     if (newUser) {
@@ -218,19 +273,35 @@ class AccessService {
 
     // Step 6: Get user info
     const userData = getInfoData({
-      fields: ["_id", "fullName", "email", "role", "avatar"],
+      fields: [
+        "_id",
+        "fullName",
+        "email",
+        "role",
+        "avatar",
+        "address",
+        "phone",
+        "sex",
+        "yob",
+        "status",
+        "profileLevel",
+      ],
       object: foundUser,
     });
 
     // Step 7: Nếu là staff thì lấy thêm facilityId
-    const STAFF_POSITION = [USER_ROLE.MANAGER, USER_ROLE.DOCTOR, USER_ROLE.NURSE];
+    const STAFF_POSITION = [
+      USER_ROLE.MANAGER,
+      USER_ROLE.DOCTOR,
+      USER_ROLE.NURSE,
+    ];
     if (STAFF_POSITION.includes(foundUser.role)) {
       const staffRecord = await facilityStaffModel
         .findOne({
           userId: foundUser._id,
           isDeleted: { $ne: true },
         })
-        .populate("facilityId", "name")
+        .populate("facilityId", "name");
 
       if (staffRecord) {
         userData.facilityId = staffRecord.facilityId._id;
@@ -238,7 +309,6 @@ class AccessService {
         userData.facilityName = staffRecord.facilityId.name;
       }
     }
-
 
     return {
       user: userData,

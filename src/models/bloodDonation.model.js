@@ -8,7 +8,7 @@ const COLLECTION_NAME = "BloodDonations";
 const bloodDonationSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    staffId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    staffId: { type: mongoose.Schema.Types.ObjectId, ref: "FacilityStaff" },
     bloodGroupId: { type: mongoose.Schema.Types.ObjectId, ref: "BloodGroup", required: true },
     bloodDonationRegistrationId: { type: mongoose.Schema.Types.ObjectId, ref: "BloodDonationRegistration" },
     bloodComponent: {
@@ -21,7 +21,7 @@ const bloodDonationSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: Object.values(BLOOD_DONATION_STATUS),
-      default: BLOOD_DONATION_STATUS.CONFIRMED,
+      default: BLOOD_DONATION_STATUS.DONATING,
     },
     notes: { type: String },
   },

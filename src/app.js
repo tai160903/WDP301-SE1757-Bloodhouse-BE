@@ -11,11 +11,19 @@ const os = require("os");
 const router = require("./routes/index");
 const { swaggerUi, swaggerSetup } = require("./configs/swagger.config");
 const initSocket = require("./socket/socket");
-
+const {
+  initJobScheduler,
+  runManually,
+} = require("./services/scheduler.service");
 
 // init app
 const app = express();
 const server = http.createServer(app);
+
+// Initialize scheduler
+console.log("Initializing background jobs...");
+initJobScheduler();
+// runManually();
 
 // init Socket.IO
 const { io, emitNotification } = initSocket(server);
@@ -27,7 +35,7 @@ app.use(helmet());
 app.use(
   compression({
     level: 6,
-    threshold: 100 * 1000, 
+    threshold: 100 * 1000,
   })
 );
 
@@ -37,8 +45,8 @@ app.use(
     origin: process.env.CLIENT_URL || "http://localhost:5173", // Frontend URL
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true, 
-    maxAge: 86400, 
+    credentials: true,
+    maxAge: 86400,
   })
 );
 

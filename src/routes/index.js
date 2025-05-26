@@ -12,13 +12,19 @@ router.use(
   "/blood-donation-registration",
   require("./bloodDonationRegistration")
 );
-router.use("/blood-donations", require("./bloodDonation"));
+router.use("/blood-donation", require("./bloodDonation"));
+router.use("/blood-unit", require("./bloodUnit"));
 router.use("/content-category", require("./contentCategory"));
 router.use("/content", require("./content"));
 router.use("/facility", require("./facility"));
 router.use("/blood-request", require("./bloodRequest"));
 router.use("/facility-staff", require("./facilityStaff"));
 router.use("/feedback", require("./feedback"));
+router.use("/blood-inventory", require("./bloodInventory"));
+router.use("/notification", require("./notification"));
 router.use("/health-check", require("./healthCheck"));
+router.use("/process-donation-log", require("./processDonationLog"));
+router.use("/donor-status-log", require("./donorStatusLog"));
+router.use("/emergency-campaign", require("./emergencyCampaign"));
 
 module.exports = router;

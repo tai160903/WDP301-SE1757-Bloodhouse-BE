@@ -11,6 +11,9 @@ router.get("/", facilityController.getAllFacilities);
 router.get("/:id", facilityController.getFacilityById);
 
 router.use(checkAuth);
+router.use(checkRole([USER_ROLE.MANAGER]));
+router.get("/:id/stats", facilityController.getFacilityStats);
+
 router.use(checkRole([USER_ROLE.ADMIN]));
 router.post("/", upload.single("image"), facilityController.createFacility);
 

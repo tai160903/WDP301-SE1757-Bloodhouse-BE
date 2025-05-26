@@ -3,19 +3,22 @@
 const express = require("express");
 const router = express.Router();
 const bloodDonationController = require("../../controllers/bloodDonation.controller");
-const { checkAuth, checkRole } = require("../../auth/checkAuth");
-const { USER_ROLE } = require("../../constants/enum");
+const { checkAuth, checkRole, checkStaff } = require("../../auth/checkAuth");
+const { USER_ROLE, STAFF_POSITION } = require("../../constants/enum");
+
 // auth routes
 router.use(checkAuth);
+
+// User accessible routes
 router.get("/user", bloodDonationController.getUserDonations);
-router.get("/:id", bloodDonationController.getBloodDonationDetail);
 
-router.use(checkRole([, USER_ROLE.MANAGER]));
-
-router.post("/", bloodDonationController.createBloodDonation);
+// Staff routes - require staff role
+router.use(checkRole([USER_ROLE.NURSE, USER_ROLE.DOCTOR, USER_ROLE.MANAGER]));
 
 router.get("/", bloodDonationController.getBloodDonations);
-
-
+router.post("/",checkStaff([STAFF_POSITION.NURSE]), bloodDonationController.createBloodDonation);
+router.patch("/:id", checkStaff([STAFF_POSITION.NURSE]), bloodDonationController.updateBloodDonation);
+router.patch("/transition-to-resting/:registrationId", bloodDonationController.transitionToResting);
+router.get("/:id", bloodDonationController.getBloodDonationDetail);
 
 module.exports = router;

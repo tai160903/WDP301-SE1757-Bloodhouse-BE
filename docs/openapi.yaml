@@ -1515,11 +1515,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-  /blood-donations:
+  /blood-donation:
     post:
       summary: Tạo bản ghi hiến máu
       tags:
-        - BloodDonation
+        - Blood Donation
       security:
         - bearerAuth: []
       requestBody:
@@ -1540,20 +1540,11 @@ paths:
                   example: 60f7b3a4b9c4e1234567892
                 bloodComponent:
                   type: string
-                  enum: [Máu toàn phần, Hồng cầu, Huyết tương, Tiểu cầu]
-                quantity:
-                  type: number
-                  example: 350
-                donationDate:
-                  type: string
-                  format: date-time
-                  example: 2025-06-01T10:00:00Z
+                  enum: [Máu toàn phần, Hồng cầu, Huyết tương, Tiểu cầu]          
               required:
                 - userId
                 - bloodGroupId
                 - bloodComponent
-                - quantity
-                - donationDate
       responses:
         "201":
           description: Tạo bản ghi hiến máu thành công
@@ -1576,7 +1567,7 @@ paths:
     get:
       summary: Lấy danh sách hiến máu
       tags:
-        - BloodDonation
+        - Blood Donation
       security:
         - bearerAuth: []
       parameters:
@@ -1620,11 +1611,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-  /blood-donations/user:
+  /blood-donation/user:
     get:
       summary: Lấy lịch sử hiến máu của người dùng
       tags:
-        - BloodDonation
+        - Blood Donation
       security:
         - bearerAuth: []
       parameters:
@@ -1659,11 +1650,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-  /blood-donations/{id}:
+  /blood-donation/{id}:
     get:
       summary: Lấy chi tiết một bản ghi hiến máu
       tags:
-        - BloodDonation
+        - Blood Donation
       security:
         - bearerAuth: []
       parameters:
@@ -1692,6 +1683,57 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      summary: Update blood donation record
+      description: Update blood donation with start time or completion status
+      tags:
+        - Blood Donation
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Blood donation ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: ["confirmed", "completed", "cancelled"]
+                  description: Donation status
+                  example: "completed"
+                notes:
+                  type: string
+                  description: Additional notes
+                  example: "Donation completed successfully"
+                quantity:
+                  type: number
+                  description: Quantity of blood donated
+                  example: 350
+      responses:
+        "200":
+          description: Blood donation updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Cập nhật bản ghi hiến máu thành công"
+                  data:
+                    $ref: "#/components/schemas/BloodDonation"
+        "404":
+          description: Blood donation not found
+        "403":
+          description: Forbidden (requires staff role)
   /blood-request:
     post:
       summary: Create a new blood request
@@ -2352,6 +2394,419 @@ paths:
                 properties:
                   result:
                     type: boolean
+  /feedback/{facilityId}:
+    get:
+      summary: Get all feedback for a facility
+      tags:
+        - Feedback
+      parameters:
+        - in: path
+          name: facilityId
+          required: true
+          schema:
+            type: string
+          description: Facility ID
+      responses:
+        '200':
+          description: Successfully retrieved feedback
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  feedback:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Feedback'
+        '404':
+          description: Feedback not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /feedback:
+    post:
+      summary: Create new feedback
+      tags:
+        - Feedback
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                facilityId:
+                  type: string
+                rating:
+                  type: number
+                  minimum: 1
+                  maximum: 5
+                comment:
+                  type: string
+              required:
+                - userId
+                - facilityId
+                - rating
+      responses:
+        '201':
+          description: Feedback created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /feedback/{id}:
+    get:
+      summary: Get feedback by ID
+      tags:
+        - Feedback
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Feedback ID
+      responses:
+        '200':
+          description: Successfully retrieved feedback
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+        '404':
+          description: Feedback not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update feedback
+      tags:
+        - Feedback
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Feedback ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rating:
+                  type: number
+                  minimum: 1
+                  maximum: 5
+                comment:
+                  type: string
+      responses:
+        '200':
+          description: Feedback updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Feedback not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /feedback/delete/{id}:
+    put:
+      summary: Delete feedback (soft delete)
+      tags:
+        - Feedback
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Feedback ID
+      responses:
+        '200':
+          description: Feedback deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Feedback not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /content-category:
+    post:
+      summary: Create a new content category
+      tags:
+        - Content Category
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Name of the category
+                description:
+                  type: string
+                  description: Description of the category
+              required:
+                - name
+      responses:
+        '201':
+          description: Content category created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentCategory'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: Get all content categories
+      tags:
+        - Content Category
+      responses:
+        '200':
+          description: Successfully retrieved content categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContentCategory'
+
+  /content-category/{id}:
+    put:
+      summary: Update a content category
+      tags:
+        - Content Category
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Content Category ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Name of the category
+                description:
+                  type: string
+                  description: Description of the category
+      responses:
+        '200':
+          description: Content category updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentCategory'
+        '404':
+          description: Content category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /content:
+    post:
+      summary: Create new content
+      tags:
+        - Content
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum: [introduction, document, blog]
+                categoryId:
+                  type: string
+                title:
+                  type: string
+                content:
+                  type: string
+                summary:
+                  type: string
+                authorId:
+                  type: string
+                image:
+                  type: string
+                  format: binary
+              required:
+                - type
+                - categoryId
+                - title
+                - content
+                - authorId
+      responses:
+        '201':
+          description: Content created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Content'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: Get all contents
+      tags:
+        - Content
+      responses:
+        '200':
+          description: Successfully retrieved contents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Content'
+
+  /content/{id}:
+    get:
+      summary: Get content by ID
+      tags:
+        - Content
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Content ID
+      responses:
+        '200':
+          description: Successfully retrieved content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Content'
+        '404':
+          description: Content not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update content
+      tags:
+        - Content
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Content ID
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum: [introduction, document, blog]
+                categoryId:
+                  type: string
+                title:
+                  type: string
+                content:
+                  type: string
+                summary:
+                  type: string
+                status:
+                  type: string
+                  enum: [draft, published, archived]
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Content updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Content'
+        '404':
+          description: Content not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  
   /health-check:
     post:
       summary: Create a new health check
@@ -2384,11 +2839,6 @@ paths:
                   type: string
                   description: The ID of the doctor assigned to review the health check
                   example: "60f7b3a4b9c4e1234567892"
-                checkDate:
-                  type: string
-                  format: date-time
-                  description: The date and time of the health check, must not be in the future
-                  example: "2025-05-20T10:00:00Z"
       responses:
         "201":
           description: Health check created successfully
@@ -2406,6 +2856,7 @@ paths:
           description: Invalid input (e.g., missing required fields, invalid IDs, or future checkDate)
         "403":
           description: Forbidden (requires nurse role)
+  /health-check/{id}:
     patch:
       summary: Update health check
       description: Update a health check record (doctor only)
@@ -2480,6 +2931,39 @@ paths:
           description: Invalid input
         "403":
           description: Forbidden (requires doctor role)
+        "404":
+          description: Health check not found
+    get:
+      summary: Get health check details
+      description: Get detailed information about a specific health check
+      tags:
+        - Health Checks
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Health check ID
+      responses:
+        "200":
+          description: Health check details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Get health check details successfully"
+                  data:
+                    $ref: "#/components/schemas/HealthCheck"
+        "400":
+          description: Invalid input
+        "403":
+          description: Forbidden (user can only access their own health checks)
         "404":
           description: Health check not found
   /health-check/facility:
@@ -2683,40 +3167,7 @@ paths:
           description: Invalid input
         "403":
           description: Forbidden (requires user role)
-  /health-check/{id}:
-    get:
-      summary: Get health check details
-      description: Get detailed information about a specific health check
-      tags:
-        - Health Checks
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-          description: Health check ID
-      responses:
-        "200":
-          description: Health check details retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Get health check details successfully"
-                  data:
-                    $ref: "#/components/schemas/HealthCheck"
-        "400":
-          description: Invalid input
-        "403":
-          description: Forbidden (user can only access their own health checks)
-        "404":
-          description: Health check not found
+    
   /health-check/nurse:
     get:
       summary: Get nurse's health checks
@@ -2784,6 +3235,1419 @@ paths:
           description: Invalid input
         "403":
           description: Forbidden (requires nurse role)
+
+  # Staff and Manager APIs for Blood Donation Registration
+  /blood-donation-registration/staff/assigned:
+    get:
+      summary: Get staff assigned blood donation registrations (for Nurse)
+      description: Get paginated list of blood donation registrations assigned to the authenticated staff member
+      tags:
+        - Blood Donation Registration - Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending_approval, registered, checked_in, in_consult, rejected, waiting_donation, donating, donated, resting, post_rest_check, completed, cancelled]
+          description: Filter by registration status
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of records per page
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search term in notes
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+          description: Start date for preferred date filter
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+          description: End date for preferred date filter
+        - in: query
+          name: bloodGroupId
+          schema:
+            type: string
+          description: Filter by blood group ID
+      responses:
+        "200":
+          description: Staff assigned registrations retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Get registrations successfully"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BloodDonationRegistration"
+                  metadata:
+                    $ref: "#/components/schemas/Pagination"
+        "403":
+          description: Forbidden (requires staff role)
+
+  /blood-donation-registration/facility/all:
+    get:
+      summary: Get facility blood donation registrations (for Manager)
+      description: Get paginated list of all blood donation registrations for the facility with optional statistics
+      tags:
+        - Blood Donation Registration - Manager
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending_approval, registered, checked_in, in_consult, rejected, waiting_donation, donating, donated, resting, post_rest_check, completed, cancelled]
+          description: Filter by registration status
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of records per page
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search term in notes
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+          description: Start date for preferred date filter
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+          description: End date for preferred date filter
+        - in: query
+          name: bloodGroupId
+          schema:
+            type: string
+          description: Filter by blood group ID
+        - in: query
+          name: staffId
+          schema:
+            type: string
+          description: Filter by assigned staff ID
+        - in: query
+          name: includeStats
+          schema:
+            type: boolean
+            default: false
+          description: Include statistics in response
+      responses:
+        "200":
+          description: Facility registrations retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Get registrations successfully"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BloodDonationRegistration"
+                  metadata:
+                    $ref: "#/components/schemas/Pagination"
+                  statistics:
+                    type: object
+                    description: Statistics if includeStats=true
+        "403":
+          description: Forbidden (requires manager role)
+
+  /blood-donation-registration/facility/statistics:
+    get:
+      summary: Get blood donation registration statistics (for Manager)
+      description: Get comprehensive statistics for blood donation registrations in the facility
+      tags:
+        - Blood Donation Registration - Manager
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+          description: Start date for statistics
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+          description: End date for statistics
+        - in: query
+          name: groupBy
+          schema:
+            type: string
+            enum: [day, week, month]
+            default: day
+          description: Group statistics by time period
+      responses:
+        "200":
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Get statistics successfully"
+                  data:
+                    $ref: "#/components/schemas/RegistrationStatistics"
+        "403":
+          description: Forbidden (requires manager role)
+
+  /blood-donation-registration/check-in:
+    post:
+      summary: Process check-in via QR code
+      description: Update registration status to checked-in using QR code data
+      tags:
+        - Blood Donation Registration - Staff
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                qrData:
+                  oneOf:
+                    - type: string
+                      description: QR code data as JSON string
+                      example: '{"registrationId":"675a1b2c3d4e5f6789012345","userId":"675a1b2c3d4e5f6789012346","bloodGroupId":"675a1b2c3d4e5f6789012347"}'
+                    - type: object
+                      description: QR code data as JSON object
+                      properties:
+                        registrationId:
+                          type: string
+                          example: "675a1b2c3d4e5f6789012345"
+                        userId:
+                          type: string
+                          example: "675a1b2c3d4e5f6789012346"
+                        bloodGroupId:
+                          type: string
+                          example: "675a1b2c3d4e5f6789012347"
+              required:
+                - qrData
+            examples:
+              json_string:
+                summary: QR Data as JSON String
+                value:
+                  qrData: '{"registrationId":"675a1b2c3d4e5f6789012345","userId":"675a1b2c3d4e5f6789012346","bloodGroupId":"675a1b2c3d4e5f6789012347"}'
+              json_object:
+                summary: QR Data as JSON Object
+                value:
+                  qrData:
+                    registrationId: "675a1b2c3d4e5f6789012345"
+                    userId: "675a1b2c3d4e5f6789012346"
+                    bloodGroupId: "675a1b2c3d4e5f6789012347"
+      responses:
+        "200":
+          description: Check-in successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Check-in successful"
+                  data:
+                    $ref: "#/components/schemas/BloodDonationRegistration"
+              example:
+                message: "Check-in successful"
+                data:
+                  _id: "675a1b2c3d4e5f6789012345"
+                  status: "checked_in"
+                  checkInAt: "2024-01-15T09:30:00.000Z"
+                  userId:
+                    _id: "675a1b2c3d4e5f6789012346"
+                    fullName: "Nguyen Van A"
+                    email: "nguyenvana@example.com"
+                    phone: "0123456789"
+                  facilityId:
+                    _id: "675a1b2c3d4e5f6789012348"
+                    name: "Hospital ABC"
+                    street: "123 Main Street"
+                    city: "Ho Chi Minh City"
+                  bloodGroupId:
+                    _id: "675a1b2c3d4e5f6789012347"
+                    name: "A+"
+                  preferredDate: "2024-01-15T09:00:00.000Z"
+                  expectedQuantity: 450
+        "400":
+          description: Invalid QR code or registration already checked in
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              examples:
+                invalid_qr:
+                  summary: Invalid QR Code Format
+                  value:
+                    message: "QR code data không hợp lệ"
+                missing_registration_id:
+                  summary: Missing Registration ID
+                  value:
+                    message: "QR code không chứa thông tin registration ID"
+                already_checked_in:
+                  summary: Already Checked In
+                  value:
+                    message: "Đăng ký này đã được check-in hoặc không ở trạng thái cho phép check-in"
+        "403":
+          description: Forbidden (requires nurse or manager role)
+        "404":
+          description: Registration not found
+
+  # Process Donation Log APIs
+  /process-donation-log:
+    get:
+      summary: Get process donation logs
+      description: Get paginated list of process donation logs with filtering and search
+      tags:
+        - Process Donation Log
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending_approval, registered, checked_in, in_consult, rejected, waiting_donation, donating, donated, resting, post_rest_check, completed, cancelled]
+          description: Filter by status
+        - in: query
+          name: registrationId
+          schema:
+            type: string
+          description: Filter by registration ID
+        - in: query
+          name: changedBy
+          schema:
+            type: string
+          description: Filter by staff who made the change
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search term in notes
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of records per page
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+          description: Start date for changedAt filter
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+          description: End date for changedAt filter
+      responses:
+        "200":
+          description: Process donation logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Get logs successfully"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProcessDonationLog"
+                  metadata:
+                    $ref: "#/components/schemas/Pagination"
+        "403":
+          description: Forbidden (requires staff role)
+
+    post:
+      summary: Create process donation log
+      description: Create a new process donation log entry
+      tags:
+        - Process Donation Log
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                registrationId:
+                  type: string
+                  description: Blood donation registration ID
+                  example: "60d0fe4f5311236168a109ca"
+                userId:
+                  type: string
+                  description: User ID
+                  example: "60d0fe4f5311236168a109cb"
+                status:
+                  type: string
+                  enum: [pending_approval, registered, checked_in, in_consult, rejected, waiting_donation, donating, donated, resting, post_rest_check, completed, cancelled]
+                  description: New status
+                  example: "checked_in"
+                notes:
+                  type: string
+                  description: Additional notes
+                  example: "Patient arrived on time"
+              required:
+                - registrationId
+                - userId
+                - status
+      responses:
+        "201":
+          description: Process donation log created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Log created successfully"
+                  data:
+                    $ref: "#/components/schemas/ProcessDonationLog"
+        "400":
+          description: Invalid input data
+        "403":
+          description: Forbidden (requires staff role)
+
+  /process-donation-log/registration/{registrationId}:
+    get:
+      summary: Get logs by registration ID
+      description: Get all process donation logs for a specific registration (timeline)
+      tags:
+        - Process Donation Log
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: registrationId
+          required: true
+          schema:
+            type: string
+          description: Blood donation registration ID
+      responses:
+        "200":
+          description: Registration logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Get logs successfully"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProcessDonationLog"
+        "400":
+          description: Invalid registration ID
+        "403":
+          description: Forbidden (requires staff role)
+
+  /process-donation-log/staff/my-logs:
+    get:
+      summary: Get staff's process donation logs
+      description: Get process donation logs created by the authenticated staff member
+      tags:
+        - Process Donation Log
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of records per page
+      responses:
+        "200":
+          description: Staff logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Get logs successfully"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProcessDonationLog"
+                  metadata:
+                    $ref: "#/components/schemas/Pagination"
+        "403":
+          description: Forbidden (requires staff role)
+
+  /process-donation-log/{logId}:
+    get:
+      summary: Get process donation log by ID
+      description: Get detailed information of a specific process donation log
+      tags:
+        - Process Donation Log
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: logId
+          required: true
+          schema:
+            type: string
+          description: Process donation log ID
+      responses:
+        "200":
+          description: Process donation log details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Get log details successfully"
+                  data:
+                    $ref: "#/components/schemas/ProcessDonationLog"
+        "400":
+          description: Invalid log ID
+        "403":
+          description: Forbidden (requires staff role)
+        "404":
+          description: Process donation log not found
+
+  /blood-donation:
+    post:
+      summary: Create blood donation record
+      description: Nurse creates blood donation record (WAITING_DONATION → DONATING)
+      tags:
+        - Blood Donation 
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  description: User ID of the donor
+                  example: "60d0fe4f5311236168a109cb"
+                bloodGroupId:
+                  type: string
+                  description: Blood group ID
+                  example: "60d0fe4f5311236168a109cc"
+                bloodDonationRegistrationId:
+                  type: string
+                  description: Blood donation registration ID
+                  example: "60d0fe4f5311236168a109ca"
+                bloodComponent:
+                  type: string
+                  enum: ["Máu toàn phần", "Hồng cầu", "Huyết tương", "Tiểu cầu"]
+                  description: Blood component type
+                  example: "Máu toàn phần"
+                quantity:
+                  type: number
+                  description: Quantity in ml
+                  example: 450
+                donationDate:
+                  type: string
+                  format: date-time
+                  description: Donation date
+                  example: "2025-06-01T10:00:00Z"
+              required:
+                - userId
+                - bloodGroupId
+                - bloodComponent
+                - quantity
+                - donationDate
+      responses:
+        "201":
+          description: Blood donation record created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Create blood donation successfully"
+                  data:
+                    $ref: "#/components/schemas/BloodDonation"
+        "400":
+          description: Invalid input data
+        "403":
+          description: Forbidden (requires staff role)
+
+  /blood-donation/{id}:
+    patch:
+      summary: Update blood donation record
+      description: Update blood donation with start time or completion status
+      tags:
+        - Blood Donation
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Blood donation ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                donationStartAt:
+                  type: string
+                  format: date-time
+                  description: When donation starts (transitions to DONATING)
+                  example: "2025-06-01T11:00:00Z"
+                status:
+                  type: string
+                  enum: ["confirmed", "completed", "cancelled"]
+                  description: Donation status
+                  example: "completed"
+                notes:
+                  type: string
+                  description: Additional notes
+                  example: "Donation completed successfully"
+      responses:
+        "200":
+          description: Blood donation updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Cập nhật bản ghi hiến máu thành công"
+                  data:
+                    $ref: "#/components/schemas/BloodDonation"
+        "404":
+          description: Blood donation not found
+        "403":
+          description: Forbidden (requires staff role)
+
+  
+
+  # Donor Status Log APIs
+  /donor-status-log:
+    post:
+      summary: Create donor status log
+      description: Create log for donor status during resting phase
+      tags:
+        - Donor Status Logs
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                donationId:
+                  type: string
+                  description: Blood donation ID
+                  example: "60d0fe4f5311236168a109cd"
+                userId:
+                  type: string
+                  description: User ID of the donor
+                  example: "60d0fe4f5311236168a109cb"
+              required:
+                - donationId
+                - userId
+      responses:
+        "201":
+          description: Donor status log created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Tạo bản ghi trạng thái thành công"
+                  data:
+                    $ref: "#/components/schemas/DonorStatusLog"
+        "400":
+          description: Invalid input data
+        "403":
+          description: Forbidden (requires staff role)
+
+  /donor-status-log/donation/{donationId}:
+    get:
+      summary: Get donor status logs by donation
+      description: Get all status logs for a specific donation
+      tags:
+        - Donor Status Logs
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: donationId
+          schema:
+            type: string
+          required: true
+          description: Blood donation ID
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Donor status logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lấy danh sách trạng thái thành công"
+                  data:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/DonorStatusLog"
+                      pagination:
+                        $ref: "#/components/schemas/Pagination"
+
+  /donor-status-log/user/{userId}:
+    get:
+      summary: Get donor status logs by user
+      description: Get all status logs for a specific user
+      tags:
+        - Donor Status Logs
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          schema:
+            type: string
+          required: true
+          description: User ID
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: User donor status logs retrieved successfully
+
+  /donor-status-log/{id}:
+    get:
+      summary: Get donor status log detail
+      description: Get detailed information of a specific donor status log
+      tags:
+        - Donor Status Logs
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Donor status log ID
+      responses:
+        "200":
+          description: Donor status log detail retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lấy chi tiết trạng thái thành công"
+                  data:
+                    $ref: "#/components/schemas/DonorStatusLog"
+        "404":
+          description: Donor status log not found
+    patch: 
+      summary: Transition to resting phase
+      description: Transition donor status log from DONATED to RESTING status
+      tags:
+        - Donor Status Logs
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Donor status log ID
+      requestBody:  
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notes:
+                  type: string
+                  description: Additional notes for the transition
+                  example: "Patient moved to resting area"
+                status:
+                  type: string
+                  enum: ["stable", "fatigued", "needs_monitoring", "other"]
+                  description: Donor status
+                  example: "stable"
+                phase:
+                  type: string
+                  enum: ["resting", "post_rest_check"]
+                  description: Current phase
+                  example: "resting"              
+      responses:
+        "200":
+          description: Successfully transitioned donor status log
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Chuyển sang giai đoạn nghỉ ngơi thành công"
+                  data:
+                    $ref: "#/components/schemas/DonorStatusLog"
+        "400":
+          description: Invalid status transition
+        "404":
+          description: Donor status log not found
+  /blood-unit:
+    post:
+      summary: Create blood units from donation
+      description: Doctor creates blood units after donation completion (DONATED → testing)
+      tags:
+        - Blood Units
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                donationId:
+                  type: string
+                  description: Blood donation ID
+                  example: "60d0fe4f5311236168a109cd"
+                units:
+                  type: array
+                  description: Array of blood units to create
+                  items:
+                    type: object
+                    properties:
+                      component:
+                        type: string
+                        enum: ["Máu toàn phần", "Hồng cầu", "Huyết tương", "Tiểu cầu"]
+                        example: "Máu toàn phần"
+                      quantity:
+                        type: number
+                        description: Quantity in ml
+                        example: 450
+                    required:
+                      - component
+                      - quantity
+              required:
+                - donationId
+                - units
+      responses:
+        "201":
+          description: Blood units created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Tạo blood units thành công"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BloodUnit"
+        "400":
+          description: Invalid input data or donation not completed
+        "403":
+          description: Forbidden (requires doctor role)
+
+  /blood-unit/{id}:
+    get:
+      summary: Get blood unit detail
+      description: Get detailed information of a specific blood unit
+      tags:
+        - Blood Units
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Blood unit ID
+      responses:
+        "200":
+          description: Blood unit detail retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lấy chi tiết blood unit thành công"
+                  data:
+                    $ref: "#/components/schemas/BloodUnit"
+        "404":
+          description: Blood unit not found
+
+    patch:
+      summary: Update blood unit (test results and status)
+      description: Doctor updates test results and approves/rejects blood unit
+      tags:
+        - Blood Units
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Blood unit ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                testResults:
+                  type: object
+                  properties:
+                    hiv:
+                      type: string
+                      enum: ["positive", "negative", "pending"]
+                      example: "negative"
+                    hepatitisB:
+                      type: string
+                      enum: ["positive", "negative", "pending"]
+                      example: "negative"
+                    hepatitisC:
+                      type: string
+                      enum: ["positive", "negative", "pending"]
+                      example: "negative"
+                    syphilis:
+                      type: string
+                      enum: ["positive", "negative", "pending"]
+                      example: "negative"
+                    notes:
+                      type: string
+                      description: Additional test notes
+                      example: "All tests passed"
+                status:
+                  type: string
+                  enum: ["testing", "available", "rejected", "reserved", "used", "expired"]
+                  description: Unit status
+                  example: "available"
+                notes:
+                  type: string
+                  description: Additional notes
+                  example: "Unit approved for use"
+      responses:
+        "200":
+          description: Blood unit updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Cập nhật blood unit thành công"
+                  data:
+                    $ref: "#/components/schemas/BloodUnit"
+        "400":
+          description: Invalid input data
+        "403":
+          description: Forbidden (requires doctor role)
+        "404":
+          description: Blood unit not found
+
+  /blood-unit/donation/{donationId}:
+    get:
+      summary: Get blood units by donation
+      description: Get all blood units created from a specific donation
+      tags:
+        - Blood Units
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: donationId
+          schema:
+            type: string
+          required: true
+          description: Blood donation ID
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Blood units retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lấy danh sách blood units thành công"
+                  data:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/BloodUnit"
+                      pagination:
+                        $ref: "#/components/schemas/Pagination"
+
+  /blood-unit/facility/{facilityId}:
+    get:
+      summary: Get blood units by facility (Manager)
+      description: Get blood units for facility management
+      tags:
+        - Blood Units
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: facilityId
+          schema:
+            type: string
+          required: true
+          description: Facility ID
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: ["testing", "available", "rejected", "reserved", "used", "expired"]
+        - in: query
+          name: component
+          schema:
+            type: string
+            enum: ["Máu toàn phần", "Hồng cầu", "Huyết tương", "Tiểu cầu"]
+        - in: query
+          name: bloodGroupId
+          schema:
+            type: string
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by barcode
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Blood units retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lấy danh sách blood units theo facility thành công"
+                  data:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/BloodUnit"
+                      pagination:
+                        $ref: "#/components/schemas/Pagination"
+
+  # Blood Inventory APIs
+  /blood-inventory/facility/{facilityId}:
+    get:
+      summary: Get inventory by facility (Manager)
+      description: Get blood inventory for facility management
+      tags:
+        - Blood Inventory
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: facilityId
+          schema:
+            type: string
+          required: true
+          description: Facility ID
+        - in: query
+          name: componentId
+          schema:
+            type: string
+          description: Filter by blood component ID
+        - in: query
+          name: groupId
+          schema:
+            type: string
+          description: Filter by blood group ID
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Inventory retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lấy inventory theo facility thành công"
+                  data:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/BloodInventory"
+                      pagination:
+                        $ref: "#/components/schemas/Pagination"
+
+  /blood-inventory/detail/{id}:
+    get:
+      summary: Get inventory detail
+      description: Get detailed inventory information including unit statistics
+      tags:
+        - Blood Inventory
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Inventory ID
+      responses:
+        "200":
+          description: Inventory detail retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lấy chi tiết inventory thành công"
+                  data:
+                    $ref: "#/components/schemas/BloodInventoryDetail"
+
+  /blood-inventory:
+    get:
+      summary: Get all blood inventory
+      description: Get all blood inventory records across all facilities
+      tags:
+        - Blood Inventory
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Inventory retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lấy kho máu thành công"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BloodInventory"
+              example:
+                message: "Lấy kho máu thành công"
+                data:
+                  - _id: "60d0fe4f5311236168a109ca"
+                    facilityId:
+                      _id: "60d0fe4f5311236168a109cb"
+                      name: "Bệnh viện Chợ Rẫy"
+                      code: "CR001"
+                    componentId:
+                      _id: "60d0fe4f5311236168a109cc"
+                      name: "Máu toàn phần"
+                    groupId:
+                      _id: "60d0fe4f5311236168a109cd"
+                      name: "O+"
+                      type: "O"
+                    totalQuantity: 2500
+                    createdAt: "2023-01-01T10:00:00.000Z"
+                    updatedAt: "2023-01-02T15:30:00.000Z"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden (requires staff role)
+
+  /blood-inventory/facility/{facilityId}/available:
+    get:
+      summary: Get available inventory by facility
+      description: Get available blood inventory for a specific facility (totalQuantity > 0)
+      tags:
+        - Blood Inventory
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: facilityId
+          schema:
+            type: string
+          required: true
+          description: Facility ID
+          example: "60d0fe4f5311236168a109cb"
+        - in: query
+          name: componentId
+          schema:
+            type: string
+          description: Filter by blood component ID
+          example: "60d0fe4f5311236168a109cc"
+        - in: query
+          name: groupId
+          schema:
+            type: string
+          description: Filter by blood group ID
+          example: "60d0fe4f5311236168a109cd"
+      responses:
+        "200":
+          description: Available inventory retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lấy kho máu thành công"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BloodInventory"
+              example:
+                message: "Lấy kho máu thành công"
+                data:
+                  - _id: "60d0fe4f5311236168a109ca"
+                    facilityId:
+                      _id: "60d0fe4f5311236168a109cb"
+                      name: "Bệnh viện Chợ Rẫy"
+                      code: "CR001"
+                    componentId:
+                      _id: "60d0fe4f5311236168a109cc"
+                      name: "Máu toàn phần"
+                    groupId:
+                      _id: "60d0fe4f5311236168a109cd"
+                      name: "O+"
+                      type: "O"
+                    totalQuantity: 1500
+        "404":
+          description: Facility not found
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden (requires staff role)
+
+  /blood-inventory/facility/{facilityId}:
+    get:
+      summary: Get inventory by facility (Manager)
+      description: Get blood inventory for facility management with pagination and detailed unit stats
+      tags:
+        - Blood Inventory
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: facilityId
+          schema:
+            type: string
+          required: true
+          description: Facility ID
+          example: "60d0fe4f5311236168a109cb"
+        - in: query
+          name: componentId
+          schema:
+            type: string
+          description: Filter by blood component ID
+          example: "60d0fe4f5311236168a109cc"
+        - in: query
+          name: groupId
+          schema:
+            type: string
+          description: Filter by blood group ID
+          example: "60d0fe4f5311236168a109cd"
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Items per page
+      responses:
+        "200":
+          description: Inventory retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lấy inventory theo facility thành công"
+                  data:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/BloodInventoryWithStats"
+                      pagination:
+                        $ref: "#/components/schemas/Pagination"
+        "403":
+          description: Forbidden (requires manager role)
+        "404":
+          description: Facility not found
+
 components:
   securitySchemes:
     bearerAuth:
@@ -3088,8 +4952,505 @@ components:
         notes: { type: string }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+    ProcessDonationLog:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Log ID
+        registrationId:
+          type: string
+          description: Blood donation registration ID
+        userId:
+          type: string
+          description: User ID
+        changedBy:
+          type: object
+          description: Staff who made the change
+          properties:
+            _id:
+              type: string
+            userId:
+              type: object
+              properties:
+                _id:
+                  type: string
+                fullName:
+                  type: string
+                email:
+                  type: string
+                phone:
+                  type: string
+                avatar:
+                  type: string
+            position:
+              type: string
+              enum: [MANAGER, NURSE, DOCTOR]
+        status:
+          type: string
+          enum: [pending_approval, rejected_registration, registered, checked_in, in_consult, rejected, waiting_donation, donating, donated, resting, post_rest_check, completed, cancelled]
+          description: Status of the registration
+        notes:
+          type: string
+          description: Additional notes
+        changedAt:
+          type: string
+          format: date-time
+          description: When the change was made
+        createdAt:
+          type: string
+          format: date-time
+          description: When the log was created
+    RegistrationStatistics:
+      type: object
+      properties:
+        statusDistribution:
+          type: array
+          description: Distribution of registrations by status
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                description: Status
+              count:
+                type: integer
+                description: Number of registrations with this status
+        bloodTypeDistribution:
+          type: array
+          description: Distribution of registrations by blood type
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                description: Blood type
+              count:
+                type: integer
+                description: Number of registrations with this blood type
+        timeSeries:
+          type: array
+          description: Time series data for registrations
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                description: Time period (depends on groupBy parameter)
+              count:
+                type: integer
+                description: Number of registrations in this period
+              totalExpectedQuantity:
+                type: number
+                description: Total expected blood quantity in this period
+        summary:
+          type: object
+          description: Summary statistics
+          properties:
+            total:
+              type: integer
+              description: Total number of registrations
+            pending:
+              type: integer
+              description: Number of pending registrations
+            registered:
+              type: integer
+              description: Number of registered (approved) registrations
+            completed:
+              type: integer
+              description: Number of completed registrations
+    DonorStatusLog:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Status log ID
+        donationId:
+          type: object
+          description: Associated blood donation
+          properties:
+            _id:
+              type: string
+            quantity:
+              type: number
+            donationDate:
+              type: string
+              format: date-time
+            status:
+              type: string
+        userId:
+          type: object
+          description: Donor information
+          properties:
+            _id:
+              type: string
+            fullName:
+              type: string
+            email:
+              type: string
+            phone:
+              type: string
+        staffId:
+          type: object
+          description: Staff who recorded the status
+          properties:
+            _id:
+              type: string
+            userId:
+              type: object
+              properties:
+                _id:
+                  type: string
+                fullName:
+                  type: string
+                email:
+                  type: string
+            position:
+              type: string
+              enum: ["MANAGER", "NURSE", "DOCTOR"]
+        status:
+          type: string
+          enum: ["stable", "fatigued", "needs_monitoring", "other"]
+          description: Donor status
+        phase:
+          type: string
+          enum: ["resting", "post_rest_check"]
+          description: Current phase
+        notes:
+          type: string
+          description: Additional notes
+        recordedAt:
+          type: string
+          format: date-time
+          description: When status was recorded
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BloodUnit:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Blood unit ID
+        donationId:
+          type: object
+          description: Associated donation
+          properties:
+            _id:
+              type: string
+            userId:
+              type: object
+              properties:
+                _id:
+                  type: string
+                fullName:
+                  type: string
+            donationDate:
+              type: string
+              format: date-time
+        facilityId:
+          type: object
+          description: Facility information
+          properties:
+            _id:
+              type: string
+            name:
+              type: string
+            code:
+              type: string
+        bloodGroupId:
+          type: object
+          description: Blood group information
+          properties:
+            _id:
+              type: string
+            name:
+              type: string
+            type:
+              type: string
+        component:
+          type: string
+          enum: ["Máu toàn phần", "Hồng cầu", "Huyết tương", "Tiểu cầu"]
+        quantity:
+          type: number
+        barcode:
+          type: string
+          description: Unique barcode
+        collectedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: ["testing", "available", "rejected", "reserved", "used", "expired"]
+        testResults:
+          type: object
+          properties:
+            hiv:
+              type: string
+              enum: ["positive", "negative", "pending"]
+            hepatitisB:
+              type: string
+              enum: ["positive", "negative", "pending"]
+            hepatitisC:
+              type: string
+              enum: ["positive", "negative", "pending"]
+            syphilis:
+              type: string
+              enum: ["positive", "negative", "pending"]
+            bloodType:
+              type: string
+            notes:
+              type: string
+        processedBy:
+          type: object
+          description: Staff who processed the unit
+          properties:
+            _id:
+              type: string
+            userId:
+              type: object
+              properties:
+                fullName:
+                  type: string
+            position:
+              type: string
+        processedAt:
+          type: string
+          format: date-time
+        approvedBy:
+          type: object
+          description: Staff who approved the unit
+        approvedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BloodInventory:
+      type: object
+      properties:
+        _id:
+          type: string
+        facilityId:
+          type: object
+          properties:
+            _id:
+              type: string
+            name:
+              type: string
+            code:
+              type: string
+        componentId:
+          type: object
+          properties:
+            _id:
+              type: string
+            name:
+              type: string
+            description:
+              type: string
+        groupId:
+          type: object
+          properties:
+            _id:
+              type: string
+            name:
+              type: string
+            type:
+              type: string
+        totalQuantity:
+          type: number
+        unitStats:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                description: Status
+              count:
+                type: integer
+              totalQuantity:
+                type: number
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BloodInventoryDetail:
+      allOf:
+        - $ref: "#/components/schemas/BloodInventory"
+        - type: object
+          properties:
+            unitStats:
+              type: array
+              description: Detailed unit statistics
+            expiringUnits:
+              type: array
+              description: Units expiring soon
+              items:
+                type: object
+                properties:
+                  barcode:
+                    type: string
+                  quantity:
+                    type: number
+                  expiresAt:
+                    type: string
+                    format: date-time
+
+    BloodUnitStatistics:
+      type: object
+      properties:
+        statusDistribution:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                description: Status
+              count:
+                type: integer
+              totalQuantity:
+                type: number
+        componentDistribution:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                description: Component
+              count:
+                type: integer
+              totalQuantity:
+                type: number
+        expiringUnits:
+          type: integer
+          description: Number of units expiring in 7 days
+        summary:
+          type: object
+          properties:
+            total:
+              type: integer
+            available:
+              type: integer
+            testing:
+              type: integer
+            rejected:
+              type: integer
+
+    InventoryStatistics:
+      type: object
+      properties:
+        overallInventory:
+          type: array
+          description: Inventory by component and blood type
+        unitStatusDistribution:
+          type: array
+          description: Distribution by unit status
+        expiringUnits:
+          type: integer
+          description: Units expiring soon
+        expiredUnits:
+          type: integer
+          description: Expired units count
+        summary:
+          type: object
+          properties:
+            totalUnits:
+              type: integer
+            availableUnits:
+              type: integer
+            reservedUnits:
+              type: integer
+            usedUnits:
+              type: integer
+    
+    BloodInventoryWithStats:
+      allOf:
+        - $ref: "#/components/schemas/BloodInventory"
+        - type: object
+          properties:
+            unitStats:
+              type: array
+              description: Statistics by unit status
+              items:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    description: Status (available, reserved, expired, etc.)
+                  count:
+                    type: integer
+                  totalQuantity:
+                    type: number
+
+    BloodInventoryDetail:
+      allOf:
+        - $ref: "#/components/schemas/BloodInventory"
+        - type: object
+          properties:
+            unitStats:
+              type: array
+              description: Detailed unit statistics
+              items:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                  count:
+                    type: integer
+                  totalQuantity:
+                    type: number
+            expiringUnits:
+              type: array
+              description: Units expiring soon
+              items:
+                type: object
+                properties:
+                  quantity:
+                    type: number
+                  expiresAt:
+                    type: string
+                    format: date-time
+    
+    BloodInventoryWithStats:
+      allOf:
+        - $ref: "#/components/schemas/BloodInventory"
+        - type: object
+          properties:
+            unitStats:
+              type: array
+              description: Statistics by unit status
+              items:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    description: Status (available, reserved, expired, etc.)
+                  count:
+                    type: integer
+                  totalQuantity:
+                    type: number
+    
     ErrorResponse:
       type: object
       properties:
         message:
           type: string
+

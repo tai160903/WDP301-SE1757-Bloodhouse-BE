@@ -1,16 +1,20 @@
 "use strict";
 
-const { ENTITY_TYPE } = require("../constants/enum");
+const { ENTITY_TYPE, NOTIFICATION_TYPE } = require("../constants/enum");
 const notificationModel = require("../models/notification.model");
 const userModel = require("../models/user.model");
 const { Expo } = require("expo-server-sdk");
+const dayjs = require("dayjs");
 
 class NotificationService {
   constructor() {
     this.expo = new Expo();
   }
 
-  sendPushNotification = async (userId, { title, body, data = {}, entityType, relatedEntityId }) => {
+  sendPushNotification = async (
+    userId,
+    { title, body, data = {}, entityType, relatedEntityId }
+  ) => {
     try {
       // Find user and get their Expo push token
       const user = await userModel.findById(userId);
@@ -110,6 +114,93 @@ class NotificationService {
       entityType,
       relatedEntityId,
     });
+  };
+
+  sendEmergencyRequestNotification = async (
+    userId,
+    bloodGroup,
+    component,
+    quantity,
+    facilityName,
+    campaignId
+  ) => {
+    const title = "Yêu Cầu Hiến Máu Khẩn Cấp";
+    const body = `${facilityName} đang cần ${quantity} đơn vị máu ${component} nhóm ${bloodGroup}. Bạn có thể giúp đỡ?`;
+
+    return this.sendPushNotification(userId, {
+      title,
+      body,
+      data: {
+        type: NOTIFICATION_TYPE.EMERGENCY_CAMPAIGN,
+        bloodGroup,
+        component,
+        quantity,
+        facilityName,
+      },
+      entityType: ENTITY_TYPE.EMERGENCY_CAMPAIGN,
+      relatedEntityId: campaignId,
+    });
+  };
+
+  sendBloodRequestStatusNotification = async (
+    userId,
+    status,
+    facilityName,
+    entityId
+  ) => {
+    let title = "Cập nhật đơn yêu cầu máu";
+    let body = "";
+    let type = "request";
+    let relatedEntityId = entityId;
+    let entityType = "bloodRequest";
+
+    switch (status) {
+      case "pending_approval":
+        body = `Đơn yêu cầu máu của bạn tại ${facilityName} đang chờ xác nhận.`;
+        break;
+      case "approved":
+        body = `Đơn yêu cầu máu của bạn tại ${facilityName} đã được duyệt.`;
+        break;
+      case "rejected":
+        body = `Đơn yêu cầu máu của bạn tại ${facilityName} đã bị từ chối.`;
+        break;
+      default:
+        body = `Trạng thái đơn yêu cầu máu của bạn tại ${facilityName} đã được cập nhật thành ${status}.`;
+    }
+
+    return this.sendPushNotification(userId, {
+      title,
+      body,
+      data: { type, status },
+      entityType,
+      relatedEntityId,
+    });
+  };
+
+  sendReminderDonationNotification = async (
+    userId,
+    preferredDate,
+    entityId
+  ) => {
+    const title = "Nhắc lịch hiến máu";
+    const body = `Bạn có lịch hiến máu lúc ${dayjs(preferredDate).format(
+      "HH:mm DD/MM/YYYY"
+    )}. Vui lòng đến đúng giờ!`;
+
+    return this.sendPushNotification(userId, {
+      title,
+      body,
+      data: { type: NOTIFICATION_TYPE.REMINDER, preferredDate },
+      entityType: ENTITY_TYPE.BLOOD_DONATION_REGISTRATION,
+      relatedEntityId: entityId,
+    });
+  };
+
+  getNotificationUser = async (userId) => {
+    const user = await notificationModel
+      .find({ userId })
+      .sort({ createdAt: -1 });
+    return user;
   };
 }
 

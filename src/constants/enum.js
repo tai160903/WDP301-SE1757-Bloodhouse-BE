@@ -14,6 +14,7 @@ const STAFF_POSITION = {
 };
 
 const NOTIFICATION_TYPE = {
+  EMERGENCY_CAMPAIGN: "emergencyCampaign",
   REMINDER: "reminder",
   REQUEST: "request",
   MATCH: "match",
@@ -27,6 +28,7 @@ const ENTITY_TYPE = {
   BLOOD_REQUEST: "bloodRequest",
   BLOOD_GROUP: "bloodGroup",
   BLOOD_INVENTORY: "bloodInventory",
+  EMERGENCY_CAMPAIGN: "emergencyCampaign",
 };
 
 const HEADER = {
@@ -79,7 +81,6 @@ const BLOOD_DONATION_REGISTRATION_STATUS = {
   POST_REST_CHECK: "post_rest_check",
   COMPLETED: "completed",
   CANCELLED: "cancelled",
-
 };
 
 const BLOOD_DONATION_REGISTRATION_SOURCE = {
@@ -88,25 +89,22 @@ const BLOOD_DONATION_REGISTRATION_SOURCE = {
 };
 
 const BLOOD_DONATION_STATUS = {
-  CONFIRMED: "confirmed",
+  DONATING: "donating",
   CANCELLED: "cancelled",
   COMPLETED: "completed",
 };
 
-const BLOOD_DONATION_MESSAGE = {
-  CREATE_SUCCESS: "Create blood donation successfully",
-  CREATE_FAILED: "Create blood donation failed",
-  GET_SUCCESS: "Get blood donation successfully",
-  GET_FAILED: "Get blood donation failed",
-  GET_DETAIL_SUCCESS: "Get blood donation detail successfully",
-  GET_DETAIL_FAILED: "Get blood donation detail failed",
-};
 
 const USER_STATUS = {
   ACTIVE: "active",
   INACTIVE: "inactive",
   BLOCKED: "blocked",
 };
+
+const PROFILE_LEVEL = {
+  BASIC: 1,
+  VERIFIED_CCCD: 2,
+}
 
 const CONTENT_STATUS = {
   DRAFT: "draft",
@@ -115,10 +113,20 @@ const CONTENT_STATUS = {
 };
 
 const BLOOD_REQUEST_STATUS = {
-  PENDING: "pending",
-  IN_PROGRESS: "in_progress",
+  PENDING_APPROVAL: "pending_approval",
+  REJECTED_REGISTRATION: "rejected_registration",
+  APPROVED: "approved",
+  ASSIGNED: "assigned",
+  READY_FOR_HANDOVER: "ready_for_handover",
   COMPLETED: "completed",
   CANCELLED: "cancelled",
+};
+
+const DONOR_STATUS = {
+  STABLE: "stable",
+  FATIGUED: "fatigued",
+  NEEDS_MONITORING: "needs_monitoring",
+  OTHER: "other",
 };
 
 module.exports = {
@@ -133,9 +141,10 @@ module.exports = {
   BLOOD_DONATION_REGISTRATION_SOURCE,
   USER_STATUS,
   BLOOD_DONATION_STATUS,
-  BLOOD_DONATION_MESSAGE,
   CONTENT_STATUS,
   BLOOD_REQUEST_STATUS,
   NOTIFICATION_TYPE,
   ENTITY_TYPE,
+  DONOR_STATUS,
+  PROFILE_LEVEL,
 };

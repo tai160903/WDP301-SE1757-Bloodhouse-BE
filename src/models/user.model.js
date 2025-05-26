@@ -1,6 +1,11 @@
 "use strict";
 const mongoose = require("mongoose");
-const { USER_ROLE, SEX, USER_STATUS } = require("../constants/enum");
+const {
+  USER_ROLE,
+  SEX,
+  USER_STATUS,
+  PROFILE_LEVEL,
+} = require("../constants/enum");
 
 const DOCUMENT_NAME = "User";
 const COLLECTION_NAME = "Users";
@@ -14,7 +19,12 @@ const userSchema = new mongoose.Schema(
       default: USER_ROLE.MEMBER,
     },
     idCard: { type: String, trim: true, unique: true },
-    avatar: { type: String, trim: true },
+    avatar: {
+      type: String,
+      trim: true,
+      default:
+        "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg",
+    },
     email: { type: String, trim: true, unique: true, required: true },
     password: { type: String, required: true },
     verifyOTP: { type: String },
@@ -25,14 +35,17 @@ const userSchema = new mongoose.Schema(
       enum: Object.values(USER_STATUS),
       default: USER_STATUS.ACTIVE,
     },
+    profileLevel: {
+      type: Number,
+      enum: Object.values(PROFILE_LEVEL),
+      default: PROFILE_LEVEL.BASIC,
+    },
     expoPushToken: { type: String, trim: true },
     yob: { type: Date },
     sex: { type: String, enum: Object.values(SEX) },
     fullName: { type: String, trim: true },
     phone: { type: String, trim: true, unique: true },
-    street: { type: String, trim: true },
-    city: { type: String, trim: true },
-    country: { type: String, trim: true },
+    address: { type: String, trim: true },
     location: {
       type: {
         type: String,
