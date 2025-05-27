@@ -2,12 +2,18 @@
 
 const mongoose = require("mongoose");
 const { BLOOD_DONATION_REGISTRATION_STATUS, DONOR_STATUS } = require("../constants/enum");
+const { generateUniqueCodeSafe } = require("../utils/codeGenerator");
 
 const DOCUMENT_NAME = "DonorStatusLog";
 const COLLECTION_NAME = "DonorStatusLogs";
 
 const donorStatusLogSchema = new mongoose.Schema(
   {
+    code: {
+      type: String,
+      unique: true,
+      index: true,
+    },
     donationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "BloodDonation",
@@ -46,6 +52,22 @@ const donorStatusLogSchema = new mongoose.Schema(
     collection: COLLECTION_NAME,
   }
 );
+
+// Pre-save middleware to generate unique code
+donorStatusLogSchema.pre('save', async function(next) {
+  if (this.isNew && !this.code) {
+    try {
+      this.code = await generateUniqueCodeSafe(
+        mongoose.model(DOCUMENT_NAME), 
+        'DSLG', // Donor Status LoG
+        'code'
+      );
+    } catch (error) {
+      return next(error);
+    }
+  }
+  next();
+});
 
 // Index để tối ưu truy vấn
 donorStatusLogSchema.index({ donationId: 1 });

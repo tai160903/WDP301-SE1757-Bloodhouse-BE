@@ -61,10 +61,11 @@ class BloodDonationController {
 
   // Lấy danh sách hiến máu
   getBloodDonations = asyncHandler(async (req, res) => {
-    const { status, facilityId, limit, page } = req.query;
+    const { status, limit, page } = req.query;
+
     const result = await bloodDonationService.getBloodDonations({
       status,
-      facilityId,
+      facilityId: req.user.facilityId,
       limit: parseInt(limit) || 10,
       page: parseInt(page) || 1,
     });
