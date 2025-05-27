@@ -25,5 +25,6 @@ router.use("/notification", require("./notification"));
 router.use("/health-check", require("./healthCheck"));
 router.use("/process-donation-log", require("./processDonationLog"));
 router.use("/donor-status-log", require("./donorStatusLog"));
+router.use("/emergency-campaign", require("./emergencyCampaign"));
 
 module.exports = router;
