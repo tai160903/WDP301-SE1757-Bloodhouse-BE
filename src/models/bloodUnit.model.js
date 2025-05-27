@@ -1,12 +1,18 @@
 "use strict";
 const mongoose = require("mongoose");
 const { BLOOD_COMPONENT } = require("../constants/enum");
+const { generateUniqueCodeSafe } = require("../utils/codeGenerator");
 
 const DOCUMENT_NAME = "BloodUnit";
 const COLLECTION_NAME = "BloodUnits";
 
 const bloodUnitSchema = new mongoose.Schema(
   {
+    code: {
+      type: String,
+      unique: true,
+      index: true,
+    },
     donationId: { 
       type: mongoose.Schema.Types.ObjectId, 
       ref: "BloodDonation",
@@ -72,11 +78,26 @@ const bloodUnitSchema = new mongoose.Schema(
   }
 );
 
+// Pre-save middleware to generate unique code
+bloodUnitSchema.pre('save', async function(next) {
+  if (this.isNew && !this.code) {
+    try {
+      this.code = await generateUniqueCodeSafe(
+        mongoose.model(DOCUMENT_NAME), 
+        'BUNT', // Blood UNiT
+        'code'
+      );
+    } catch (error) {
+      return next(error);
+    }
+  }
+  next();
+});
+
 // Indexes
 bloodUnitSchema.index({ donationId: 1 });
 bloodUnitSchema.index({ facilityId: 1 });
 bloodUnitSchema.index({ status: 1 });
 bloodUnitSchema.index({ expiresAt: 1 });
-
 
 module.exports = mongoose.model(DOCUMENT_NAME, bloodUnitSchema);

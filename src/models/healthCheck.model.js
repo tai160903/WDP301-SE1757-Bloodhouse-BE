@@ -1,11 +1,17 @@
 "use strict";
 const mongoose = require("mongoose");
+const { generateUniqueCodeSafe } = require("../utils/codeGenerator");
 
 const DOCUMENT_NAME = "HealthCheck";
 const COLLECTION_NAME = "HealthChecks";
 
 const healthCheckSchema = new mongoose.Schema(
   {
+    code: {
+      type: String,
+      unique: true,
+      index: true,
+    },
     registrationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "BloodDonationRegistration",
@@ -105,6 +111,22 @@ const healthCheckSchema = new mongoose.Schema(
     collection: COLLECTION_NAME,
   }
 );
+
+// Pre-save middleware to generate unique code
+healthCheckSchema.pre('save', async function(next) {
+  if (this.isNew && !this.code) {
+    try {
+      this.code = await generateUniqueCodeSafe(
+        mongoose.model(DOCUMENT_NAME), 
+        'HLCK', // HeaLth ChecK
+        'code'
+      );
+    } catch (error) {
+      return next(error);
+    }
+  }
+  next();
+});
 
 // Index để tối ưu truy vấn
 healthCheckSchema.index({ registrationId: 1 });

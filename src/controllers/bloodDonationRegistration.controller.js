@@ -68,7 +68,9 @@ class BloodDonationRegistrationController {
     const result =
       await bloodDonationService.getBloodDonationRegistrationDetail(
         req.params.id,
-        req.user.userId
+        req.user.userId,
+        req.user.role,
+        req.user.staffId
       );
     new OK({
       message: BLOOD_DONATION_REGISTRATION_MESSAGE.GET_DETAIL_SUCCESS,

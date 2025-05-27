@@ -16,6 +16,9 @@ router.patch("/:id", checkRole([USER_ROLE.DOCTOR]), checkStaff([STAFF_POSITION.D
 // Routes cho nurse
 router.get("/nurse", checkRole([USER_ROLE.NURSE]), checkStaff([STAFF_POSITION.NURSE]), healthCheckController.getNurseHealthChecks);
 
+// Route mới: Lấy health check detail theo registration ID
+router.get("/registration/:registrationId", checkRole([USER_ROLE.NURSE, USER_ROLE.DOCTOR, USER_ROLE.MANAGER]), healthCheckController.getHealthCheckByRegistrationId);
+
 // Routes cho facility
 router.get("/facility", checkRole([USER_ROLE.MANAGER]), checkStaff([STAFF_POSITION.MANAGER]), healthCheckController.getFacilityHealthChecks);
 
