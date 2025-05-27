@@ -114,6 +114,17 @@ class HealthCheckController {
       data: result.data,
     }).send(res);
   });
+
+  // Lấy chi tiết kiểm tra sức khỏe theo registration ID
+  getHealthCheckByRegistrationId = asyncHandler(async (req, res) => {
+    const { registrationId } = req.params;
+    const { userId, role, staffId } = req.user;
+    const result = await healthCheckService.getHealthCheckByRegistrationId(registrationId, userId, role, staffId);
+    new OK({
+      message: HEALTH_CHECK_MESSAGE.GET_DETAIL_SUCCESS,
+      data: result,
+    }).send(res);
+  });
 }
 
 module.exports = new HealthCheckController();

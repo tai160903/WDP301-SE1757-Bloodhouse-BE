@@ -23,7 +23,7 @@ const QRCode = require("qrcode");
 const { getPaginatedData, populateExistingDocument, createNestedPopulateConfig } = require("../helpers/mongooseHelper");
 const processDonationLogService = require("./processDonationLog.service");
 const donorStatusLogService = require("./donorStatusLog.service");
-
+const facilityStaffModel = require("../models/facilityStaff.model");
 class BloodDonationService {
   /** BLOOD DONATION REGISTRATION */
   // Đăng ký hiến máu
@@ -115,6 +115,7 @@ class BloodDonationService {
         "source",
         "notes",
         "location",
+        "code",
         "createdAt",
         "expectedQuantity",
       ],
@@ -139,7 +140,7 @@ class BloodDonationService {
       page,
       limit,
       select:
-        "_id userId facilityId bloodGroupId bloodComponent preferredDate status source notes createdAt expectedQuantity",
+        "_id userId facilityId bloodGroupId bloodComponent code preferredDate status source notes createdAt expectedQuantity",
       populate: [
         { path: "userId", select: "fullName email phone avatar gender" },
         { path: "facilityId", select: "name street city" },
@@ -248,6 +249,7 @@ class BloodDonationService {
         "status",
         "notes",
         "qrCodeUrl",
+        "code",
         "updatedAt",
         "expectedQuantity",
       ],
@@ -269,7 +271,7 @@ class BloodDonationService {
       page,
       limit,
       select:
-        "_id userId facilityId bloodGroupId preferredDate status source notes location createdAt expectedQuantity",
+        "_id userId facilityId bloodGroupId preferredDate code status source notes location createdAt expectedQuantity",
       populate: [
         { path: "userId", select: "fullName email phone" },
         { path: "facilityId", select: "name street city address" },
@@ -283,15 +285,50 @@ class BloodDonationService {
 
 
   // Lấy chi tiết một đăng ký hiến máu
-  getBloodDonationRegistrationDetail = async (registrationId, userId) => {
+  getBloodDonationRegistrationDetail = async (registrationId, userId, role, staffId) => {
+    let query = { _id: registrationId };
+    
+    // Nếu là Member (người dùng thông thường), chỉ được xem đăng ký của mình
+    if (role === USER_ROLE.MEMBER) {
+      query.userId = userId;
+    }
+    // Nếu là Staff (Nurse, Doctor, Manager), cần kiểm tra quyền truy cập
+    else if ([USER_ROLE.NURSE, USER_ROLE.DOCTOR, USER_ROLE.MANAGER].includes(role)) {
+      // Lấy thông tin staff để kiểm tra facilityId
+      const staff = await facilityStaffModel.findById(staffId);
+      
+      if (!staff) {
+        throw new BadRequestError("Không tìm thấy thông tin nhân viên");
+      }
+      
+      // Staff chỉ được xem đăng ký thuộc facility của mình
+      query.facilityId = staff.facilityId;
+      
+      // Nurse chỉ được xem đăng ký được gán cho mình hoặc chưa được gán
+      if (role === USER_ROLE.NURSE) {
+        query.$or = [
+          { staffId: staffId },
+          { staffId: { $exists: false } },
+          { staffId: null }
+        ];
+      }
+    }
+
     const registration = await bloodDonationRegistrationModel
-      .findOne({ _id: registrationId, userId })
-      .populate("userId", "fullName email phone")
-      .populate("facilityId", "name street city")
-      .populate("bloodGroupId", "type")
+      .findOne(query)
+      .populate("userId", "fullName email phone avatar sex yob bloodId", null, { 
+        populate: { path: "bloodId", select: "type name" }
+      })
+      .populate("facilityId", "name street city address contactPhone contactEmail")
+      .populate("bloodGroupId", "name type")
+      .populate("staffId", "userId position", null, {
+        populate: { path: "userId", select: "fullName email phone" }
+      })
       .lean();
 
-    if (!registration) throw new NotFoundError("Không tìm thấy đăng ký");
+    if (!registration) {
+      throw new NotFoundError("Không tìm thấy đăng ký hoặc bạn không có quyền truy cập");
+    }
 
     return getInfoData({
       fields: [
@@ -299,12 +336,18 @@ class BloodDonationService {
         "userId",
         "facilityId",
         "bloodGroupId",
+        "staffId",
         "bloodComponent",
         "preferredDate",
         "status",
         "source",
         "notes",
+        "code",
         "location",
+        "expectedQuantity",
+        "qrCodeUrl",
+        "checkInAt",
+        "completedAt",
         "createdAt",
         "updatedAt",
       ],
@@ -439,8 +482,11 @@ class BloodDonationService {
       select:
         "_id userId bloodGroupId bloodComponent quantity donationDate status bloodDonationRegistrationId createdAt",
       populate: [
-        { path: "userId", select: "fullName email phone" },
-        { path: "bloodGroupId", select: "type" },
+        { path: "userId", select: "fullName email phone avatar" },
+        { path: "bloodGroupId", select: "name" },
+        {path: "staffId", select: "userId position",
+          populate: { path: "userId", select: "fullName" }
+        },
         {
           path: "bloodDonationRegistrationId",
           select: "facilityId preferredDate",
@@ -472,11 +518,16 @@ class BloodDonationService {
         : { _id: donationId, userId };
     const donation = await bloodDonationModel
       .findOne(query)
-      .populate("userId", "fullName email phone")
-      .populate("bloodGroupId", "type")
+      .populate("userId", "fullName email phone sex yob avatar")
+      .populate("bloodGroupId", "name")
+      .populate({
+        path: "staffId",
+        select: "userId position",
+        populate: { path: "userId", select: "fullName" }
+      })
       .populate({
         path: "bloodDonationRegistrationId",
-        select: "preferredDate facilityId",
+        select: "preferredDate facilityId code",
         populate: { path: "facilityId", select: "name street city location" },
       })
       .lean();
@@ -495,7 +546,9 @@ class BloodDonationService {
         "donationDate",
         "status",
         "createdAt",
+        "code",
         "updatedAt",
+        "notes",
       ],
       object: donation,
     });
@@ -542,10 +595,10 @@ class BloodDonationService {
       query,
       page,
       limit,
-      select: "_id userId facilityId bloodGroupId staffId preferredDate status notes expectedQuantity createdAt checkedInAt qrCodeUrl",
+      select: "_id userId facilityId bloodGroupId staffId preferredDate code status notes expectedQuantity createdAt checkedInAt",
       populate: [
-        { path: "userId", select: "fullName email phone bloodId", 
-          populate: { path: "bloodId", select: "type" }
+        { path: "userId", select: "fullName email phone bloodId avatar", 
+          populate: { path: "bloodId", select: "name" }
         },
         { path: "facilityId", select: "name street city" },
         { path: "bloodGroupId", select: "name" },
@@ -607,7 +660,7 @@ class BloodDonationService {
       query,
       page,
       limit,
-      select: "_id userId facilityId bloodGroupId staffId preferredDate status notes expectedQuantity createdAt checkedInAt completedAt qrCodeUrl",
+      select: "_id userId facilityId bloodGroupId staffId preferredDate code status notes expectedQuantity createdAt checkedInAt completedAt qrCodeUrl",
       populate: [
         { path: "userId", select: "fullName email phone bloodId", 
           populate: { path: "bloodId", select: "type" }
@@ -725,7 +778,7 @@ class BloodDonationService {
     } catch (error) {
       throw new BadRequestError("QR code data không hợp lệ");
     }
-
+    
     const { registrationId } = parsedData;
     if (!registrationId) {
       throw new BadRequestError("QR code không chứa thông tin registration ID");
@@ -801,14 +854,26 @@ class BloodDonationService {
       throw new NotFoundError("Không tìm thấy bản ghi hiến máu");
     }
 
-    if (status) {
-      donation.status = status;
+    if (status && status === donation.status) {
+      throw new BadRequestError("Trạng thái hiến máu hiện tại đã được cập nhật");
     }
+    if (status === BLOOD_DONATION_STATUS.COMPLETED && !quantity) {
+      throw new BadRequestError("Vui lòng nhập số lượng hiến máu");
+    }
+    if (!notes && status === BLOOD_DONATION_STATUS.CANCELLED) {
+      throw new BadRequestError("Vui lòng nhập lý do huỷ hiến máu");
+    }
+    if (!quantity && status === BLOOD_DONATION_STATUS.COMPLETED) {
+      throw new BadRequestError("Vui lòng nhập số lượng hiến máu");
+    }
+    if (status === BLOOD_DONATION_STATUS.COMPLETED && quantity) {
+      donation.quantity = quantity;
+      donation.status = BLOOD_DONATION_STATUS.COMPLETED;
+    } else if (status === BLOOD_DONATION_STATUS.CANCELLED) {
+      donation.status = BLOOD_DONATION_STATUS.CANCELLED;
+    } 
     if (notes) {
       donation.notes = notes;
-    }
-    if (quantity) {
-      donation.quantity = quantity;
     }
 
     await donation.save();
@@ -888,6 +953,7 @@ class BloodDonationService {
         "donationDate",
         "donationStartAt",
         "status",
+        "code",
         "notes",
         "updatedAt"
       ],
@@ -939,7 +1005,8 @@ class BloodDonationService {
         "facilityId",
         "bloodGroupId",
         "status",
-        "notes",
+        "notes",  
+        "code",
         "updatedAt"
       ],
       object: registration,

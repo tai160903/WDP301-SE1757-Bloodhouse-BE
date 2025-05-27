@@ -4,12 +4,18 @@ const {
   BLOOD_DONATION_REGISTRATION_STATUS,
   BLOOD_DONATION_REGISTRATION_SOURCE,
 } = require("../constants/enum");
+const { generateUniqueCodeSafe } = require("../utils/codeGenerator");
 
 const DOCUMENT_NAME = "BloodDonationRegistration";
 const COLLECTION_NAME = "BloodDonationRegistrations";
 
 const bloodDonationRegistrationSchema = new mongoose.Schema(
   {
+    code: {
+      type: String,
+      // unique: true,
+      index: true,
+    },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -57,6 +63,22 @@ const bloodDonationRegistrationSchema = new mongoose.Schema(
     collection: COLLECTION_NAME,
   }
 );
+
+// Pre-save middleware to generate unique code
+bloodDonationRegistrationSchema.pre('save', async function(next) {
+  if (this.isNew && !this.code) {
+    try {
+      this.code = await generateUniqueCodeSafe(
+        mongoose.model(DOCUMENT_NAME), 
+        'BDRG', // Blood Donation ReGistration
+        'code'
+      );
+    } catch (error) {
+      return next(error);
+    }
+  }
+  next();
+});
 
 // Tạo index 2dsphere cho trường location
 bloodDonationRegistrationSchema.index({ location: "2dsphere" });

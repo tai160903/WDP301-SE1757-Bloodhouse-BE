@@ -306,8 +306,12 @@ class HealthCheckService {
       select: "_id registrationId userId doctorId staffId facilityId checkDate isEligible bloodPressure hemoglobin weight pulse temperature generalCondition deferralReason notes createdAt updatedAt",
       populate: [
         { path: "userId", select: "fullName email" },
-        { path: "staffId", select: "position" },
-        { path: "doctorId", select: "position" },
+        { path: "staffId", select: "position userId", 
+          populate: { path: "userId", select: "fullName email" }
+        },
+        { path: "doctorId", select: "position userId", 
+          populate: { path: "userId", select: "fullName email" }
+        },
         { 
           path: "registrationId", 
           select: "facilityId",
@@ -367,8 +371,12 @@ class HealthCheckService {
       select: "_id registrationId userId doctorId staffId facilityId checkDate isEligible bloodPressure hemoglobin weight pulse temperature generalCondition deferralReason notes createdAt updatedAt",
       populate: [
         { path: "userId", select: "fullName email" },
-        { path: "staffId", select: "position" },
-        { path: "doctorId", select: "position" },
+        { path: "staffId", select: "position userId", 
+          populate: { path: "userId", select: "fullName email" }
+        },
+        { path: "doctorId", select: "position userId", 
+          populate: { path: "userId", select: "fullName email" }
+        },
         { 
           path: "registrationId", 
           select: "facilityId",
@@ -419,8 +427,12 @@ class HealthCheckService {
       select: "_id registrationId userId doctorId staffId facilityId checkDate isEligible bloodPressure hemoglobin weight pulse temperature generalCondition deferralReason notes createdAt updatedAt",
       populate: [
         { path: "userId", select: "fullName email" },
-        { path: "staffId", select: "position" },
-        { path: "doctorId", select: "position" },
+        { path: "staffId", select: "position userId", 
+          populate: { path: "userId", select: "fullName email" }
+        },
+        { path: "doctorId", select: "position userId", 
+          populate: { path: "userId", select: "fullName email" }
+        },
         { 
           path: "registrationId", 
           select: "facilityId",
@@ -480,8 +492,12 @@ class HealthCheckService {
       select: "_id registrationId userId doctorId staffId facilityId checkDate isEligible bloodPressure hemoglobin weight pulse temperature generalCondition deferralReason notes createdAt updatedAt",
       populate: [
         { path: "userId", select: "fullName email" },
-        { path: "staffId", select: "position" },
-        { path: "doctorId", select: "position" },
+        { path: "staffId", select: "position userId", 
+          populate: { path: "userId", select: "fullName email" }
+        },
+        { path: "doctorId", select: "position userId", 
+          populate: { path: "userId", select: "fullName email" }
+        },
         { 
           path: "registrationId", 
           select: "facilityId",
@@ -514,8 +530,16 @@ class HealthCheckService {
 
     const healthCheck = await healthCheckModel.findOne(query)
       .populate("userId", "fullName email")
-      .populate("staffId", "position")
-      .populate("doctorId", "position")
+      .populate({
+        path: "staffId",
+        select: "position userId",
+        populate: { path: "userId", select: "fullName email" }
+      })
+      .populate({
+        path: "doctorId",
+        select: "position userId",
+        populate: { path: "userId", select: "fullName email" }
+      })
       .populate({
         path: "registrationId",
         select: "facilityId",
@@ -553,6 +577,120 @@ class HealthCheckService {
         ],
         object: healthCheck,
       }),
+    };
+  };
+
+  // Lấy chi tiết kiểm tra sức khỏe theo registration ID
+  getHealthCheckByRegistrationId = async (registrationId, userId, role, staffId) => {
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(registrationId)) {
+      throw new BadRequestError("Registration ID không hợp lệ");
+    }
+
+    // Lấy thông tin registration trước
+    const registration = await BloodDonationRegistration.findById(registrationId)
+      .populate("userId", "fullName email phone avatar sex yob bloodId")
+      .populate({
+        path: "userId",
+        populate: { path: "bloodId", select: "type name" }
+      })
+      .populate("facilityId", "name street city address contactPhone contactEmail")
+      .populate("bloodGroupId", "name type")
+      .populate({
+        path: "staffId",
+        select: "userId position",
+        populate: { path: "userId", select: "fullName email phone" }
+      })
+      .lean();
+
+    if (!registration) {
+      throw new BadRequestError("Không tìm thấy đăng ký hiến máu");
+    }
+
+    // Kiểm tra quyền truy cập
+    if (role === USER_ROLE.MEMBER && registration.userId._id.toString() !== userId) {
+      throw new BadRequestError("Bạn không có quyền truy cập đăng ký này");
+    }
+
+    if ([USER_ROLE.NURSE, USER_ROLE.DOCTOR, USER_ROLE.MANAGER].includes(role)) {
+      const staff = await FacilityStaff.findById(staffId);
+      if (!staff) {
+        throw new BadRequestError("Không tìm thấy thông tin nhân viên");
+      }
+      
+      // Staff chỉ được xem đăng ký thuộc facility của mình
+      if (registration.facilityId._id.toString() !== staff.facilityId.toString()) {
+        throw new BadRequestError("Bạn không có quyền truy cập đăng ký này");
+      }
+    }
+
+    // Tìm health check tương ứng (nếu có)
+    let healthCheck = null;
+    try {
+      healthCheck = await healthCheckModel.findOne({ registrationId })
+        .populate({
+          path: "staffId",
+          select: "userId position",
+          populate: { path: "userId", select: "fullName email phone" }
+        })
+        .populate({
+          path: "doctorId", 
+          select: "userId position",
+          populate: { path: "userId", select: "fullName email phone" }
+        })
+        .lean();
+    } catch (error) {
+      // Health check chưa tồn tại, không sao
+    }
+
+    // Trả về dữ liệu kết hợp
+    return {
+      registration: getInfoData({
+        fields: [
+          "_id",
+          "userId",
+          "facilityId",
+          "bloodGroupId",
+          "staffId",
+          "bloodComponent",
+          "preferredDate",
+          "status",
+          "source",
+          "notes",
+          "code",
+          "location",
+          "expectedQuantity",
+          "qrCodeUrl",
+          "checkInAt",
+          "completedAt",
+          "createdAt",
+          "updatedAt",
+        ],
+        object: registration,
+      }),
+      healthCheck: healthCheck ? getInfoData({
+        fields: [
+          "_id",
+          "registrationId",
+          "userId",
+          "doctorId",
+          "staffId",
+          "facilityId",
+          "checkDate",
+          "isEligible",
+          "bloodPressure",
+          "hemoglobin",
+          "weight",
+          "pulse",
+          "temperature",
+          "generalCondition",
+          "deferralReason",
+          "notes",
+          "createdAt",
+          "updatedAt",
+        ],
+        object: healthCheck,
+      }) : null
     };
   };
 }
