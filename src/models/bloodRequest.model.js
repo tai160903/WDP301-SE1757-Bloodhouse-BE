@@ -55,15 +55,17 @@ const bloodRequestSchema = new mongoose.Schema(
     },
     note: { type: String, trim: true },
     preferredDate: { type: Date },
-    scheduleDate: { type: Date },
-    // scheduledDeliveryDate: { type: Date },
-    hasCampaign: { type: Boolean, default: false },
+    scheduledDeliveryDate: { type: Date },
     isFulfilled: { type: Boolean, default: false },
+    needsSupport: { type: Boolean, default: false },
   },
   {
     timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" },
     collection: COLLECTION_NAME,
   }
 );
+
+bloodRequestSchema.set("toObject", { virtuals: true });
+bloodRequestSchema.set("toJSON", { virtuals: true });
 
 module.exports = mongoose.model(DOCUMENT_NAME, bloodRequestSchema);
