@@ -27,6 +27,11 @@ class BloodGroupController {
     const result = await bloodGroupService.updateBloodGroup(req.params.id, req.body);
     new OK({ message: BLOOD_GROUP_MESSAGE.UPDATE_SUCCESS, data: result }).send(res);
   });
+
+  getBloodGroupById = asyncHandler(async (req, res, next) => {
+    const result = await bloodGroupService.getBloodGroupById(req.params.id);
+    new OK({ message: BLOOD_GROUP_MESSAGE.GET_SUCCESS, data: result }).send(res);
+  });
 }
 
 module.exports = new BloodGroupController();

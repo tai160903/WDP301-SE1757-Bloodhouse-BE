@@ -11,7 +11,7 @@ async function cancelExpiredRequests() {
     try {
         const result = await bloodRequestModel.updateMany(
             {
-                scheduleDate: { $lt: yesterday },
+                scheduledDeliveryDate: { $lt: yesterday },
                 status: BLOOD_REQUEST_STATUS.APPROVED
             },
             {
