@@ -1713,10 +1713,6 @@ paths:
                   type: string
                   description: Additional notes
                   example: "Donation completed successfully"
-                quantity:
-                  type: number
-                  description: Quantity of blood donated
-                  example: 350
       responses:
         "200":
           description: Blood donation updated successfully
@@ -2991,7 +2987,7 @@ paths:
           name: status
           schema:
             type: string
-            enum: [eligible, not_eligible]
+            enum: [pending, completed, cancelled, donated]
           description: Filter by eligibility status
         - in: query
           name: search
@@ -3012,6 +3008,11 @@ paths:
             enum: [1, -1]
             default: -1
           description: Sort order (1 for ascending, -1 for descending)
+        - in: query
+          name: isEligible
+          schema:
+            type: boolean
+          description: Filter by eligibility status
       responses:
         "200":
           description: List of health checks retrieved successfully
@@ -3058,7 +3059,7 @@ paths:
           name: status
           schema:
             type: string
-            enum: [eligible, not_eligible]
+            enum: [pending, completed, cancelled, donated]
           description: Filter by eligibility status
         - in: query
           name: search
@@ -3079,6 +3080,11 @@ paths:
             enum: [1, -1]
             default: -1
           description: Sort order (1 for ascending, -1 for descending)
+        - in: query
+          name: isEligible
+          schema:
+            type: boolean
+          description: Filter by eligibility status
       responses:
         "200":
           description: List of health checks retrieved successfully
@@ -3125,7 +3131,7 @@ paths:
           name: status
           schema:
             type: string
-            enum: [eligible, not_eligible]
+            enum: [pending, completed, cancelled, donated]
           description: Filter by eligibility status
         - in: query
           name: search
@@ -3146,6 +3152,11 @@ paths:
             enum: [1, -1]
             default: -1
           description: Sort order (1 for ascending, -1 for descending)
+        - in: query
+          name: isEligible
+          schema:
+            type: boolean
+          description: Filter by eligibility status
       responses:
         "200":
           description: List of health checks retrieved successfully
@@ -3193,7 +3204,7 @@ paths:
           name: status
           schema:
             type: string
-            enum: [eligible, not_eligible]
+            enum: [pending, completed, cancelled, donated]
           description: Filter by eligibility status
         - in: query
           name: search
@@ -3214,6 +3225,11 @@ paths:
             enum: [1, -1]
             default: -1
           description: Sort order (1 for ascending, -1 for descending)
+        - in: query
+          name: isEligible
+          schema:
+            type: boolean
+          description: Filter by eligibility status
       responses:
         "200":
           description: List of health checks retrieved successfully
@@ -3873,7 +3889,7 @@ paths:
                   example: "2025-06-01T11:00:00Z"
                 status:
                   type: string
-                  enum: ["confirmed", "completed", "cancelled"]
+                  enum: [pending, completed, cancelled, donated]
                   description: Donation status
                   example: "completed"
                 notes:

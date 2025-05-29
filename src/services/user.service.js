@@ -182,13 +182,12 @@ class UserService {
   verifyAccount = async (userId, verifyOTP) => {
     const user = await userModel.findOne({
       _id: userId,
-      status: USER_STATUS.ACTIVE,
     });
     if (!user) {
       throw new BadRequestError("User not found or inactive");
     }
 
-    if (user.isVerified) {
+    if (user.status === USER_STATUS.VERIFIED) {
       throw new BadRequestError("User already verified");
     }
 
@@ -204,7 +203,7 @@ class UserService {
     }
 
     // Cập nhật trạng thái verified và xóa OTP
-    user.isVerified = true;
+    user.status = USER_STATUS.VERIFIED;
     user.verifyOTP = null;
     user.verifyExpires = null;
     await user.save();

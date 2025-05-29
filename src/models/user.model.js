@@ -28,7 +28,6 @@ const userSchema = new mongoose.Schema(
     email: { type: String, trim: true, unique: true, required: true },
     password: { type: String, required: true },
     verifyOTP: { type: String },
-    isVerified: { type: Boolean, default: false },
     verifyExpires: { type: Date },
     status: {
       type: String,
@@ -57,7 +56,6 @@ const userSchema = new mongoose.Schema(
         default: [0, 0],
       },
     },
-    isAvailable: { type: Boolean, default: true },
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
   },

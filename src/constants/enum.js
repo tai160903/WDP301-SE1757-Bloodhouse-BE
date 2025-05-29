@@ -99,6 +99,7 @@ const USER_STATUS = {
   ACTIVE: "active",
   INACTIVE: "inactive",
   BLOCKED: "blocked",
+  VERIFIED: "verified",
 };
 
 const PROFILE_LEVEL = {
