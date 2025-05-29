@@ -129,6 +129,14 @@ const DONOR_STATUS = {
   OTHER: "other",
 };
 
+const HEALTH_CHECK_STATUS = {
+  PENDING: "pending",
+  COMPLETED: "completed",
+  CANCELLED: "cancelled",
+  DONATED: "donated",
+};
+
+
 module.exports = {
   USER_ROLE,
   STAFF_POSITION,
@@ -147,4 +155,5 @@ module.exports = {
   ENTITY_TYPE,
   DONOR_STATUS,
   PROFILE_LEVEL,
+  HEALTH_CHECK_STATUS                       
 };
