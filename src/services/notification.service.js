@@ -116,32 +116,6 @@ class NotificationService {
     });
   };
 
-  sendEmergencyRequestNotification = async (
-    userId,
-    bloodGroup,
-    component,
-    quantity,
-    facilityName,
-    campaignId
-  ) => {
-    const title = "Yêu Cầu Hiến Máu Khẩn Cấp";
-    const body = `${facilityName} đang cần ${quantity} đơn vị máu ${component} nhóm ${bloodGroup}. Bạn có thể giúp đỡ?`;
-
-    return this.sendPushNotification(userId, {
-      title,
-      body,
-      data: {
-        type: NOTIFICATION_TYPE.EMERGENCY_CAMPAIGN,
-        bloodGroup,
-        component,
-        quantity,
-        facilityName,
-      },
-      entityType: ENTITY_TYPE.EMERGENCY_CAMPAIGN,
-      relatedEntityId: campaignId,
-    });
-  };
-
   sendBloodRequestStatusNotification = async (
     userId,
     status,
@@ -193,6 +167,29 @@ class NotificationService {
       data: { type: NOTIFICATION_TYPE.REMINDER, preferredDate },
       entityType: ENTITY_TYPE.BLOOD_DONATION_REGISTRATION,
       relatedEntityId: entityId,
+    });
+  };
+
+  sendBloodSupportRequestNotification = async (
+    targetUserId,
+    patientName,
+    bloodGroup,
+    component,
+    requestId
+  ) => {
+    const title = "Yêu cầu hỗ trợ hiến máu";
+    const body = `${patientName} cần máu ${bloodGroup} ${component} gần bạn – Nhấn để xem chi tiết và giúp đỡ 👉`;
+
+    return this.sendPushNotification(targetUserId, {
+      title,
+      body,
+      data: { 
+        type: NOTIFICATION_TYPE.SUPPORT_REQUEST,
+        bloodGroup,
+        requestId
+      },
+      entityType: ENTITY_TYPE.BLOOD_REQUEST,
+      relatedEntityId: requestId,
     });
   };
 

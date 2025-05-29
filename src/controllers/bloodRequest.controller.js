@@ -1,6 +1,7 @@
 "use strict";
 
 const { OK, CREATED } = require("../configs/success.response");
+const { BLOOD_REQUEST_STATUS } = require("../constants/enum");
 const { BLOOD_REQUEST_MESSAGE } = require("../constants/message");
 const asyncHandler = require("../helpers/asyncHandler");
 const bloodRequestService = require("../services/bloodRequest.service");
@@ -55,14 +56,21 @@ class BloodRequestController {
   // Lấy danh sách yêu cầu máu của cơ sở
   getFacilityBloodRequests = asyncHandler(async (req, res, next) => {
     const { facilityId } = req.params;
-    const { page, isUrgent, hasCampaign, isFulfilled, limit, status, search, sortBy, sortOrder } =
-      req.query;
+    const {
+      page,
+      isUrgent,
+      isFulfilled,
+      limit,
+      status,
+      search,
+      sortBy,
+      sortOrder,
+    } = req.query;
     const result = await bloodRequestService.getFacilityBloodRequests(
       facilityId,
       {
         page: parseInt(page) || 1,
         isUrgent,
-        hasCampaign,
         isFulfilled,
         limit: parseInt(limit) || 10,
         status,
@@ -115,15 +123,66 @@ class BloodRequestController {
   // Cập nhật trạng thái yêu cầu máu
   updateBloodRequestStatus = asyncHandler(async (req, res, next) => {
     const { id, facilityId } = req.params;
-    const { status, staffId, scheduleDate } = req.body;
+    const { status, staffId, scheduledDeliveryDate, needsSupport } = req.body;
     const result = await bloodRequestService.updateBloodRequestStatus(
       id,
       facilityId,
-      { status, staffId, scheduleDate }
+      { status, staffId, scheduledDeliveryDate, needsSupport }
     );
     new OK({
       message: BLOOD_REQUEST_MESSAGE.UPDATE_STATUS_SUCCESS,
       data: result.data,
+    }).send(res);
+  });
+
+  // Lấy danh sách yêu cầu máu cần hỗ trợ
+  getRequestBloodNeedSupport = asyncHandler(async (req, res, next) => {
+    const userId = req.user.userId;
+    const result = await bloodRequestService.getRequestBloodNeedSupport(userId);
+    new OK({
+      message: BLOOD_REQUEST_MESSAGE.GET_REQUEST_BLOOD_NEED_SUPPORT_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  // Lấy chi tiết yêu cầu máu cần hỗ trợ
+  getRequestBloodNeedSupportById = asyncHandler(async (req, res, next) => {
+    const { id } = req.params;
+    const userId = req.user.userId;
+    const result = await bloodRequestService.getRequestBloodNeedSupportById(
+      id,
+      userId
+    );
+    new OK({
+      message: BLOOD_REQUEST_MESSAGE.GET_REQUEST_BLOOD_NEED_SUPPORT_BY_ID_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  // Lấy danh sách yêu cầu cần hỗ trợ của cơ sở
+  getSupportRequestsForFacility = asyncHandler(async (req, res, next) => {
+    const { facilityId } = req.params;
+    const result = await bloodRequestService.getSupportRequestsForFacility(
+      facilityId
+    );
+    new OK({
+      message: BLOOD_REQUEST_MESSAGE.GET_SUPPORT_REQUESTS_FOR_FACILITY_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  // Lấy chi tiết yêu cầu cần hỗ trợ
+  getSupportRequestDetails = asyncHandler(async (req, res, next) => {
+    const { id, facilityId } = req.params;
+    const { status } = req.query;
+    const result = await bloodRequestService.getSupportRequestDetails(
+      id,
+      facilityId,
+      { status }
+    );
+    new OK({
+      message: BLOOD_REQUEST_MESSAGE.GET_SUPPORT_REQUEST_DETAILS_SUCCESS,
+      data: result,
     }).send(res);
   });
 }
