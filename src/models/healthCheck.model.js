@@ -1,6 +1,7 @@
 "use strict";
 const mongoose = require("mongoose");
 const { generateUniqueCodeSafe } = require("../utils/codeGenerator");
+const { HEALTH_CHECK_STATUS } = require("../constants/enum");
 
 const DOCUMENT_NAME = "HealthCheck";
 const COLLECTION_NAME = "HealthChecks";
@@ -44,10 +45,6 @@ const healthCheckSchema = new mongoose.Schema(
     isEligible: {
       type: Boolean,
       default: null,
-    },
-    consultStartAt: {
-      type: Date,
-      default: null, // Thời gian bắt đầu khám
     },
     bloodPressure: {
       type: String, // e.g., "120/80 mmHg" (huyết áp)
@@ -104,6 +101,11 @@ const healthCheckSchema = new mongoose.Schema(
     notes: {
       type: String, // Ghi chú thêm
       default: null,
+    },
+    status: {
+      type: String,
+      enum: Object.values(HEALTH_CHECK_STATUS),
+      default: HEALTH_CHECK_STATUS.PENDING,
     },
   },
   {

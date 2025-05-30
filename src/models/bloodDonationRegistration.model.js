@@ -13,7 +13,7 @@ const bloodDonationRegistrationSchema = new mongoose.Schema(
   {
     code: {
       type: String,
-      // unique: true,
+      unique: true,
       index: true,
     },
     userId: {
@@ -56,16 +56,6 @@ const bloodDonationRegistrationSchema = new mongoose.Schema(
     completedAt: {
       type: Date,
       default: null,
-    },
-    reminderStatus: {
-      oneDay: {
-        type: Boolean,
-        default: false,
-      },
-      twoHours: {
-        type: Boolean,
-        default: false,
-      },
     },
   },
   {

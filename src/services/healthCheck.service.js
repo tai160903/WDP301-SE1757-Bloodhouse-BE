@@ -6,7 +6,7 @@ const User = require("../models/user.model");
 const FacilityStaff = require("../models/facilityStaff.model");
 const { getInfoData } = require("../utils");
 const { BadRequestError } = require("../configs/error.response");
-const { STAFF_POSITION, USER_ROLE, BLOOD_DONATION_REGISTRATION_STATUS } = require("../constants/enum");
+const { STAFF_POSITION, USER_ROLE, BLOOD_DONATION_REGISTRATION_STATUS, HEALTH_CHECK_STATUS } = require("../constants/enum");
 const healthCheckModel = require("../models/healthCheck.model");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
 const processDonationLogService = require("./processDonationLog.service");
@@ -129,6 +129,8 @@ class HealthCheckService {
           "notes",
           "createdAt",
           "updatedAt",
+          "status",
+          "code"
         ],
         object: result,
       }),
@@ -153,6 +155,7 @@ class HealthCheckService {
       throw new BadRequestError("Bạn không được phân công cho kiểm tra sức khỏe này");
     }
 
+
     // Step 4: Update allowed fields
     const updateData = {
       isEligible:
@@ -168,6 +171,7 @@ class HealthCheckService {
         reqBody.generalCondition || healthCheck.generalCondition,
       deferralReason: reqBody.deferralReason || healthCheck.deferralReason,
       notes: reqBody.notes || healthCheck.notes,
+      
     };
 
     // Step 5: Validate isEligible and deferralReason
@@ -181,6 +185,7 @@ class HealthCheckService {
     if (updateData.isEligible === true ) {
       // Send notification to user
       updateData.deferralReason = null;
+      updateData.status = HEALTH_CHECK_STATUS.COMPLETED;
       await notificationService.sendBloodDonationRegistrationStatusNotification(
         registration.userId,
         BLOOD_DONATION_REGISTRATION_STATUS.WAITING_DONATION,
@@ -191,6 +196,7 @@ class HealthCheckService {
       registration.status = BLOOD_DONATION_REGISTRATION_STATUS.WAITING_DONATION;
       await registration.save();
     } else {
+      updateData.status = HEALTH_CHECK_STATUS.CANCELLED;
       // Send notification to user
       await notificationService.sendBloodDonationRegistrationStatusNotification(
         registration.userId,
@@ -239,8 +245,17 @@ class HealthCheckService {
     // Step 7: Populate and return
     const result = await updatedHealthCheck.populate([
       { path: "userId", select: "fullName email" },
-      { path: "staffId", select: "position" },
-      { path: "doctorId", select: "position" },
+      { path: "staffId", select: "position userId", 
+        populate: { path: "userId", select: "fullName email" }
+      },
+      { path: "doctorId", select: "position userId", 
+        populate: { path: "userId", select: "fullName email" }
+      },
+      { 
+        path: "registrationId", 
+        select: "facilityId",
+        populate: { path: "facilityId", select: "name" }
+      }
     ]);
     return {
       data: getInfoData({
@@ -262,6 +277,8 @@ class HealthCheckService {
           "notes",
           "createdAt",
           "updatedAt",
+          "status",
+          "code"
         ],
         object: result,
       }),
@@ -278,11 +295,16 @@ class HealthCheckService {
       search,
       sortBy = "createdAt",
       sortOrder = -1,
+      isEligible,
     }
   ) => {
     const query = { facilityId };
     if (status) {
-      query.isEligible = status === "eligible";
+      query.status = status;
+    }
+
+    if (isEligible) {
+      query.isEligible = isEligible === 'true' || isEligible === true;
     }
 
     // Validate sortBy
@@ -303,9 +325,13 @@ class HealthCheckService {
       query,
       page,
       limit,
-      select: "_id registrationId userId doctorId staffId facilityId checkDate isEligible bloodPressure hemoglobin weight pulse temperature generalCondition deferralReason notes createdAt updatedAt",
+      select: "_id registrationId userId doctorId staffId facilityId checkDate isEligible bloodPressure hemoglobin weight pulse temperature generalCondition deferralReason notes createdAt updatedAt status code",
       populate: [
-        { path: "userId", select: "fullName email" },
+        { 
+          path: "userId", 
+          select: "fullName email phone avatar sex yob bloodId",
+          populate: { path: "bloodId", select: "type name" }
+        },
         { path: "staffId", select: "position userId", 
           populate: { path: "userId", select: "fullName email" }
         },
@@ -334,6 +360,8 @@ class HealthCheckService {
       search,
       sortBy = "createdAt",
       sortOrder = -1,
+      isEligible
+      ,
     }
   ) => {
     // Get staff info to get facilityId
@@ -346,8 +374,13 @@ class HealthCheckService {
       doctorId: staffId,
       facilityId: staff.facilityId
     };
+    
     if (status) {
-      query.isEligible = status === "eligible";
+      query.status = status;
+    }
+
+    if (isEligible) {
+      query.isEligible = isEligible === 'true' || isEligible === true;
     }
 
     // Validate sortBy
@@ -368,9 +401,13 @@ class HealthCheckService {
       query,
       page,
       limit,
-      select: "_id registrationId userId doctorId staffId facilityId checkDate isEligible bloodPressure hemoglobin weight pulse temperature generalCondition deferralReason notes createdAt updatedAt",
+      select: "_id registrationId userId doctorId staffId facilityId checkDate isEligible bloodPressure hemoglobin weight pulse temperature generalCondition deferralReason notes createdAt updatedAt status code",
       populate: [
-        { path: "userId", select: "fullName email" },
+        { 
+          path: "userId", 
+          select: "fullName email phone avatar sex yob bloodId",
+          populate: { path: "bloodId", select: "type name" }
+        },
         { path: "staffId", select: "position userId", 
           populate: { path: "userId", select: "fullName email" }
         },
@@ -399,11 +436,16 @@ class HealthCheckService {
       search,
       sortBy = "createdAt",
       sortOrder = -1,
+      isEligible,
     }
   ) => {
     const query = { userId };
     if (status) {
-      query.isEligible = status === "eligible";
+      query.status = status;
+    }
+
+    if (isEligible) {
+      query.isEligible = isEligible === 'true' || isEligible === true;
     }
 
     // Validate sortBy
@@ -424,9 +466,13 @@ class HealthCheckService {
       query,
       page,
       limit,
-      select: "_id registrationId userId doctorId staffId facilityId checkDate isEligible bloodPressure hemoglobin weight pulse temperature generalCondition deferralReason notes createdAt updatedAt",
+      select: "_id registrationId userId doctorId staffId facilityId checkDate isEligible bloodPressure hemoglobin weight pulse temperature generalCondition deferralReason notes createdAt updatedAt status code",
       populate: [
-        { path: "userId", select: "fullName email" },
+        { 
+          path: "userId", 
+          select: "fullName email phone avatar sex yob bloodId",
+          populate: { path: "bloodId", select: "type name" }
+        },
         { path: "staffId", select: "position userId", 
           populate: { path: "userId", select: "fullName email" }
         },
@@ -455,6 +501,7 @@ class HealthCheckService {
       search,
       sortBy = "createdAt",
       sortOrder = -1,
+      isEligible,
     }
   ) => {
     // Get staff info to get facilityId
@@ -467,8 +514,13 @@ class HealthCheckService {
       staffId,
       facilityId: staff.facilityId
     };
+    
     if (status) {
-      query.isEligible = status === "eligible";
+      query.status = status;
+    }
+
+    if (isEligible) {
+      query.isEligible = isEligible === 'true' || isEligible === true;
     }
 
     // Validate sortBy
@@ -489,9 +541,13 @@ class HealthCheckService {
       query,
       page,
       limit,
-      select: "_id registrationId userId doctorId staffId facilityId checkDate isEligible bloodPressure hemoglobin weight pulse temperature generalCondition deferralReason notes createdAt updatedAt",
+      select: "_id registrationId userId doctorId staffId facilityId checkDate isEligible bloodPressure hemoglobin weight pulse temperature generalCondition deferralReason notes createdAt updatedAt status code",
       populate: [
-        { path: "userId", select: "fullName email" },
+        { 
+          path: "userId", 
+          select: "fullName email phone avatar sex yob bloodId",
+          populate: { path: "bloodId", select: "type name" }
+        },
         { path: "staffId", select: "position userId", 
           populate: { path: "userId", select: "fullName email" }
         },
@@ -574,6 +630,8 @@ class HealthCheckService {
           "notes",
           "createdAt",
           "updatedAt",
+          "status",
+          "code"
         ],
         object: healthCheck,
       }),

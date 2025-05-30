@@ -24,6 +24,7 @@ const { getPaginatedData, populateExistingDocument, createNestedPopulateConfig }
 const processDonationLogService = require("./processDonationLog.service");
 const donorStatusLogService = require("./donorStatusLog.service");
 const facilityStaffModel = require("../models/facilityStaff.model");
+const healthCheckModel = require("../models/healthCheck.model");
 class BloodDonationService {
   /** BLOOD DONATION REGISTRATION */
   // Đăng ký hiến máu
@@ -386,6 +387,7 @@ class BloodDonationService {
     bloodGroupId,
     bloodDonationRegistrationId,
     bloodComponent,
+    healthCheckId,
   }) => {
 
     // Kiểm tra required fields
@@ -394,17 +396,20 @@ class BloodDonationService {
     if (!bloodGroupId) throw new BadRequestError("Blood group ID is required");
     if (!bloodDonationRegistrationId) throw new BadRequestError("Blood donation registration ID is required");
     if (!bloodComponent) throw new BadRequestError("Blood component is required");
-
+    if (!healthCheckId) throw new BadRequestError("Health check ID is required");
+    
     // Kiểm tra user và registration
-    const [user, registration] = await Promise.all([
+    const [user, registration, healthCheck] = await Promise.all([
       userModel.findOne({ _id: userId }),
-      bloodDonationRegistrationModel.findOne({ _id: bloodDonationRegistrationId }).populate("facilityId", "name")
+      bloodDonationRegistrationModel.findOne({ _id: bloodDonationRegistrationId }).populate("facilityId", "name"),
+      healthCheckModel.findOne({ _id: healthCheckId })
     ]);
     
     if (!user) throw new NotFoundError("User not found");
     if (!registration) {
       throw new NotFoundError("Registration not found");
     }
+    if (!healthCheck) throw new NotFoundError("Health check not found");
 
     const donation = await bloodDonationModel.create({
       userId,
@@ -414,6 +419,8 @@ class BloodDonationService {
       bloodComponent,
       donationDate: new Date(),
       status: BLOOD_DONATION_STATUS.DONATING,
+      healthCheckId,
+      doctorId: healthCheck.doctorId,
     });
 
     // Update registration status
@@ -451,6 +458,10 @@ class BloodDonationService {
           select: "fullName"
         }),
         createNestedPopulateConfig("userId", "fullName email phone"),
+        createNestedPopulateConfig("doctorId", "userId position", {
+          path: "userId",
+          select: "fullName"
+        })
       ]
     });
 
@@ -464,8 +475,10 @@ class BloodDonationService {
         "bloodComponent",
         "donationDate",
         "status",
+        "doctorId",
+        "healthCheckId",
       ],
-      object: donation,
+      object: result,
     });
   };
 
