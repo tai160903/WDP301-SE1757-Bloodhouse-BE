@@ -24,13 +24,14 @@ class FacilityStaffService {
   };
 
   getAllStaffsNotAssignedToFacility = async ({ position }) => {
-    const result = await facilityStaffModel
-      .find({
-        isDeleted: { $ne: true },
-        facilityId: { $exists: false },
-        position: { $in: position },
-      })
-      .populate("userId", "fullName email phone avatar");
+    let query = {
+      isDeleted: { $ne: true },
+      facilityId: { $exists: false },
+    };
+    if (position) {
+      query.position = { $in: position };
+    }
+    const result = await facilityStaffModel.find(query);
     return result;
   };
 
@@ -49,7 +50,7 @@ class FacilityStaffService {
       .find(query)
       .populate("userId", "fullName email phone avatar")
       .populate("facilityId", "name address");
-    console.log(result);
+
     return {
       total: result.length,
       result,
