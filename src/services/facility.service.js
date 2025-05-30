@@ -135,8 +135,8 @@ class FacilityService {
     },
     file
   ) => {
-    doctorIds = JSON.parse(doctorIds) || [];
-    nurseIds = JSON.parse(nurseIds) || [];
+    doctorIds = doctorIds ? JSON.parse(doctorIds) : [];
+    nurseIds = nurseIds ? JSON.parse(nurseIds) : [];
     // 1. Upload ảnh nếu có
     let image = null;
     if (file) {
