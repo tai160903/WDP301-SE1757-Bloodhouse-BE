@@ -567,6 +567,99 @@ class BloodDonationService {
     });
   };
 
+  // Lấy blood donation theo health check id
+  getBloodDonationByHealthCheckId = async (healthCheckId, userId, role) => {
+    const query = { healthCheckId };
+    
+    // Nếu là member, chỉ được xem donation của mình
+    if (role === USER_ROLE.MEMBER) {
+      query.userId = userId;
+    }
+
+    const donation = await bloodDonationModel
+      .findOne(query)
+      .populate("userId", "fullName email phone sex yob avatar")
+      .populate("bloodGroupId", "name")
+      .populate({
+        path: "staffId",
+        select: "userId position",
+        populate: { path: "userId", select: "fullName" }
+      })
+      .populate({
+        path: "doctorId",
+        select: "userId position",
+        populate: { path: "userId", select: "fullName email phone" }
+      })
+      .populate({
+        path: "bloodDonationRegistrationId",
+        select: "preferredDate facilityId code",
+        populate: { path: "facilityId", select: "name street city location" },
+      })
+      .populate("healthCheckId", "bloodPressure heartRate weight height temperature notes result")
+      .lean();
+
+    if (!donation) throw new NotFoundError("Không tìm thấy bản ghi hiến máu với health check này");
+
+    return getInfoData({
+      fields: [
+        "_id",
+        "userId",
+        "staffId",
+        "doctorId",
+        "bloodGroupId",
+        "bloodDonationRegistrationId",
+        "bloodComponent",
+        "quantity",
+        "donationDate",
+        "status",
+        "healthCheckId",
+        "createdAt",
+        "code",
+        "updatedAt",
+        "notes",
+      ],
+      object: donation,
+    });
+  };
+
+  // Lấy danh sách blood donation theo doctorId
+  getBloodDonationsByDoctorId = async ({ doctorId, status, limit = 10, page = 1 }) => {
+    const query = { doctorId };
+    if (status) query.status = status;
+
+    const result = await getPaginatedData({
+      model: bloodDonationModel,
+      query,
+      page,
+      limit,
+      select:
+        "_id userId bloodGroupId bloodComponent quantity donationDate status bloodDonationRegistrationId healthCheckId createdAt code notes",
+      populate: [
+        { path: "userId", select: "fullName email phone avatar sex yob" },
+        { path: "bloodGroupId", select: "name" },
+        {
+          path: "staffId", 
+          select: "userId position",
+          populate: { path: "userId", select: "fullName email phone" }
+        },
+        {
+          path: "doctorId",
+          select: "userId position",
+          populate: { path: "userId", select: "fullName email phone" }
+        },
+        {
+          path: "bloodDonationRegistrationId",
+          select: "facilityId preferredDate code",
+          populate: { path: "facilityId", select: "name street city" },
+        },
+        { path: "healthCheckId", select: "result bloodPressure heartRate weight" },
+      ],
+      sort: { createdAt: -1 },
+    });
+
+    return result;
+  };
+
   /** STAFF AND MANAGER APIs */
   
   // Lấy danh sách đăng ký hiến máu được gán cho staff (cho nurse)

@@ -1730,6 +1730,129 @@ paths:
           description: Blood donation not found
         "403":
           description: Forbidden (requires staff role)
+    /blood-donation/health-check/{healthCheckId}:
+    get:
+      tags:
+        - Blood Donation - Health Check
+      summary: Get blood donation by health check ID
+      description: Retrieve blood donation record associated with a specific health check
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: healthCheckId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Health check ID
+      responses:
+        '200':
+          description: Successfully retrieved blood donation
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodDonation'
+        '404':
+          description: Blood donation not found for this health check
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Staff role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /blood-donation/health-check/{healthCheckId}:
+    get:
+      tags:
+        - Blood Donation
+      summary: Get blood donation by health check ID
+      description: Retrieve blood donation record associated with a specific health check
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: healthCheckId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Health check ID
+      responses:
+        '200':
+          description: Successfully retrieved blood donation
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodDonation'
+        '404':
+          description: Blood donation not found for this health check
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Staff role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /blood-donation/doctor/:
+    get:
+      tags:
+        - Blood Donation 
+      summary: Get doctor's assigned donations
+      description: Get paginated list of blood donations assigned to the authenticated doctor
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: ["donating", "cancelled", "completed"]
+          description: Filter by donation status
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Number of items per page
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+      responses:
+        '200':
+          description: Successfully retrieved doctor's donations
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Pagination'
+        '403':
+          description: Forbidden - Doctor role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'  
   /blood-request:
     post:
       summary: Create a new blood request
@@ -5348,4 +5471,17 @@ components:
       properties:
         message:
           type: string
+    SuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "success"
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+        data:
+          type: object
 

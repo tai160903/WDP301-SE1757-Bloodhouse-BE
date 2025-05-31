@@ -163,7 +163,7 @@ class UserService {
     if (!user) {
       throw new NotFoundError("User not found");
     }
-    if (user.isVerified) {
+    if (user.status === USER_STATUS.VERIFIED) {
       throw new BadRequestError("User already verified");
     }
 
