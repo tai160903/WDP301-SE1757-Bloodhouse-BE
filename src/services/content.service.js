@@ -3,6 +3,7 @@
 const contentModel = require("../models/content.model");
 const { uploadSingleImage } = require("../helpers/cloudinaryHelper");
 const { CONTENT_STATUS } = require("../constants/enum");
+const { getPaginatedData } = require("../helpers/mongooseHelper");
 
 class ContentService {
   createContent = async (
@@ -27,13 +28,21 @@ class ContentService {
     return newContent;
   };
 
-  getContents = async () => {
-    const contents = await contentModel
-      .find()
-      .populate("categoryId")
-      .populate("authorId", "username avatar fullName")
-      .sort({ createdAt: -1 });
-    return contents;
+  getContents = async ({ status, limit = 10, page = 1 }) => {
+    const query = {};
+    if (status) query.status = status;
+    const result = await getPaginatedData({
+      model: contentModel,
+      query,
+      page,
+      limit,
+      populate: [
+        { path: "categoryId", select: "name" },
+        { path: "authorId", select: "username avatar fullName" },
+      ],
+      sort: { createdAt: -1 },
+    });
+    return result;
   };
 
   getContentById = async (id) => {

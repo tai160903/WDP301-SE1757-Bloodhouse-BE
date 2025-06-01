@@ -12,7 +12,7 @@ class ContentController {
   });
 
   getContents = asyncHandler(async (req, res, next) => {
-    const result = await contentService.getContents();
+    const result = await contentService.getContents(req.query);
     new OK({ message: CONTENT_MESSAGE.GET_SUCCESS, data: result }).send(res);
   });
 

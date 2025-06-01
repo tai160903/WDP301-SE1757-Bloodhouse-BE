@@ -5,10 +5,7 @@ const facilityStaffService = require("../services/facilityStaff.service");
 
 class FacilityStaffController {
   getAllStaffs = asyncHandler(async (req, res, next) => {
-    const { limit, page } = req.query;
-    const result = await facilityStaffService.getAllStaffs(
-      parseInt(limit) || 10,
-      parseInt(page) || 1
+    const result = await facilityStaffService.getAllStaffs(req.query
     );
     new OK({
       message: FACILITY_STAFF_MESSAGE.GET_ALL_FACILITY_STAFFS_SUCCESS,
