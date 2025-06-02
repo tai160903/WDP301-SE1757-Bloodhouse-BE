@@ -137,6 +137,21 @@ const HEALTH_CHECK_STATUS = {
   DONATED: "donated",
 };
 
+const BLOOD_UNIT_STATUS = {
+  AVAILABLE: "available",
+  RESERVED: "reserved",
+  USED: "used",
+  EXPIRED: "expired",
+  TESTING: "testing",
+  REJECTED: "rejected",
+};
+
+const TEST_BLOOD_UNIT_RESULT = {
+  POSITIVE: "positive",
+  NEGATIVE: "negative",
+  PENDING: "pending",
+};
+
 
 module.exports = {
   USER_ROLE,
@@ -156,5 +171,7 @@ module.exports = {
   ENTITY_TYPE,
   DONOR_STATUS,
   PROFILE_LEVEL,
-  HEALTH_CHECK_STATUS                       
+  HEALTH_CHECK_STATUS    ,
+  BLOOD_UNIT_STATUS,
+  TEST_BLOOD_UNIT_RESULT               
 };

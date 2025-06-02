@@ -103,15 +103,28 @@ class BloodDonationController {
 
   // Lấy danh sách blood donation theo doctorId (sử dụng staffId từ token)
   getBloodDonationsByDoctorId = asyncHandler(async (req, res) => {
-    const { status, limit, page } = req.query;
+    const { status, isDivided, limit, page } = req.query;
     const result = await bloodDonationService.getBloodDonationsByDoctorId({
       doctorId: req.user.staffId, 
       status,
+      isDivided,
       limit: parseInt(limit) || 10,
       page: parseInt(page) || 1,
     });
     new OK({
       message: BLOOD_DONATION_MESSAGE.GET_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  // Mark blood donation as divided (Doctor)
+  markBloodDonationAsDivided = asyncHandler(async (req, res) => {
+    const result = await bloodDonationService.markBloodDonationAsDivided({
+      donationId: req.params.id,
+      doctorId: req.user.staffId,
+    });
+    new OK({
+      message: BLOOD_DONATION_MESSAGE.UPDATE_SUCCESS,
       data: result,
     }).send(res);
   });

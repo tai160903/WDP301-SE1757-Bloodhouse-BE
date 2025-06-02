@@ -1,6 +1,6 @@
 "use strict";
 const mongoose = require("mongoose");
-const { BLOOD_COMPONENT } = require("../constants/enum");
+const { BLOOD_COMPONENT, BLOOD_UNIT_STATUS, TEST_BLOOD_UNIT_RESULT } = require("../constants/enum");
 const { generateUniqueCodeSafe } = require("../utils/codeGenerator");
 
 const DOCUMENT_NAME = "BloodUnit";
@@ -51,14 +51,14 @@ const bloodUnitSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["available", "reserved", "used", "expired", "testing", "rejected"],
-      default: "testing",
+      enum: Object.values(BLOOD_UNIT_STATUS),
+      default: BLOOD_UNIT_STATUS.TESTING,
     },
     testResults: {
-      hiv: { type: String, enum: ["positive", "negative", "pending"], default: "pending" },
-      hepatitisB: { type: String, enum: ["positive", "negative", "pending"], default: "pending" },
-      hepatitisC: { type: String, enum: ["positive", "negative", "pending"], default: "pending" },
-      syphilis: { type: String, enum: ["positive", "negative", "pending"], default: "pending" },
+      hiv: { type: String, enum: Object.values(TEST_BLOOD_UNIT_RESULT), default: TEST_BLOOD_UNIT_RESULT.PENDING },
+      hepatitisB: { type: String, enum: Object.values(TEST_BLOOD_UNIT_RESULT), default: TEST_BLOOD_UNIT_RESULT.PENDING },
+      hepatitisC: { type: String, enum: Object.values(TEST_BLOOD_UNIT_RESULT), default: TEST_BLOOD_UNIT_RESULT.PENDING },
+      syphilis: { type: String, enum: Object.values(TEST_BLOOD_UNIT_RESULT), default: TEST_BLOOD_UNIT_RESULT.PENDING },
       notes: { type: String }
     },
     processedBy: {

@@ -585,10 +585,10 @@ class HealthCheckService {
     }
 
     const healthCheck = await healthCheckModel.findOne(query)
+      .populate("userId", "fullName email phone avatar sex yob bloodId")
       .populate({
         path: "userId",
-        select: "fullName email phone avatar sex yob bloodId",
-        populate: { path: "bloodId", select: "name" }
+        populate: { path: "bloodId", select: "type name" }
       })
       .populate({
         path: "staffId",
@@ -602,14 +602,8 @@ class HealthCheckService {
       })
       .populate({
         path: "registrationId",
-        select: "facilityId bloodGroupId",
-        populate: { 
-          path: "facilityId", 
-          select: "name" 
-        },
-        populate: { 
-          path: "bloodGroupId", 
-          select: "name" }
+        select: "facilityId",
+        populate: { path: "facilityId", select: "name" }
       })
       .lean();
 

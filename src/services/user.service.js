@@ -158,25 +158,25 @@ class UserService {
   };
 
   // Gửi email xác minh
-  sendVerificationEmail = async (userId) => {
-    const user = await userModel.findById(userId);
-    if (!user) {
-      throw new NotFoundError("User not found");
-    }
-    if (user.status === USER_STATUS.VERIFIED) {
-      throw new BadRequestError("User already verified");
-    }
+      sendVerificationEmail = async (userId) => {
+        const user = await userModel.findById(userId);
+        if (!user) {
+          throw new NotFoundError("User not found");
+        }
+        if (user.status === USER_STATUS.VERIFIED) {
+          throw new BadRequestError("User already verified");
+        }
 
-    const verifyOTP = crypto.randomInt(100000, 999999).toString();
-    const hashOTP = await bcrypt.hash(verifyOTP, 10);
-    const verifyExpires = Date.now() + 3600000;
-    await userModel.findByIdAndUpdate(userId, {
-      verifyOTP: hashOTP,
-      verifyExpires,
-    });
+        const verifyOTP = crypto.randomInt(100000, 999999).toString();
+        const hashOTP = await bcrypt.hash(verifyOTP, 10);
+        const verifyExpires = Date.now() + 3600000;
+        await userModel.findByIdAndUpdate(userId, {
+          verifyOTP: hashOTP,
+          verifyExpires,
+        });
 
-    return mailService.sendVerificationEmail(user.email, verifyOTP);
-  };
+        return mailService.sendVerificationEmail(user.email, verifyOTP);
+      };
 
   // Xác minh tài khoản
   verifyAccount = async (userId, verifyOTP) => {
