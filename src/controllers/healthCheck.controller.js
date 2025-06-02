@@ -35,7 +35,7 @@ class HealthCheckController {
   // Lấy danh sách kiểm tra sức khỏe của cơ sở
   getFacilityHealthChecks = asyncHandler(async (req, res) => {
     const facilityId = req.user.facilityId;
-    const { page, limit, status, search, sortBy, sortOrder, isEligible } = req.query;
+    const { page, limit, status, search, sortBy, sortOrder } = req.query;
     const result = await healthCheckService.getFacilityHealthChecks(facilityId, {
       page: parseInt(page) || 1,
       limit: parseInt(limit) || 10,
@@ -43,7 +43,6 @@ class HealthCheckController {
       search,
       sortBy,
       sortOrder: parseInt(sortOrder) || -1,
-      isEligible,
     });
     new OK({
       message: HEALTH_CHECK_MESSAGE.GET_SUCCESS,
@@ -58,11 +57,11 @@ class HealthCheckController {
     const result = await healthCheckService.getDoctorHealthChecks(staffId, {
       page: parseInt(page) || 1,
       limit: parseInt(limit) || 10,
-      status,
+      isEligible,
       search,
       sortBy,
       sortOrder: parseInt(sortOrder) || -1,
-      isEligible,
+      status,
     });
     new OK({
       message: HEALTH_CHECK_MESSAGE.GET_SUCCESS,
@@ -73,7 +72,7 @@ class HealthCheckController {
   // Lấy danh sách kiểm tra sức khỏe của người dùng
   getUserHealthChecks = asyncHandler(async (req, res) => {
     const userId = req.user.userId;
-    const { page, limit, status, search, sortBy, sortOrder, isEligible } = req.query;
+    const { page, limit, status, search, sortBy, sortOrder } = req.query;
     const result = await healthCheckService.getUserHealthChecks(userId, {
       page: parseInt(page) || 1,
       limit: parseInt(limit) || 10,
@@ -81,7 +80,6 @@ class HealthCheckController {
       search,
       sortBy,
       sortOrder: parseInt(sortOrder) || -1,
-      isEligible,
     });
     new OK({
       message: HEALTH_CHECK_MESSAGE.GET_SUCCESS,
@@ -92,7 +90,7 @@ class HealthCheckController {
   // Lấy danh sách kiểm tra sức khỏe của nurse
   getNurseHealthChecks = asyncHandler(async (req, res) => {
     const staffId = req.user.staffId;
-    const { page, limit, status, search, sortBy, sortOrder, isEligible } = req.query;
+    const { page, limit, status, search, sortBy, sortOrder, isCompleted } = req.query;
     const result = await healthCheckService.getNurseHealthChecks(staffId, {
       page: parseInt(page) || 1,
       limit: parseInt(limit) || 10,
@@ -100,7 +98,7 @@ class HealthCheckController {
       search,
       sortBy,
       sortOrder: parseInt(sortOrder) || -1,
-      isEligible,
+      isCompleted,
     });
     new OK({
       message: HEALTH_CHECK_MESSAGE.GET_SUCCESS,

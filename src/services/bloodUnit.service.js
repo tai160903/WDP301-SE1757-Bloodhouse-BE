@@ -5,7 +5,7 @@ const bloodDonationModel = require("../models/bloodDonation.model");
 const bloodInventoryService = require("./bloodInventory.service");
 const { BadRequestError, NotFoundError } = require("../configs/error.response");
 const { getInfoData } = require("../utils");
-const { BLOOD_COMPONENT, BLOOD_DONATION_STATUS } = require("../constants/enum");
+const { BLOOD_COMPONENT, BLOOD_DONATION_STATUS, BLOOD_UNIT_STATUS } = require("../constants/enum");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
 const bloodComponentModel = require("../models/bloodComponent.model");
 
@@ -14,7 +14,7 @@ class BloodUnitService {
   createBloodUnitsFromDonation = async ({
     donationId,
     staffId,
-    units // Array of { component, quantity }
+    units 
   }) => {
     // Kiểm tra donation
     const donation = await bloodDonationModel
@@ -66,7 +66,7 @@ class BloodUnitService {
         expiresAt,
         processedBy: staffId,
         processedAt: new Date(),
-        status: "testing"
+        status: BLOOD_UNIT_STATUS.TESTING
       });
 
       createdUnits.push(bloodUnit);
@@ -96,7 +96,9 @@ class BloodUnitService {
     staffId,
     testResults,
     status,
-    notes
+    notes,
+    quantity,
+    expiresAt
   }) => {
     const bloodUnit = await bloodUnitModel.findById(unitId);
     if (!bloodUnit) {
@@ -112,7 +114,7 @@ class BloodUnitService {
     if (status) {
       bloodUnit.status = status;
       
-      if (status === "available") {
+      if (status === BLOOD_UNIT_STATUS.AVAILABLE) {
         bloodUnit.approvedBy = staffId;
         bloodUnit.approvedAt = new Date();
         // Cập nhật inventory khi approve
@@ -122,6 +124,14 @@ class BloodUnitService {
 
     if (notes) {
       bloodUnit.testResults.notes = notes;
+    }
+
+    if (quantity) {
+      bloodUnit.quantity = quantity;
+    }
+
+    if (expiresAt) {
+      bloodUnit.expiresAt = expiresAt;
     }
 
     await bloodUnit.save();
@@ -217,6 +227,59 @@ class BloodUnitService {
     return result;
   };
 
+  // Lấy blood units do doctor hiện tại xử lý
+  getBloodUnitsByProcessedBy = async (staffId, { 
+    status, 
+    component, 
+    page = 1, 
+    limit = 10,
+    search,
+    startDate,
+    endDate
+  }) => {
+    const query = { processedBy: staffId };
+    
+    if (status) query.status = status;
+    if (component) query.component = component;
+    
+    if (startDate || endDate) {
+      query.collectedAt = {};
+      if (startDate) query.collectedAt.$gte = new Date(startDate);
+      if (endDate) query.collectedAt.$lte = new Date(endDate);
+    }
+
+    const result = await getPaginatedData({
+      model: bloodUnitModel,
+      query,
+      page,
+      limit,
+      select: "_id code donationId facilityId bloodGroupId component quantity collectedAt expiresAt status testResults processedBy processedAt approvedBy approvedAt createdAt updatedAt",
+      populate: [
+        { path: "bloodGroupId", select: "name type" },
+        { 
+          path: "donationId", 
+          select: "userId donationDate quantity", 
+          populate: { path: "userId", select: "fullName email phone" } 
+        },
+        { 
+          path: "processedBy", 
+          select: "userId position", 
+          populate: { path: "userId", select: "fullName" } 
+        },
+        { 
+          path: "approvedBy", 
+          select: "userId position", 
+          populate: { path: "userId", select: "fullName" } 
+        }
+      ],
+      search,
+      searchFields: ["donationId.userId.fullName", "donationId.userId.email", "donationId.userId.phone"],
+      sort: { createdAt: -1 },
+    });
+
+    return result;
+  };
+
   // Lấy chi tiết blood unit
   getBloodUnitDetail = async (unitId) => {
     const bloodUnit = await bloodUnitModel
@@ -261,7 +324,8 @@ class BloodUnitService {
         "approvedBy",
         "approvedAt",
         "createdAt",
-        "updatedAt"
+        "updatedAt",
+        "code"
       ],
       object: bloodUnit,
     });
