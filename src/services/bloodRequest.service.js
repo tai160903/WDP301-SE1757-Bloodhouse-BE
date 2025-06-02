@@ -3,12 +3,13 @@
 const BloodRequest = require("../models/bloodRequest.model");
 const { getInfoData } = require("../utils");
 const { BadRequestError } = require("../configs/error.response");
-const { BLOOD_REQUEST_STATUS, BLOOD_COMPONENT } = require("../constants/enum");
+const { BLOOD_REQUEST_STATUS } = require("../constants/enum");
 const bloodGroupModel = require("../models/bloodGroup.model");
 const userModel = require("../models/user.model");
 const { uploadSingleImage } = require("../helpers/cloudinaryHelper");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
 const notificationService = require("./notification.service");
+const BloodRequestSupport = require("../models/bloodRequestSupport.model");
 
 class BloodRequestService {
   requestFields = [
@@ -33,11 +34,10 @@ class BloodRequestService {
     "medicalDocumentUrl",
     "note",
     "preferredDate",
-    "scheduleDate",
+    "scheduledDeliveryDate",
     "consent",
     "createdAt",
     "updatedAt",
-    "hasCampaign",
     "isFulfilled",
   ];
 
@@ -153,7 +153,6 @@ class BloodRequestService {
         "consent",
         "createdAt",
         "updatedAt",
-        "hasCampaign",
         "isFulfilled",
       ],
       object: result,
@@ -168,7 +167,6 @@ class BloodRequestService {
       limit = 10,
       status,
       isUrgent,
-      hasCampaign,
       isFulfilled,
       search,
       sortBy = "createdAt",
@@ -184,9 +182,6 @@ class BloodRequestService {
     }
     if (isUrgent) {
       query.isUrgent = isUrgent;
-    }
-    if (hasCampaign) {
-      query.hasCampaign = hasCampaign;
     }
     if (isFulfilled) {
       query.isFulfilled = isFulfilled;
@@ -216,7 +211,7 @@ class BloodRequestService {
       page,
       limit,
       select:
-        "_id bloodId patientPhone hasCampaign isFulfilled componentId userId facilityId patientName patientAge bloodComponent quantity isUrgent status location address contactName contactPhone contactEmail reason medicalDetails medicalDocumentUrl note preferredDate consent createdAt updatedAt",
+        "_id bloodId patientPhone isFulfilled componentId userId facilityId patientName patientAge bloodComponent quantity isUrgent status location address contactName contactPhone contactEmail reason medicalDetails medicalDocumentUrl note preferredDate consent createdAt updatedAt",
       populate: [
         { path: "groupId", select: "name" },
         { path: "userId", select: "fullName email phone" },
@@ -429,37 +424,64 @@ class BloodRequestService {
   updateBloodRequestStatus = async (
     id,
     facilityId,
-    { status, staffId, scheduleDate }
+    { status, staffId, scheduledDeliveryDate, needsSupport }
   ) => {
-    if (!Object.values(BLOOD_REQUEST_STATUS).includes(status)) {
-      throw new BadRequestError("Trạng thái không hợp lệ");
-    }
-    if (status === "approved") {
-      if (!scheduleDate) {
-        throw new BadRequestError("Ngày thực hiện không được để trống");
-      }
-    }
     const bloodRequest = await BloodRequest.findOne({
       _id: id,
       facilityId,
     })
       .populate("userId", "fullName email phone")
-      .populate("facilityId", "name");
+      .populate("facilityId", "name")
+      .populate("groupId", "name")
+      .populate("componentId", "name");
+
     if (!bloodRequest) {
       throw new BadRequestError(
         "Không tìm thấy yêu cầu máu hoặc không thuộc cơ sở này"
       );
     }
 
-    bloodRequest.status = status;
+    if (status) {
+      if (!Object.values(BLOOD_REQUEST_STATUS).includes(status)) {
+        console.log("status không hợp lệ");
+        throw new BadRequestError("Trạng thái không hợp lệ");
+      }
+      bloodRequest.status = status;
+    }
+
     if (staffId) {
       bloodRequest.staffId = staffId;
     }
-    if (scheduleDate) {
-      bloodRequest.scheduleDate = scheduleDate;
+    if (scheduledDeliveryDate) {
+      bloodRequest.scheduledDeliveryDate = scheduledDeliveryDate;
     }
+    if (needsSupport !== undefined) {
+      bloodRequest.needsSupport = needsSupport;
+
+      // Nếu cần hỗ trợ, tìm và gửi thông báo đến người dùng có thể hiến máu
+      if (needsSupport === true) {
+        // Lấy tất cả người dùng có nhóm máu trùng với nhóm máu của yêu cầu máu
+        const potentialDonors = await userModel.find({
+          bloodId: bloodRequest.groupId,
+          isAvailable: true,
+        });
+
+        // Gửi thông báo đến người dùng có thể hiến máu
+        for (const donor of potentialDonors) {
+          await notificationService.sendBloodSupportRequestNotification(
+            donor._id,
+            bloodRequest.userId.fullName,
+            bloodRequest.groupId.name,
+            bloodRequest.componentId.name,
+            bloodRequest._id
+          );
+        }
+      }
+    }
+
     await bloodRequest.save();
 
+    // Gửi thông báo đến người dùng yêu cầu máu
     await notificationService.sendBloodRequestStatusNotification(
       bloodRequest.userId,
       status,
@@ -469,10 +491,162 @@ class BloodRequestService {
 
     return {
       data: getInfoData({
-        fields: ["_id", "status", "staffId", "updatedAt"],
+        fields: [
+          "_id",
+          "status",
+          "staffId",
+          "scheduledDeliveryDate",
+          "needsSupport",
+          "updatedAt",
+        ],
         object: bloodRequest,
       }),
     };
+  };
+
+  getRequestBloodNeedSupport = async (userId) => {
+    // B1: Lấy tất cả yêu cầu máu đã duyệt, chưa fulfill, chưa có lịch phân phối
+    const requests = await BloodRequest.find({
+      status: BLOOD_REQUEST_STATUS.APPROVED,
+      isFulfilled: false,
+      scheduledDeliveryDate: { $exists: false },
+      needsSupport: true,
+    })
+      .populate("userId", "fullName email phone")
+      .populate("facilityId", "name address")
+      .populate("groupId", "name")
+      .populate("componentId", "name")
+      .sort({ isUrgent: -1, createdAt: -1 });
+
+    const requestIds = requests.map((r) => r._id);
+
+    // B2: Đếm số người đã duyệt và đang chờ duyệt cho từng request
+    const supportStats = await BloodRequestSupport.aggregate([
+      {
+        $match: {
+          requestId: { $in: requestIds },
+        },
+      },
+      {
+        $group: {
+          _id: { requestId: "$requestId", status: "$status" },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    // B3: Chuyển kết quả sang Map để tra nhanh
+    const supportStatMap = {}; // { requestId: { approved: x, pending: y } }
+    supportStats.forEach((item) => {
+      const requestId = item._id.requestId.toString();
+      const status = item._id.status;
+      if (!supportStatMap[requestId]) {
+        supportStatMap[requestId] = { approved: 0, pending: 0 };
+      }
+      if (status === "approved") {
+        supportStatMap[requestId].approved = item.count;
+      } else if (status === "pending") {
+        supportStatMap[requestId].pending = item.count;
+      }
+    });
+
+    const result = await Promise.all(
+      requests.map(async (request) => {
+        const detail = await this.getRequestBloodNeedSupportById(
+          request._id,
+          userId
+        );
+
+        const stat = supportStatMap[request._id.toString()] || {
+          approved: 0,
+          pending: 0,
+        };
+
+        detail.numberRegistered = stat.approved;
+        detail.numberPending = stat.pending;
+
+        return detail;
+      })
+    );
+
+    return result;
+  };
+
+  getRequestBloodNeedSupportById = async (id, userId) => {
+    const bloodRequest = await BloodRequest.findOne({
+      _id: id,
+      needsSupport: true,
+    })
+      .populate("userId", "fullName email phone")
+      .populate("facilityId", "name address")
+      .populate("groupId", "name")
+      .populate("componentId", "name");
+    if (!bloodRequest) {
+      throw new BadRequestError("Không tìm thấy yêu cầu máu");
+    }
+
+    const numberRegistered = await BloodRequestSupport.countDocuments({
+      requestId: bloodRequest._id,
+    });
+
+    const registered = await BloodRequestSupport.findOne({
+      userId,
+      requestId: bloodRequest._id,
+    });
+
+    const result = {
+      ...bloodRequest.toObject(),
+      isRegistered: registered ? true : false,
+      numberRegistered,
+    };
+
+    return getInfoData({
+      fields: this.requestFields.concat([
+        "facilityId",
+        "staffId",
+        "isRegistered",
+        "numberRegistered",
+        "componentId",
+      ]),
+      object: result,
+    });
+  };
+
+  getSupportRequestsForFacility = async (facilityId) => {
+    const bloodRequest = await BloodRequest.find({
+      facilityId,
+      needsSupport: true,
+    })
+      .populate("userId", "fullName email phone")
+      .populate("facilityId", "name address")
+      .populate("groupId", "name")
+      .populate("componentId", "name")
+      .sort({ isUrgent: -1, createdAt: -1 });
+    return bloodRequest;
+  };
+
+  getSupportRequestDetails = async (id, facilityId, { status }) => {
+    if (!id || !facilityId) {
+      throw new BadRequestError("Yêu cầu id và facilityId");
+    }
+    const query = { _id: id, facilityId };
+
+    if (status) {
+      if (!Object.values(BLOOD_REQUEST_STATUS).includes(status)) {
+        throw new BadRequestError("Trạng thái không hợp lệ");
+      }
+      query.status = status;
+    }
+
+    const bloodRequest = await BloodRequest.findOne(query)
+      .populate("userId", "fullName email phone")
+      .populate("facilityId", "name address")
+      .populate("groupId", "name")
+      .populate("componentId", "name");
+    if (!bloodRequest) {
+      throw new BadRequestError("Không tìm thấy yêu cầu máu");
+    }
+    return bloodRequest;
   };
 }
 

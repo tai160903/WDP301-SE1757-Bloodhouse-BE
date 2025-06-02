@@ -14,12 +14,12 @@ const STAFF_POSITION = {
 };
 
 const NOTIFICATION_TYPE = {
-  EMERGENCY_CAMPAIGN: "emergencyCampaign",
   REMINDER: "reminder",
   REQUEST: "request",
   MATCH: "match",
   STATUS: "status",
   GIFT: "gift",
+  SUPPORT_REQUEST: "supportRequest",
 };
 
 const ENTITY_TYPE = {
@@ -28,7 +28,6 @@ const ENTITY_TYPE = {
   BLOOD_REQUEST: "bloodRequest",
   BLOOD_GROUP: "bloodGroup",
   BLOOD_INVENTORY: "bloodInventory",
-  EMERGENCY_CAMPAIGN: "emergencyCampaign",
 };
 
 const HEADER = {

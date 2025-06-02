@@ -1,34 +1,41 @@
 const { BadRequestError } = require("../configs/error.response");
 const { USER_ROLE } = require("../constants/enum");
 const { FACILITY_STAFF_MESSAGE } = require("../constants/message");
+const { getPaginatedData } = require("../helpers/mongooseHelper");
 const facilityStaffModel = require("../models/facilityStaff.model");
 const userModel = require("../models/user.model");
 
 class FacilityStaffService {
-  getAllStaffs = async (limit = 10, page = 1) => {
-    const skip = (page - 1) * limit;
+  getAllStaffs = async ({ position, facilityId, limit = 10, page = 1 }) => {
+    const query = {};
+    if (position) query.position = position;
+    if (facilityId) query.facilityId = facilityId;
 
-    const result = await facilityStaffModel
-      .find({ isDeleted: { $ne: true } })
-      .populate("userId", "fullName email phone avatar")
-      .populate("facilityId", "name address")
-      .skip(skip)
-      .limit(limit)
-      .lean();
-
-    return {
-      total: result.length,
+    const result = await getPaginatedData({
+      model: facilityStaffModel,
+      query,
       page,
-      result,
-    };
+      limit,
+      select: "_id userId facilityId position assignedAt isDeleted",
+      populate: [
+        { path: "userId", select: "fullName email phone avatar" },
+        { path: "facilityId", select: "name address" },
+      ],
+      sort: { createdAt: -1 },
+    });
+
+    return result;
   };
 
   getAllStaffsNotAssignedToFacility = async ({ position }) => {
-    const result = await facilityStaffModel.find({
+    let query = {
       isDeleted: { $ne: true },
       facilityId: { $exists: false },
-      position: { $in: position },
-    });
+    };
+    if (position) {
+      query.position = { $in: position };
+    }
+    const result = await facilityStaffModel.find(query);
     return result;
   };
 
@@ -47,7 +54,7 @@ class FacilityStaffService {
       .find(query)
       .populate("userId", "fullName email phone avatar")
       .populate("facilityId", "name address");
-    console.log(result);
+
     return {
       total: result.length,
       result,

@@ -100,6 +100,15 @@ class UserController {
     }).send(res);
   });
 
+  // Lấy danh sách user
+  getUsers = asyncHandler(async (req, res) => {
+    const result = await userService.getUsers(req.query);
+    new OK({
+      message: "Users retrieved successfully",
+      data: result,
+    }).send(res);
+  });
+
   // Xóa tài khoản
   deleteAccount = asyncHandler(async (req, res) => {
     const result = await userService.deleteAccount(req.user.userId);
@@ -129,7 +138,10 @@ class UserController {
 
   // Cập nhật expo push token
   updateExpoToken = asyncHandler(async (req, res) => {
-    const result = await userService.updateExpoToken(req.user.userId, req.body.expoPushToken);
+    const result = await userService.updateExpoToken(
+      req.user.userId,
+      req.body.expoPushToken
+    );
     new OK({
       message: "Expo push token updated successfully",
       data: result,

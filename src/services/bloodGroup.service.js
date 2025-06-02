@@ -41,6 +41,11 @@ class BloodGroupService {
     );
     return bloodGroup;
   };
+
+  getBloodGroupById = async (id) => {
+    const bloodGroup = await bloodGroupModel.findById(id);
+    return bloodGroup;
+  };
 }
 
 module.exports = new BloodGroupService();

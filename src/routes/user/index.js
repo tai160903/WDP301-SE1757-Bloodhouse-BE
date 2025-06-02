@@ -8,6 +8,7 @@ router.post("/reset-password", userController.resetPassword); // Không cần au
 
 router.use(checkAuth);
 
+router.get("/", userController.getUsers);
 router.get("/me", userController.getUserInfo);
 router.patch("/blood-group", userController.updateBloodGroup);
 router.patch("/profile", userController.updateProfile);

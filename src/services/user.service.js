@@ -5,9 +5,10 @@ const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const { BadRequestError, NotFoundError } = require("../configs/error.response");
 const { getInfoData } = require("../utils");
-const { USER_STATUS, SEX } = require("../constants/enum");
+const { USER_STATUS, SEX, USER_ROLE } = require("../constants/enum");
 const crypto = require("crypto");
 const mailService = require("./mail.service");
+const { getPaginatedData } = require("../helpers/mongooseHelper");
 
 class UserService {
   // Tìm kiếm người dùng gần vị trí
@@ -209,7 +210,22 @@ class UserService {
     await user.save();
 
     return getInfoData({
-      fields: ["_id", "fullName", "email", "isVerified", "status", "avatar", "profileLevel", "role", "idCard", "address", "phone", "bloodId", "sex", "yob"],
+      fields: [
+        "_id",
+        "fullName",
+        "email",
+        "isVerified",
+        "status",
+        "avatar",
+        "profileLevel",
+        "role",
+        "idCard",
+        "address",
+        "phone",
+        "bloodId",
+        "sex",
+        "yob",
+      ],
       object: user,
     });
   };
@@ -251,7 +267,6 @@ class UserService {
         "profileLevel",
         "role",
         "avatar",
-        
       ],
       object: user,
     });
@@ -324,6 +339,29 @@ class UserService {
       ],
       object: user,
     });
+  };
+
+  // Lấy danh sách user
+  getUsers = async ({
+    status,
+    isAvailable,
+    limit = 10,
+    page = 1,
+  }) => {
+    const query = {};
+    if (status) query.status = status;
+    if (isAvailable) query.isAvailable = isAvailable;
+    const result = await getPaginatedData({
+      model: userModel,
+      query,
+      page,
+      limit,
+      select:
+        "_id fullName email phone street city country sex yob bloodId avatar isAvailable isVerified status idCard",
+      populate: [{ path: "bloodId", select: "name" }],
+      sort: { createdAt: -1 },
+    });
+    return result;
   };
 
   // Xóa tài khoản
