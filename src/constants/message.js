@@ -92,6 +92,7 @@ const BLOOD_GROUP_MESSAGE = {
 };
 
 const CONTENT_CATEGORY_MESSAGE = {
+  
   CREATE_SUCCESS: "Tạo danh mục nội dung thành công",
   CREATE_FAILED: "Tạo danh mục nội dung thất bại",
   UPDATE_SUCCESS: "Cập nhật danh mục nội dung thành công",
@@ -101,6 +102,8 @@ const CONTENT_CATEGORY_MESSAGE = {
 const CONTENT_MESSAGE = {
   CREATE_SUCCESS: "Tạo nội dung thành công",
   CREATE_FAILED: "Tạo nội dung thất bại",
+  GET_SUCCESS: "Lấy nội dung thành công",
+  GET_FAILED: "Lấy nội dung thất bại",
   UPDATE_SUCCESS: "Cập nhật nội dung thành công",
   UPDATE_FAILED: "Cập nhật nội dung thất bại",
 };

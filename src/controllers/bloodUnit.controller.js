@@ -49,17 +49,9 @@ class BloodUnitController {
 
   // Lấy blood units theo facility (Manager)
   getBloodUnitsByFacility = asyncHandler(async (req, res) => {
-    const { 
-      status, 
-      component, 
-      bloodGroupId, 
-      page, 
-      limit, 
-      search, 
-      startDate, 
-      endDate 
-    } = req.query;
-    
+    const { status, component, bloodGroupId, page, limit, search, startDate } =
+      req.query;
+
     const result = await bloodUnitService.getBloodUnitsByFacility(
       req.params.facilityId,
       {
@@ -70,7 +62,7 @@ class BloodUnitController {
         limit: parseInt(limit) || 10,
         search,
         startDate,
-        endDate
+        endDate,
       }
     );
     new OK({
@@ -132,4 +124,4 @@ class BloodUnitController {
   });
 }
 
-module.exports = new BloodUnitController(); 
+module.exports = new BloodUnitController();

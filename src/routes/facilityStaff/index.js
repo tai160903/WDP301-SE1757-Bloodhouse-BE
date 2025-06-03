@@ -8,8 +8,14 @@ router.use(checkAuth);
 // router.use(checkRole([USER_ROLE.ADMIN]));
 
 router.get("/", facilityStaffController.getAllStaffs);
-router.get("/not-assigned", facilityStaffController.getAllStaffsNotAssignedToFacility);
-router.get("/facility/:id", facilityStaffController.getFacilityStaffByFacilityId);
+router.get(
+  "/not-assigned",
+  facilityStaffController.getAllStaffsNotAssignedToFacility
+);
+router.get(
+  "/facility/:id",
+  facilityStaffController.getFacilityStaffByFacilityId
+);
 router.get("/:id", facilityStaffController.getFacilityStaffById);
 router.post("/", facilityStaffController.createFacilityStaff);
 router.put("/:id", facilityStaffController.updateFacilityStaff);
