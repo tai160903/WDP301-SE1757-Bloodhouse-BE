@@ -80,6 +80,36 @@ class BloodUnitController {
     }).send(res);
   });
 
+  // Lấy blood units do doctor hiện tại xử lý
+  getBloodUnitsByProcessedBy = asyncHandler(async (req, res) => {
+    const { 
+      status, 
+      component, 
+      page, 
+      limit, 
+      search, 
+      startDate, 
+      endDate 
+    } = req.query;
+    
+    const result = await bloodUnitService.getBloodUnitsByProcessedBy(
+      req.user.staffId,
+      {
+        status,
+        component,
+        page: parseInt(page) || 1,
+        limit: parseInt(limit) || 10,
+        search,
+        startDate,
+        endDate
+      }
+    );
+    new OK({
+      message: BLOOD_UNIT_MESSAGE.GET_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
   // Thống kê blood units (Manager)
   getBloodUnitsStatistics = asyncHandler(async (req, res) => {
     const { startDate, endDate } = req.query;

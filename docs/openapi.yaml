@@ -1713,6 +1713,10 @@ paths:
                   type: string
                   description: Additional notes
                   example: "Donation completed successfully"
+                quantity:
+                  type: number
+                  description: Quantity of blood donated
+                  example: 350
       responses:
         "200":
           description: Blood donation updated successfully
@@ -2987,7 +2991,7 @@ paths:
           name: status
           schema:
             type: string
-            enum: [pending, completed, cancelled, donated]
+            enum: [eligible, not_eligible]
           description: Filter by eligibility status
         - in: query
           name: search
@@ -3008,11 +3012,6 @@ paths:
             enum: [1, -1]
             default: -1
           description: Sort order (1 for ascending, -1 for descending)
-        - in: query
-          name: isEligible
-          schema:
-            type: boolean
-          description: Filter by eligibility status
       responses:
         "200":
           description: List of health checks retrieved successfully
@@ -3059,7 +3058,7 @@ paths:
           name: status
           schema:
             type: string
-            enum: [pending, completed, cancelled, donated]
+            enum: [eligible, not_eligible]
           description: Filter by eligibility status
         - in: query
           name: search
@@ -3080,11 +3079,6 @@ paths:
             enum: [1, -1]
             default: -1
           description: Sort order (1 for ascending, -1 for descending)
-        - in: query
-          name: isEligible
-          schema:
-            type: boolean
-          description: Filter by eligibility status
       responses:
         "200":
           description: List of health checks retrieved successfully
@@ -3131,7 +3125,7 @@ paths:
           name: status
           schema:
             type: string
-            enum: [pending, completed, cancelled, donated]
+            enum: [eligible, not_eligible]
           description: Filter by eligibility status
         - in: query
           name: search
@@ -3152,11 +3146,6 @@ paths:
             enum: [1, -1]
             default: -1
           description: Sort order (1 for ascending, -1 for descending)
-        - in: query
-          name: isEligible
-          schema:
-            type: boolean
-          description: Filter by eligibility status
       responses:
         "200":
           description: List of health checks retrieved successfully
@@ -3204,7 +3193,7 @@ paths:
           name: status
           schema:
             type: string
-            enum: [pending, completed, cancelled, donated]
+            enum: [eligible, not_eligible]
           description: Filter by eligibility status
         - in: query
           name: search
@@ -3225,11 +3214,6 @@ paths:
             enum: [1, -1]
             default: -1
           description: Sort order (1 for ascending, -1 for descending)
-        - in: query
-          name: isEligible
-          schema:
-            type: boolean
-          description: Filter by eligibility status
       responses:
         "200":
           description: List of health checks retrieved successfully
@@ -3794,6 +3778,127 @@ paths:
           description: Forbidden (requires staff role)
         "404":
           description: Process donation log not found
+
+  /blood-donation:
+    post:
+      summary: Create blood donation record
+      description: Nurse creates blood donation record (WAITING_DONATION → DONATING)
+      tags:
+        - Blood Donation 
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  description: User ID of the donor
+                  example: "60d0fe4f5311236168a109cb"
+                bloodGroupId:
+                  type: string
+                  description: Blood group ID
+                  example: "60d0fe4f5311236168a109cc"
+                bloodDonationRegistrationId:
+                  type: string
+                  description: Blood donation registration ID
+                  example: "60d0fe4f5311236168a109ca"
+                bloodComponent:
+                  type: string
+                  enum: ["Máu toàn phần", "Hồng cầu", "Huyết tương", "Tiểu cầu"]
+                  description: Blood component type
+                  example: "Máu toàn phần"
+                quantity:
+                  type: number
+                  description: Quantity in ml
+                  example: 450
+                donationDate:
+                  type: string
+                  format: date-time
+                  description: Donation date
+                  example: "2025-06-01T10:00:00Z"
+              required:
+                - userId
+                - bloodGroupId
+                - bloodComponent
+                - quantity
+                - donationDate
+      responses:
+        "201":
+          description: Blood donation record created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Create blood donation successfully"
+                  data:
+                    $ref: "#/components/schemas/BloodDonation"
+        "400":
+          description: Invalid input data
+        "403":
+          description: Forbidden (requires staff role)
+
+  /blood-donation/{id}:
+    patch:
+      summary: Update blood donation record
+      description: Update blood donation with start time or completion status
+      tags:
+        - Blood Donation
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Blood donation ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                donationStartAt:
+                  type: string
+                  format: date-time
+                  description: When donation starts (transitions to DONATING)
+                  example: "2025-06-01T11:00:00Z"
+                status:
+                  type: string
+                  enum: ["confirmed", "completed", "cancelled"]
+                  description: Donation status
+                  example: "completed"
+                notes:
+                  type: string
+                  description: Additional notes
+                  example: "Donation completed successfully"
+      responses:
+        "200":
+          description: Blood donation updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Cập nhật bản ghi hiến máu thành công"
+                  data:
+                    $ref: "#/components/schemas/BloodDonation"
+        "404":
+          description: Blood donation not found
+        "403":
+          description: Forbidden (requires staff role)
+
+  
 
   # Donor Status Log APIs
   /donor-status-log:

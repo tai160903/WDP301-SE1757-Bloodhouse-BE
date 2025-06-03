@@ -19,6 +19,14 @@ router.get("/", bloodDonationController.getBloodDonations);
 router.post("/",checkStaff([STAFF_POSITION.NURSE]), bloodDonationController.createBloodDonation);
 router.patch("/:id", checkStaff([STAFF_POSITION.NURSE]), bloodDonationController.updateBloodDonation);
 router.patch("/transition-to-resting/:registrationId", bloodDonationController.transitionToResting);
+
+// New routes for health check and doctor
+router.get("/health-check/:healthCheckId", bloodDonationController.getBloodDonationByHealthCheckId);
+router.get("/doctor/", checkStaff([STAFF_POSITION.DOCTOR]), bloodDonationController.getBloodDonationsByDoctorId);
+
+// Add new route for doctor to manage blood splitting
+router.patch("/doctor/:id/mark-divided", checkStaff([STAFF_POSITION.DOCTOR]), bloodDonationController.markBloodDonationAsDivided);
+
 router.get("/:id", bloodDonationController.getBloodDonationDetail);
 
 module.exports = router;

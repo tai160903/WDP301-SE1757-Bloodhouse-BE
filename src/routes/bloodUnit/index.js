@@ -22,6 +22,9 @@ router.get("/:id", bloodUnitController.getBloodUnitDetail);
 router.post("/", checkStaff([STAFF_POSITION.DOCTOR]), bloodUnitController.createBloodUnitsFromDonation);
 router.patch("/:id", checkStaff([STAFF_POSITION.DOCTOR]), bloodUnitController.updateBloodUnit);
 
+// Get blood units processed by current doctor
+router.get("/processed-by/me", checkStaff([STAFF_POSITION.DOCTOR]), bloodUnitController.getBloodUnitsByProcessedBy);
+
 // Manager routes
 router.use(checkStaff([STAFF_POSITION.MANAGER]));
 
