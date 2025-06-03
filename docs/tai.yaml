@@ -1,0 +1,3097 @@
+openapi: 3.0.4
+info:
+  title: Swagger Petstore - OpenAPI 3.0
+  description: BloodHouse API
+  version: 1.0.12
+servers:
+  - url: http://localhost:3000/api/v1
+tags:
+  - name: Authentication
+  - name: Blood Compatibility
+  - name: Blood Component
+  - name: Blood Donation
+  - name: Blood Donation Registration
+  - name: Blood Group
+  - name: Blood Inventory
+  - name: Blood Request
+  - name: Blood Request Support
+  - name: Blood Unit
+  - name: Content
+  - name: Content Category
+  - name: Donor Status Log
+  - name: Facility
+  - name: Facility Staff
+  - name: Feedback
+  - name: Health Check
+paths:
+  /auth/sign-in:
+    post:
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: nguyenvana@example.com
+                  description: Địa chỉ email
+                password:
+                  type: string
+                  format: password
+                  example: Password123!
+                  description: Mật khẩu
+              required:
+                - email
+                - password
+      responses:
+        "200":
+          description: Đăng nhập thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Đăng nhập thành công
+                  status:
+                    type: number
+                    example: 200
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                            example: 60d0fe4f5311236168a109ca
+                          email:
+                            type: string
+                            example: nguyenvana@example.com
+                          role:
+                            type: string
+                            example: MEMBER
+                          avatar:
+                            type: string
+                            example: https://exmaple.jpg
+                          status:
+                            type: string
+                            example: active
+                          profileLevel:
+                            type: number
+                            example: 1
+                      tokens:
+                        type: object
+                        properties:
+                          accessToken:
+                            type: string
+                            example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVBJ9.eyJ1c2VySWQiOiI2ODM3MTk1ZmEzMWFmOTJmLzE3MjcxYjQiLCJlbWFpbCI6InRhaWx0c2UxNzEwOUBmcHQuZWR1LnZuIiwicm9sZSI6Ik1FTUJFUiIsImlhdCI6MTc0ODQ0MTQzOSwiZXhwIjoxNzQ4NjE6MjM5fQ.QP-SI6scFOgcbvAMW76aGTegy3lc5W0g10aOIiPMER
+                          refreshToken:
+                            type: string
+                            example: eyJ1c2VySWQiOiI2ODM3MTl1ZmEzMWFmOTJmMzE3MjcxYjQiLCJlbWFpbCI6InRhaWx0c2UxNzEwOUBmcHQuZWR1LnZuIiwicm9sZSI6Ik1FPTJFUiIsImlhdCI6MTc0ODQ0MTQzOSwiZXhwIjoxNzQ5MDQ2MjM5fQ.SyfMQSvAF9MpbjMZMmi8tqydlkIlIhRWh3ilm5smstU
+        "400":
+          description: Đăng nhập không thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Đăng nhập không thành công
+
+  /auth/sign-up:
+    post:
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  example: nguyenvana@example.com
+                password:
+                  type: string
+                  example: abc123
+              required:
+                - email
+                - password
+      responses:
+        "200":
+          description: Đăng ký thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Đăng ký thành công
+                  status:
+                    type: number
+                    example: 200
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                            example: 60d0fe4f5311236168a109ca
+                          email:
+                            type: string
+                            example: nguyenvana@example.com
+                          role:
+                            type: string
+                            example: MEMBER
+                      tokens:
+                        type: object
+                        properties:
+                          accessToken:
+                            type: string
+                            example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVBJ9.eyJ1c2VySWQiOiI2ODM3MTk1ZmEzMWFmOTJmLzE3MjcxYjQiLCJlbWFpbCI6InRhaWx0c2UxNzEwOUBmcHQuZWR1LnZuIiwicm9sZSI6Ik1FTUJFUiIsImlhdCI6MTc0ODQ0MTQzOSwiZXhwIjoxNzQ4NjE6MjM5fQ.QP-SI6scFOgcbvAMW76aGTegy3lc5W0g10aOIiPMER
+                          refreshToken:
+                            type: string
+                            example: eyJ1c2VySWQiOiI2ODM3MTl1ZmEzMWFmOTJmMzE3MjcxYjQiLCJlbWFpbCI6InRhaWx0c2UxNzEwOUBmcHQuZWR1LnZuIiwicm9sZSI6Ik1FPTJFUiIsImlhdCI6MTc0ODQ0MTQzOSwiZXhwIjoxNzQ5MDQ2MjM5fQ.SyfMQSvAF9MpbjMZMmi8tqydlkIlIhRWh3ilm5smstU
+
+  /auth/sign-out:
+    post:
+      tags:
+        - Authentication
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Đăng xuất thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Đăng xuất thành công
+
+  /auth/refresh-token:
+    post:
+      tags:
+        - Authentication
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+                  example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  description: Refresh token được cấp trước đó
+              required:
+                - refreshToken
+      responses:
+        "200":
+          description: Tokens refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Refresh token successfully
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                            example: "60d0fe4f5311236168a109ca"
+                          fullName:
+                            type: string
+                            example: Nguyen Van A
+                          email:
+                            type: string
+                            format: email
+                            example: nguyenvana@example.com
+                          role:
+                            type: string
+                            enum: [MEMBER, STAFF, ADMIN]
+                            example: MEMBER
+                      tokens:
+                        type: object
+                        properties:
+                          accessToken:
+                            type: string
+                            example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                          refreshToken:
+                            type: string
+                            example: dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4...
+        "400":
+          description: Bad request (e.g., invalid or expired refresh token)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Invalid refresh token
+        "401":
+          description: Unauthorized (e.g., missing or invalid access token)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized
+
+  /blood-compatibility:
+    get:
+      summary: Get blood compatibility information
+      tags:
+        - Blood Compatibility
+      parameters:
+        - in: query
+          name: bloodGroupId
+          required: true
+          schema:
+            type: string
+          description: Blood group ID to check compatibility
+        - in: query
+          name: componentId
+          required: true
+          schema:
+            type: string
+          description: Blood component ID to check compatibility
+      responses:
+        "200":
+          description: Blood compatibility information retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Lấy tương hợp máu thành công
+                  status:
+                    type: number
+                    example: 200
+                  data:
+                    type: object
+                    properties:
+                      canDonateTo:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                              example: "AB+"
+                      canReceiveFrom:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                              example: "O-"
+    post:
+      summary: Create a new blood compatibility record
+      tags:
+        - Blood Compatibility
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bloodGroupId:
+                  type: string
+                  description: ID of the blood group
+                componentId:
+                  type: string
+                  description: ID of the blood component
+                canDonateTo:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of blood group IDs that can receive this blood
+                canReceiveFrom:
+                  type: array
+                  items:
+                    type: string
+              required:
+                - bloodGroupId
+                - componentId
+                - canDonateTo
+                - canReceiveFrom
+      responses:
+        "201":
+          description: Blood compatibility created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Lấy tương hợp máu thành công
+                  _id:
+                    type: string
+                  bloodGroupId:
+                    type: string
+                  componentId:
+                    type: string
+                  canDonateTo:
+                    type: array
+                    items:
+                      type: string
+                  canReceiveFrom:
+                    type: array
+                    items:
+                      type: string
+
+  /blood-component:
+    get:
+      summary: Get all blood components
+      tags:
+        - Blood Component
+      responses:
+        "200":
+          description: Blood components retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    _id:
+                      type: string
+                    name:
+                      type: string
+                      example: "Plasma"
+                    createAt:
+                      type: string
+                    updateAt:
+                      type: string
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+    post:
+      summary: Create a new blood component
+      tags:
+        - Blood Component
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Plasma"
+              required:
+                - name
+      responses:
+        "201":
+          description: Blood component created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                  name:
+                    type: string
+                    example: "Plasma"
+                  createAt:
+                    type: string
+                  updateAt:
+                    type: string
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /blood-component/{id}:
+    put:
+      summary: Update a blood component
+      tags:
+        - Blood Component
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Blood component ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Plasma"
+      responses:
+        "200":
+          description: Blood component updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                  name:
+                    type: string
+                    example: "Plasma"
+                  createAt:
+                    type: string
+                  updateAt:
+                    type: string
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        "404":
+          description: Blood component not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /blood-donation:
+    get:
+      summary: Lấy danh sách hiến máu
+      tags:
+        - Blood Donation
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, confirmed, cancelled, completed]
+        - in: query
+          name: facilityId
+          schema:
+            type: string
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+      responses:
+        "200":
+          description: Lấy danh sách hiến máu thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Lấy danh sách hiến máu thành công
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BloodDonation"
+        "400":
+          description: Yêu cầu không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: Tạo bản ghi hiến máu
+      tags:
+        - Blood Donation
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  example: 60f7b3a4b9c4e1234567890
+                staffId:
+                  type: string
+                  example: 60f7b3a4b9c4e1234567895
+                bloodGroupId:
+                  type: string
+                  example: 60f7b3a4b9c4e1234567891
+                bloodDonationRegistrationId:
+                  type: string
+                  example: 60f7b3a4b9c4e1234567892
+                bloodComponent:
+                  type: string
+                  enum: [Máu toàn phần, Hồng cầu, Huyết tương, Tiểu cầu]
+                healthCheckId:
+                  type: string
+                  example: 60f7b3a4b9c4e1234567897
+              required:
+                - userId
+                - bloodGroupId
+                - bloodComponent
+      responses:
+        "201":
+          description: Tạo bản ghi hiến máu thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Tạo bản ghi hiến máu thành công
+                  data:
+                    $ref: "#/components/schemas/BloodDonation"
+        "400":
+          description: Yêu cầu không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-donation/user:
+    get:
+      summary: Lấy lịch sử hiến máu của người dùng
+      tags:
+        - Blood Donation
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+      responses:
+        "200":
+          description: Lấy danh sách hiến máu thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Lấy danh sách hiến máu thành công
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BloodDonation"
+        "400":
+          description: Yêu cầu không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-donation/{id}:
+    get:
+      summary: Lấy chi tiết một bản ghi hiến máu
+      tags:
+        - Blood Donation
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID bản ghi hiến máu
+      responses:
+        "200":
+          description: Lấy chi tiết bản ghi hiến máu thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Lấy chi tiết bản ghi hiến máu thành công
+                  data:
+                    $ref: "#/components/schemas/BloodDonation"
+        "404":
+          description: Không tìm thấy bản ghi hiến máu
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      summary: Update blood donation record
+      description: Update blood donation with start time or completion status
+      tags:
+        - Blood Donation
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Blood donation ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: ["confirmed", "completed", "cancelled"]
+                  description: Donation status
+                  example: "completed"
+                notes:
+                  type: string
+                  description: Additional notes
+                  example: "Donation completed successfully"
+                quantity:
+                  type: number
+                  description: Quantity of blood donated
+                  example: 350
+      responses:
+        "200":
+          description: Blood donation updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Cập nhật bản ghi hiến máu thành công"
+                  data:
+                    $ref: "#/components/schemas/BloodDonation"
+        "404":
+          description: Blood donation not found
+        "403":
+          description: Forbidden (requires staff role)
+
+  /blood-donation/transition-to-resting/{registrationId}:
+    patch:
+      tags:
+        - Blood Donation
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: registrationId
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                staffId:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        "200":
+          description: Chuyển sang giai đoạn nghỉ ngơi thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/BloodDonation"
+        "404":
+          description: Chuyển sang giai đoạn nghỉ ngơi thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-donation-registration:
+    get:
+      tags:
+        - Blood Donation Registration
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: facilityId
+          schema:
+            type: string
+        - in: query
+          name: limit
+          schema:
+            type: number
+            default: 10
+        - in: query
+          name: page
+          schema:
+            type: number
+            default: 1
+      responses:
+        "200":
+          description: Lấy đăng ký hiến máu thành công
+        "400":
+          description: Lấy đăng ký hiến máu không thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - Blood Donation Registration
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                facilityId:
+                  type: string
+                bloodGroupId:
+                  type: string
+                preferredDate:
+                  type: string
+                  format: date-time
+                expectedQuantity:
+                  type: number
+                source:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        "200":
+          description: Lấy đăng ký hiến máu thành công
+        "400":
+          description: Lấy đăng ký hiến máu không thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-donation-registration/user:
+    get:
+      summary: Lấy lịch sử hiến máu của người dùng
+      tags:
+        - Blood Donation Registration
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+      responses:
+        "200":
+          description: Lấy danh sách hiến máu thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Lấy danh sách hiến máu thành công
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BloodDonation"
+        "400":
+          description: Yêu cầu không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-donation-registration/{id}:
+    get:
+      summary: Lấy chi tiết một bản ghi hiến máu
+      tags:
+        - Blood Donation Registration
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID bản ghi hiến máu
+      responses:
+        "200":
+          description: Lấy chi tiết bản ghi hiến máu thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Lấy chi tiết bản ghi hiến máu thành công
+                  data:
+                    $ref: "#/components/schemas/BloodDonation"
+        "404":
+          description: Không tìm thấy bản ghi hiến máu
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      tags:
+        - Blood Donation Registration
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                registrationId:
+                  type: string
+                changedBy:
+                  type: string
+                status:
+                  type: string
+                staffId:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        "200":
+          description: Phê duyệt đăng ký hiến máu thành công
+        "404":
+          description: Phê duyệt đăng ký hiến máu thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-donation-registration/staff/assigned:
+    get:
+      tags:
+        - Blood Donation Registration
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: number
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: number
+            default: 10
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: startDate
+          schema:
+            type: string
+        - in: query
+          name: endDate
+          schema:
+            type: string
+        - in: query
+          name: bloodGroupId
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Lấy đăng ký hiến máu thành công
+        "404":
+          description: Lấy đăng ký hiến máu thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-donation-registration/check-in:
+    post:
+      tags:
+        - Blood Donation Registration
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                qrData:
+                  type: string
+                staffId:
+                  type: string
+                checkedBy:
+                  type: string
+      responses:
+        "200":
+          description: Check-in thành công
+        "404":
+          description: Check-in thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-donation-registration/facility/all:
+    get:
+      tags:
+        - Blood Donation Registration
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: number
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: number
+            default: 10
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: startDate
+          schema:
+            type: string
+        - in: query
+          name: endDate
+          schema:
+            type: string
+        - in: query
+          name: bloodGroupId
+          schema:
+            type: string
+        - in: query
+          name: staffId
+          schema:
+            type: string
+        - in: query
+          name: includeStats
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: Lấy đăng ký hiến máu thành công
+        "404":
+          description: Lấy đăng ký hiến máu thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-donation-registration/facility/statistics:
+    get:
+      tags:
+        - Blood Donation Registration
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: startDate
+          schema:
+            type: string
+        - in: query
+          name: endDate
+          schema:
+            type: string
+        - in: query
+          name: groupBy
+          schema:
+            type: string
+            default: "day"
+      responses:
+        "200":
+          description: Lấy thống kê thành công
+        "404":
+          description: Lấy thống kê thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blodd-group:
+    get:
+      tags:
+        - Blood Group
+      responses:
+        "200":
+          description: Lấy nhóm máu thành công
+        "404":
+          description: Lấy nhóm máu thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - Blood Group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                note:
+                  type: string
+                characteristics:
+                  type: string
+                populationRate:
+                  type: number
+      responses:
+        "200":
+          description: Tạo nhóm máu thành công
+        "404":
+          description: Tạo nhóm máu thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blodd-group/positive:
+    get:
+      tags:
+        - Blood Group
+      responses:
+        "200":
+          description: Lấy nhóm máu thành công
+        "404":
+          description: Lấy nhóm máu thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-group/{id}:
+    get:
+      tags:
+        - Blood Group
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Lấy nhóm máu thành công
+        "404":
+          description: Lấy nhóm máu thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      tags:
+        - Blood Group
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                note:
+                  type: string
+                characteristics:
+                  type: string
+                populationRate:
+                  type: number
+      responses:
+        "200":
+          description: Cập nhật nhóm máu thành công
+        "404":
+          description: Cập nhật nhóm máu thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-inventory:
+    get:
+      tags:
+        - Blood Inventory
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lấy kho máu thành công
+        "404":
+          description: Lấy kho máu thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - Blood Inventory
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: string
+      responses:
+        "200":
+          description: Tạo tương hợp máu thành công
+        "404":
+          description: Tạo tương hợp máu thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-inventory/facility/{facilityId}:
+    get:
+      tags:
+        - Blood Inventory
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: facilityId
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: componentId
+          schema:
+            type: string
+        - in: query
+          name: groupId
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: number
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: number
+            default: 10
+      responses:
+        "200":
+          description: Lấy inventory theo facility thành công
+        "404":
+          description: Lấy inventory theo facility không thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-inventory/facility/{facilityId}/available:
+    get:
+      tags:
+        - Blood Inventory
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: facilityId
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: componentId
+          schema:
+            type: string
+        - in: query
+          name: groupId
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Lấy kho máu thành công
+        "404":
+          description: Lấy kho máu thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-inventory/detail/{id}:
+    get:
+      tags:
+        - Blood Inventory
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Lấy chi tiết inventory thành công
+        "404":
+          description: Lấy chi tiết inventory không thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-inventory/facility/{facilityId}/statistics:
+    get:
+      tags:
+        - Blood Inventory
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: facilityId
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Lấy thống kê inventory thành công
+        "404":
+          description: Lấy thống kê inventory thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-inventory/facility/{facilityId}/expiring:
+    get:
+      tags:
+        - Blood Inventory
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: facilityId
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: days
+          schema:
+            type: number
+            default: 7
+        - in: query
+          name: page
+          schema:
+            type: number
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: number
+            default: 10
+      responses:
+        "200":
+          description: Lấy danh sách units sắp hết hạn thành công
+        "404":
+          description: Lấy danh sách units sắp hết hạn thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-inventory/facility/{facilityId}/update-expired:
+    patch:
+      tags:
+        - Blood Inventory
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: facilityId
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Đã cập nhật units hết hạn
+        "404":
+          description: Cập nhật units hết hạn thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-inventory/facility/{facilityId}/reserve:
+    post:
+      tags:
+        - Blood Inventory
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: facilityId
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                component:
+                  type: string
+                bloodGroupId:
+                  type: string
+                quantity:
+                  type: number
+                requestId:
+                  type: string
+      responses:
+        "200":
+          description: Reserve units thành công
+        "404":
+          description: Reserve units thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-request:
+    post:
+      tags:
+        - Blood Request
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                groupId:
+                  type: string
+                requestData:
+                  type: object
+                  properties:
+                    componentId:
+                      type: string
+                    quantity:
+                      type: number
+                    preferredDate:
+                      type: string
+                      format: date
+                    consent:
+                      type: boolean
+                    isUrgent:
+                      type: boolean
+                    status:
+                      type: boolean
+                    address:
+                      type: string
+                    longitude:
+                      type: string
+                    latitude:
+                      type: string
+                    note:
+                      type: string
+                image/png:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Tạo yêu cầu máu thành công
+        "404":
+          description: Tạo yêu cầu máu thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-request/user:
+    get:
+      tags:
+        - Blood Request
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: boolean
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            default: createdAt
+        - in: query
+          name: sortOrder
+          schema:
+            type: number
+            default: -1
+        - in: query
+          name: page
+          schema:
+            type: number
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: number
+            default: 10
+      responses:
+        "200":
+          description: Tạo yêu cầu máu thành công
+        "404":
+          description: Tạo yêu cầu máu thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /blood-request/user/{id}:
+    get:
+      tags:
+        - Blood Request
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Lấy chi tiết yêu cầu máu thành công
+        "404":
+          description: Lấy chi tiết yêu cầu máu thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-request/need-support:
+    get:
+      tags:
+        - Blood Request
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lấy danh sách yêu cầu máu cần hỗ trợ thành công
+        "404":
+          description: Lấy danh sách yêu cầu máu cần hỗ trợ thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-request/need-support/{id}:
+    get:
+      tags:
+        - Blood Request
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Lấy chi tiết yêu cầu máu cần hỗ trợ thành công
+        "404":
+          description: Lấy chi tiết yêu cầu máu cần hỗ trợ thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-request/facility/{facilityId}/support-requests:
+    get:
+      tags:
+        - Blood Request
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: facilityId
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Lấy danh sách yêu cầu cần hỗ trợ của cơ sở thành công
+        "404":
+          description: Lấy danh sách yêu cầu cần hỗ trợ của cơ sở thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-request/facility/{facilityId}/support-requests/{id}:
+    get:
+      tags:
+        - Blood Request
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+        - in: path
+          name: facilityId
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: status
+          schema:
+            type: boolean
+          required: true
+      responses:
+        "200":
+          description: Lấy danh sách yêu cầu cần hỗ trợ của cơ sở thành công
+        "404":
+          description: Lấy danh sách yêu cầu cần hỗ trợ của cơ sở thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-request/facility/{facilityId}:
+    get:
+      tags:
+        - Blood Request
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: facilityId
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: status
+          schema:
+            type: boolean
+        - in: query
+          name: isUrgent
+          schema:
+            type: string
+        - in: query
+          name: isFulfilled
+          schema:
+            type: string
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            default: createdAt
+        - in: query
+          name: sortOrder
+          schema:
+            type: number
+            default: -1
+        - in: query
+          name: page
+          schema:
+            type: number
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: number
+            default: 10
+      responses:
+        "200":
+          description: Lấy danh sách yêu cầu cần hỗ trợ của cơ sở thành công
+        "404":
+          description: Lấy danh sách yêu cầu cần hỗ trợ của cơ sở thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-request/facility/{facilityId}/user/{userId}:
+    get:
+      tags:
+        - Blood Request
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: facilityId
+          schema:
+            type: string
+          required: true
+        - in: path
+          name: userId
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: status
+          schema:
+            type: boolean
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            default: createdAt
+        - in: query
+          name: sortOrder
+          schema:
+            type: number
+            default: -1
+        - in: query
+          name: page
+          schema:
+            type: number
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: number
+            default: 10
+      responses:
+        "200":
+          description: Lấy danh sách yêu cầu máu của cơ sở theo người dùng thành công
+        "404":
+          description: Lấy danh sách yêu cầu máu của cơ sở theo người dùng thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-request/facility/{facilityId}/{id}:
+    get:
+      tags:
+        - Blood Request
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: facilityId
+          schema:
+            type: string
+          required: true
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Lấy danh sách yêu cầu máu của cơ sở theo người dùng thành công
+        "404":
+          description: Lấy danh sách yêu cầu máu của cơ sở theo người dùng thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-request/facility/{facilityId}/{id}/status:
+    patch:
+      tags:
+        - Blood Request
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: facilityId
+          schema:
+            type: string
+          required: true
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: boolean
+                staffId:
+                  type: string
+                scheduledDeliveryDate:
+                  type: string
+                  format: date
+                needsSupport:
+                  type: string
+      responses:
+        "200":
+          description: Cập nhật trạng thái yêu cầu máu thành công
+        "404":
+          description: Cập nhật trạng thái yêu cầu máu thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-request-support:
+    get:
+      tags:
+        - Blood Request Support
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lấy danh sách đăng ký giúp đỡ thành công
+        "404":
+          description: Lấy danh sách đăng ký giúp đỡ thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - Blood Request Support
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phone:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                note:
+                  type: string
+                requestId:
+                  type: string
+      responses:
+        "200":
+          description: Đăng ký yêu cầu hỗ trợ thành công
+        "404":
+          description: Đăng ký yêu cầu hỗ trợ thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-request-support/{requestId}:
+    get:
+      tags:
+        - Blood Request Support
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: requestId
+          schema:
+            type: string
+          required: true
+
+      responses:
+        "200":
+          description: Lấy danh sách đăng ký giúp đỡ thành công
+        "404":
+          description: Lấy danh sách đăng ký giúp đỡ thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-request-support/{requestId}/status:
+    patch:
+      tags:
+        - Blood Request Support
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: requestId
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: boolean
+      responses:
+        "200":
+          description: Lấy danh sách đăng ký giúp đỡ thành công
+        "404":
+          description: Lấy danh sách đăng ký giúp đỡ thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-unit:
+    post:
+      tags:
+        - Blood Unit
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                donationId:
+                  type: string
+                staffId:
+                  type: string
+                unit:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      component:
+                        type: string
+                      quantity:
+                        type: number
+                    required:
+                      - component
+                      - quantity
+      responses:
+        "200":
+          description: Tạo blood units thành công
+        "404":
+          description: Tạo blood units thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-unit/{id}:
+    get:
+      tags:
+        - Blood Unit
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Lấy chi tiết blood unit thành công
+        "404":
+          description: Lấy chi tiết blood unit thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      tags:
+        - Blood Unit
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                testResults:
+                  type: string
+                status:
+                  type: boolean
+                notes:
+                  type: string
+      responses:
+        "200":
+          description: Cập nhật blood unit thành công
+        "404":
+          description: Cập nhật blood unit thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-unit/donation/{donationId}:
+    get:
+      tags:
+        - Blood Unit
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: donationId
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: page
+          schema:
+            type: number
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: number
+            default: 10
+      responses:
+        "200":
+          description: Lấy blood unit thành công
+        "404":
+          description: Lấy blood unit thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-unit/facility/{facilityId}:
+    get:
+      tags:
+        - Blood Unit
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: facilityId
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: status
+          schema:
+            type: boolean
+        - in: query
+          name: component
+          schema:
+            type: string
+        - in: query
+          name: bloodGroupId
+          schema:
+            type: string
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: page
+          schema:
+            type: number
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: number
+            default: 10
+      responses:
+        "200":
+          description: Lấy blood unit thành công
+        "404":
+          description: Lấy blood unit thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /blood-unit/facility/{facilityId}/statistics:
+    get:
+      tags:
+        - Blood Unit
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: facilityId
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Lấy blood unit thành công
+        "404":
+          description: Lấy blood unit thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /content:
+    get:
+      tags:
+        - Content
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: boolean
+        - in: query
+          name: page
+          schema:
+            type: number
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: number
+            default: 10
+      responses:
+        "200":
+          description: Lấy nội dung thành công
+        "404":
+          description: Lấy nội dung thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - Content
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                categoryId:
+                  type: string
+                content:
+                  type: string
+                summary:
+                  type: string
+                authorId:
+                  type: string
+                image/png:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Tạo nội dung thành công
+        "404":
+          description: Tạo nội dung thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /content/{id}:
+    get:
+      tags:
+        - Content
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: status
+          schema:
+            type: boolean
+        - in: query
+          name: page
+          schema:
+            type: number
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: number
+            default: 10
+      responses:
+        "200":
+          description: Lấy nội dung thành công
+        "404":
+          description: Lấy nội dung thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      tags:
+        - Content
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                categoryId:
+                  type: string
+                content:
+                  type: string
+                summary:
+                  type: string
+                authorId:
+                  type: string
+                image/png:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Tạo nội dung thành công
+        "404":
+          description: Tạo nội dung thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /content-category:
+    get:
+      tags:
+        - Content Category
+      responses:
+        "200":
+          description: Lấy danh mục nội dung thành công
+        "404":
+          description: Lấy danh mục nội dung thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - Content Category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        "200":
+          description: Tạo danh mục nội dung thành công
+        "404":
+          description: Tạo danh mục nội dung thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /content-category/{id}:
+    put:
+      tags:
+        - Content Category
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        "200":
+          description: Cập nhật danh mục nội dung thành công
+        "404":
+          description: Cập nhật danh mục nội dung thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /donor-status-log:
+    post:
+      tags:
+        - Donor Status Log
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                donationId:
+                  type: string
+                userId:
+                  type: string
+      responses:
+        "200":
+          description: Tạo bản ghi trạng thái thành công
+        "404":
+          description: Tạo bản ghi trạng thái thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /donor-status-log/{id}:
+    get:
+      tags:
+        - Donor Status Log
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Lấy chi tiết bản ghi trạng thái thành công
+        "404":
+          description: Lấy chi tiết bản ghi trạng thái thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      tags:
+        - Donor Status Log
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                phase:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        "200":
+          description: Cập nhật bản ghi trạng thái thành công
+        "404":
+          description: Cập nhật bản ghi trạng thái thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /donor-status-log/donation/{donationId}:
+    get:
+      tags:
+        - Donor Status Log
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: donationId
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: page
+          schema:
+            type: number
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: number
+            default: 10
+      responses:
+        "200":
+          description: Lấy bản ghi trạng thái thành công
+        "404":
+          description: Lấy bản ghi trạng thái thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /donor-status-log/user/{userId}:
+    get:
+      tags:
+        - Donor Status Log
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: page
+          schema:
+            type: number
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: number
+            default: 10
+      responses:
+        "200":
+          description: Lấy bản ghi trạng thái thành công
+        "404":
+          description: Lấy bản ghi trạng thái thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /facility:
+    get:
+      tags:
+        - Facility
+      parameters:
+        - in: query
+          name: latitude
+          schema:
+            type: number
+        - in: query
+          name: longitude
+          schema:
+            type: number
+        - in: query
+          name: distance
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Lấy danh sách cơ sở thành công
+        "404":
+          description: Lấy danh sách cơ sở thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - Facility
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                address:
+                  type: string
+                longitude:
+                  type: string
+                latitude:
+                  type: string
+                contactPhone:
+                  type: string
+                contactEmail:
+                  type: string
+                managerId:
+                  type: string
+                doctorIds:
+                  type: array
+                  items:
+                    type: string
+                nurseIds:
+                  type: array
+                  items:
+                    type: string
+                image:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Tạo cơ sở thành công
+        "404":
+          description: Tạo cơ sở thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /facility/{id}:
+    get:
+      tags:
+        - Facility
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Lấy thông tin cơ sở thành công
+        "404":
+          description: Lấy thông tin cơ sở thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      tags:
+        - Facility
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Cập nhật cơ sở thành công
+        "404":
+          description: Cập nhật cơ sở thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /facility/{id}/stats:
+    get:
+      tags:
+        - Facility
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Lấy thống kê cơ sở thành công
+        "404":
+          description: Lấy thống kê cơ sở thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /facility/delete/{id}:
+    put:
+      tags:
+        - Facility
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Xóa cơ sở thành công
+        "404":
+          description: Xóa cơ sở thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /facility-staff:
+    get:
+      tags:
+        - Facility Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: position
+          schema:
+            type: string
+        - in: query
+          name: facilityId
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: number
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: number
+            default: 10
+      responses:
+        "200":
+          description: Lấy danh sách nhân viên cơ sở thành công
+        "404":
+          description: Lấy danh sách nhân viên cơ sở thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - Facility Staff
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          applcation/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                position:
+                  type: string
+      responses:
+        "200":
+          description: Tạo nhân viên cơ sở thành công
+        "404":
+          description: Tạo nhân viên cơ sở thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /facility-staff/{id}:
+    get:
+      tags:
+        - Facility Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Lấy thông tin nhân viên cơ sở thành công
+        "404":
+          description: Lấy thông tin nhân viên cơ sở thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      tags:
+        - Facility Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Cập nhật nhân viên cơ sở thành công
+        "404":
+          description: Cập nhật nhân viên cơ sở thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /facility-staff/not-assigned:
+    get:
+      tags:
+        - Facility Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: position
+          schema:
+            type: string
+            enum:
+              - MANAGER
+              - NURSE
+              - DOCTOR
+      responses:
+        "200":
+          description: Lấy danh sách nhân viên cơ sở thành công
+        "404":
+          description: Lấy danh sách nhân viên cơ sở thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /facility-staff/facility/{id}:
+    get:
+      tags:
+        - Facility Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: position
+          schema:
+            type: string
+            enum:
+              - MANAGER
+              - NURSE
+              - DOCTOR
+      responses:
+        "200":
+          description: Lấy danh sách nhân viên cơ sở thành công
+        "404":
+          description: Lấy danh sách nhân viên cơ sở thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /facility-staff/delete/{id}:
+    put:
+      tags:
+        - Facility Staff
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Xóa nhân viên cơ sở thành công
+        "404":
+          description: Xóa nhân viên cơ sở thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /feedback/{facilityId}:
+    get:
+      tags:
+        - Feedback
+      parameters:
+        - in: path
+          name: facilityId
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Lấy danh sách phản hồi thành công
+        "404":
+          description: Lấy danh sách phản hồi thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /feedback/details/{id}:
+    get:
+      tags:
+        - Feedback
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Lấy phản hồi thành công
+        "404":
+          description: Lấy phản hồi thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /feedback:
+    post:
+      tags:
+        - Feedback
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                facilityId:
+                  type: string
+                rating:
+                  type: number
+                comment:
+                  type: string
+      responses:
+        "200":
+          description: Tạo phản hồi thành công
+        "404":
+          description: Tạo phản hồi thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /feedback/{id}:
+    put:
+      tags:
+        - Feedback
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Cập nhật phản hồi thành công
+        "404":
+          description: Cập nhật phản hồi thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /feedback/delete/{id}:
+    put:
+      tags:
+        - Feedback
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+      responses:
+        "200":
+          description: Xóa phản hồi thành công
+        "404":
+          description: Xóa phản hồi thất bại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    BloodDonation:
+      type: object
+      properties:
+        _id:
+          type: string
+        userId:
+          type: object
+          properties:
+            _id:
+              type: string
+            fullName:
+              type: string
+            email:
+              type: string
+            phone:
+              type: string
+            avatar:
+              type: string
+        staffId:
+          type: object
+          properties:
+            _id:
+              type: string
+        bloodGroupId:
+          type: object
+          properties:
+            _id:
+              type: string
+            type:
+              type: string
+        bloodDonationRegistrationId:
+          type: object
+          properties:
+            _id:
+              type: string
+            preferredDate:
+              type: string
+              format: date-time
+            facilityId:
+              type: object
+              properties:
+                _id:
+                  type: string
+                name:
+                  type: string
+                street:
+                  type: string
+                city:
+                  type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string

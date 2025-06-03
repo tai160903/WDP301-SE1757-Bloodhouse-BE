@@ -14,20 +14,22 @@ class BloodUnitService {
   createBloodUnitsFromDonation = async ({
     donationId,
     staffId,
-    units // Array of { component, quantity }
+    units, // Array of { component, quantity }
   }) => {
     // Kiểm tra donation
     const donation = await bloodDonationModel
       .findById(donationId)
       .populate("bloodDonationRegistrationId")
       .populate("bloodGroupId");
-      
+
     if (!donation) {
       throw new NotFoundError("Không tìm thấy bản ghi hiến máu");
     }
 
     if (donation.status !== BLOOD_DONATION_STATUS.COMPLETED) {
-      throw new BadRequestError("Chỉ có thể tạo blood units từ donation đã hoàn thành");
+      throw new BadRequestError(
+        "Chỉ có thể tạo blood units từ donation đã hoàn thành"
+      );
     }
 
     // Kiểm tra units input
@@ -66,38 +68,34 @@ class BloodUnitService {
         expiresAt,
         processedBy: staffId,
         processedAt: new Date(),
-        status: "testing"
+        status: "testing",
       });
 
       createdUnits.push(bloodUnit);
     }
 
-    return createdUnits.map(unit => getInfoData({
-      fields: [
-        "_id",
-        "donationId",
-        "facilityId", 
-        "bloodGroupId",
-        "component",
-        "quantity",
-        "collectedAt",
-        "expiresAt",
-        "status",
-        "processedAt",
-        "createdAt"
-      ],
-      object: unit,
-    }));
+    return createdUnits.map((unit) =>
+      getInfoData({
+        fields: [
+          "_id",
+          "donationId",
+          "facilityId",
+          "bloodGroupId",
+          "component",
+          "quantity",
+          "collectedAt",
+          "expiresAt",
+          "status",
+          "processedAt",
+          "createdAt",
+        ],
+        object: unit,
+      })
+    );
   };
 
   // Cập nhật kết quả test và approve blood unit
-  updateBloodUnit = async ({
-    unitId,
-    staffId,
-    testResults,
-    status,
-    notes
-  }) => {
+  updateBloodUnit = async ({ unitId, staffId, testResults, status, notes }) => {
     const bloodUnit = await bloodUnitModel.findById(unitId);
     if (!bloodUnit) {
       throw new NotFoundError("Không tìm thấy blood unit");
@@ -111,7 +109,7 @@ class BloodUnitService {
     // Cập nhật status
     if (status) {
       bloodUnit.status = status;
-      
+
       if (status === "available") {
         bloodUnit.approvedBy = staffId;
         bloodUnit.approvedAt = new Date();
@@ -130,8 +128,16 @@ class BloodUnitService {
       { path: "facilityId", select: "name code" },
       { path: "bloodGroupId", select: "name type" },
       { path: "donationId", select: "userId donationDate" },
-      { path: "processedBy", select: "userId position", populate: { path: "userId", select: "fullName" } },
-      { path: "approvedBy", select: "userId position", populate: { path: "userId", select: "fullName" } }
+      {
+        path: "processedBy",
+        select: "userId position",
+        populate: { path: "userId", select: "fullName" },
+      },
+      {
+        path: "approvedBy",
+        select: "userId position",
+        populate: { path: "userId", select: "fullName" },
+      },
     ]);
 
     return getInfoData({
@@ -139,7 +145,7 @@ class BloodUnitService {
         "_id",
         "donationId",
         "facilityId",
-        "bloodGroupId", 
+        "bloodGroupId",
         "component",
         "quantity",
         "collectedAt",
@@ -150,7 +156,7 @@ class BloodUnitService {
         "processedAt",
         "approvedBy",
         "approvedAt",
-        "updatedAt"
+        "updatedAt",
       ],
       object: result,
     });
@@ -163,12 +169,21 @@ class BloodUnitService {
       query: { donationId },
       page,
       limit,
-      select: "_id donationId facilityId bloodGroupId component quantity collectedAt expiresAt status testResults processedAt approvedAt createdAt",
+      select:
+        "_id donationId facilityId bloodGroupId component quantity collectedAt expiresAt status testResults processedAt approvedAt createdAt",
       populate: [
         { path: "facilityId", select: "name code" },
         { path: "bloodGroupId", select: "name type" },
-        { path: "processedBy", select: "userId position", populate: { path: "userId", select: "fullName" } },
-        { path: "approvedBy", select: "userId position", populate: { path: "userId", select: "fullName" } }
+        {
+          path: "processedBy",
+          select: "userId position",
+          populate: { path: "userId", select: "fullName" },
+        },
+        {
+          path: "approvedBy",
+          select: "userId position",
+          populate: { path: "userId", select: "fullName" },
+        },
       ],
       sort: { createdAt: -1 },
     });
@@ -177,22 +192,25 @@ class BloodUnitService {
   };
 
   // Lấy blood units theo facility
-  getBloodUnitsByFacility = async (facilityId, { 
-    status, 
-    component, 
-    bloodGroupId,
-    page = 1, 
-    limit = 10,
-    search,
-    startDate,
-    endDate
-  }) => {
+  getBloodUnitsByFacility = async (
+    facilityId,
+    {
+      status,
+      component,
+      bloodGroupId,
+      page = 1,
+      limit = 10,
+      search,
+      startDate,
+      endDate,
+    }
+  ) => {
     const query = { facilityId };
-    
+
     if (status) query.status = status;
     if (component) query.component = component;
     if (bloodGroupId) query.bloodGroupId = bloodGroupId;
-    
+
     if (startDate || endDate) {
       query.collectedAt = {};
       if (startDate) query.collectedAt.$gte = new Date(startDate);
@@ -204,12 +222,25 @@ class BloodUnitService {
       query,
       page,
       limit,
-      select: "_id donationId facilityId bloodGroupId component quantity collectedAt expiresAt status testResults processedAt approvedAt createdAt",
+      select:
+        "_id donationId facilityId bloodGroupId component quantity collectedAt expiresAt status testResults processedAt approvedAt createdAt",
       populate: [
         { path: "bloodGroupId", select: "name type" },
-        { path: "donationId", select: "userId donationDate", populate: { path: "userId", select: "fullName" } },
-        { path: "processedBy", select: "userId position", populate: { path: "userId", select: "fullName" } },
-        { path: "approvedBy", select: "userId position", populate: { path: "userId", select: "fullName" } }
+        {
+          path: "donationId",
+          select: "userId donationDate",
+          populate: { path: "userId", select: "fullName" },
+        },
+        {
+          path: "processedBy",
+          select: "userId position",
+          populate: { path: "userId", select: "fullName" },
+        },
+        {
+          path: "approvedBy",
+          select: "userId position",
+          populate: { path: "userId", select: "fullName" },
+        },
       ],
       sort: { createdAt: -1 },
     });
@@ -226,17 +257,17 @@ class BloodUnitService {
       .populate({
         path: "donationId",
         select: "userId donationDate quantity",
-        populate: { path: "userId", select: "fullName email phone" }
+        populate: { path: "userId", select: "fullName email phone" },
       })
       .populate({
         path: "processedBy",
         select: "userId position",
-        populate: { path: "userId", select: "fullName email" }
+        populate: { path: "userId", select: "fullName email" },
       })
       .populate({
-        path: "approvedBy", 
+        path: "approvedBy",
         select: "userId position",
-        populate: { path: "userId", select: "fullName email" }
+        populate: { path: "userId", select: "fullName email" },
       })
       .lean();
 
@@ -250,18 +281,18 @@ class BloodUnitService {
         "donationId",
         "facilityId",
         "bloodGroupId",
-        "component", 
+        "component",
         "quantity",
         "collectedAt",
         "expiresAt",
         "status",
         "testResults",
         "processedBy",
-        "processedAt", 
+        "processedAt",
         "approvedBy",
         "approvedAt",
         "createdAt",
-        "updatedAt"
+        "updatedAt",
       ],
       object: bloodUnit,
     });
@@ -302,7 +333,7 @@ class BloodUnitService {
   // Thống kê blood units
   getBloodUnitsStatistics = async (facilityId, { startDate, endDate } = {}) => {
     const matchQuery = { facilityId };
-    
+
     if (startDate || endDate) {
       matchQuery.collectedAt = {};
       if (startDate) matchQuery.collectedAt.$gte = new Date(startDate);
@@ -313,24 +344,36 @@ class BloodUnitService {
       // Thống kê theo status
       bloodUnitModel.aggregate([
         { $match: matchQuery },
-        { $group: { _id: "$status", count: { $sum: 1 }, totalQuantity: { $sum: "$quantity" } } }
+        {
+          $group: {
+            _id: "$status",
+            count: { $sum: 1 },
+            totalQuantity: { $sum: "$quantity" },
+          },
+        },
       ]),
 
       // Thống kê theo component
       bloodUnitModel.aggregate([
         { $match: matchQuery },
-        { $group: { _id: "$component", count: { $sum: 1 }, totalQuantity: { $sum: "$quantity" } } }
+        {
+          $group: {
+            _id: "$component",
+            count: { $sum: 1 },
+            totalQuantity: { $sum: "$quantity" },
+          },
+        },
       ]),
 
       // Units sắp hết hạn (trong 7 ngày)
       bloodUnitModel.countDocuments({
         ...matchQuery,
         status: "available",
-        expiresAt: { 
+        expiresAt: {
           $gte: new Date(),
-          $lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-        }
-      })
+          $lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+      }),
     ]);
 
     return {
@@ -339,12 +382,12 @@ class BloodUnitService {
       expiringUnits: expiryStats,
       summary: {
         total: statusStats.reduce((sum, stat) => sum + stat.count, 0),
-        available: statusStats.find(s => s._id === "available")?.count || 0,
-        testing: statusStats.find(s => s._id === "testing")?.count || 0,
-        rejected: statusStats.find(s => s._id === "rejected")?.count || 0,
-      }
+        available: statusStats.find((s) => s._id === "available")?.count || 0,
+        testing: statusStats.find((s) => s._id === "testing")?.count || 0,
+        rejected: statusStats.find((s) => s._id === "rejected")?.count || 0,
+      },
     };
   };
 }
 
-module.exports = new BloodUnitService(); 
+module.exports = new BloodUnitService();
