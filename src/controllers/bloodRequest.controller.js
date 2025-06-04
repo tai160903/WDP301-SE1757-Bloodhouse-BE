@@ -135,6 +135,21 @@ class BloodRequestController {
     }).send(res);
   });
 
+  // Cập nhật thành phần máu yêu cầu
+  updateBloodRequestComponent = asyncHandler(async (req, res, next) => {
+    const { id, facilityId } = req.params;
+    const { componentId } = req.body;
+    const result = await bloodRequestService.updateBloodRequestComponent(
+      id,
+      facilityId,
+      { componentId }
+    );
+    new OK({
+      message: BLOOD_REQUEST_MESSAGE.UPDATE_COMPONENT_SUCCESS,
+      data: result.data,
+    }).send(res);
+  });
+
   // Lấy danh sách yêu cầu máu cần hỗ trợ
   getRequestBloodNeedSupport = asyncHandler(async (req, res, next) => {
     const userId = req.user.userId;

@@ -34,4 +34,6 @@ router.get("/facility/:facilityId", bloodUnitController.getBloodUnitsByFacility)
 // Get blood units statistics (Manager)
 router.get("/facility/:facilityId/statistics", bloodUnitController.getBloodUnitsStatistics);
 
+// router.get("/facility/:facilityId/available", bloodUnitController.getAvailableBloodUnits);
+
 module.exports = router; 
