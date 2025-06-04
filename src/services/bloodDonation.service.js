@@ -8,6 +8,7 @@ const {
   BLOOD_DONATION_REGISTRATION_STATUS,
   USER_ROLE,
   BLOOD_DONATION_STATUS,
+  HEALTH_CHECK_STATUS,
 } = require("../constants/enum");
 const userModel = require("../models/user.model");
 const facilityModel = require("../models/facility.model");
@@ -49,14 +50,14 @@ class BloodDonationService {
       throw new NotFoundError(BLOOD_GROUP_MESSAGE.BLOOD_GROUP_NOT_FOUND);
 
     // Kiểm tra xem người dùng có đăng ký nào đang chờ xử lý không
-    const pendingRegistration = await bloodDonationRegistrationModel.findOne({
-      userId,
-      status: BLOOD_DONATION_REGISTRATION_STATUS.PENDING_APPROVAL,
-    });
+    // const pendingRegistration = await bloodDonationRegistrationModel.findOne({
+    //   userId,
+    //   status: BLOOD_DONATION_REGISTRATION_STATUS.PENDING_APPROVAL,
+    // });
 
-    if (pendingRegistration) {
-      throw new BadRequestError(USER_MESSAGE.USER_HAS_PENDING_REGISTRATION);
-    }
+    // if (pendingRegistration) {
+    //   throw new BadRequestError(USER_MESSAGE.USER_HAS_PENDING_REGISTRATION);
+    // }
 
     // Lấy lần hiến máu gần nhất
     const lastDonation = await bloodDonationModel
@@ -180,15 +181,13 @@ class BloodDonationService {
       ].includes(status)
     ) {
       // If REGISTERED, staffId is required
-      if (status === BLOOD_DONATION_REGISTRATION_STATUS.REGISTERED && !staffId) {
-        throw new BadRequestError(BLOOD_DONATION_REGISTRATION_MESSAGE.STAFF_ID_REQUIRED);
-      }
+      // if (status === BLOOD_DONATION_REGISTRATION_STATUS.REGISTERED ) {
+      //   throw new BadRequestError(BLOOD_DONATION_REGISTRATION_MESSAGE.STAFF_ID_REQUIRED);
+      // }
 
       registration.status = status;
 
       if (status === BLOOD_DONATION_REGISTRATION_STATUS.REGISTERED) {
-        registration.staffId = staffId;
-
         // Step 4: Create QR code
         const qrData = {
           registrationId: registration._id,
@@ -812,6 +811,7 @@ class BloodDonationService {
     // Update registration status
     registration.status = BLOOD_DONATION_REGISTRATION_STATUS.CHECKED_IN;
     registration.checkInAt = new Date();
+    registration.staffId = staffId;
     
     await registration.save();
 
@@ -880,11 +880,24 @@ class BloodDonationService {
     if (!quantity && status === BLOOD_DONATION_STATUS.COMPLETED) {
       throw new BadRequestError("Vui lòng nhập số lượng hiến máu");
     }
+    const healthCheck = await healthCheckModel.findOne({
+      _id: donation.healthCheckId,
+    });
+
     if (status === BLOOD_DONATION_STATUS.COMPLETED && quantity) {
       donation.quantity = quantity;
       donation.status = BLOOD_DONATION_STATUS.COMPLETED;
+      if (healthCheck) {
+        healthCheck.status = HEALTH_CHECK_STATUS.DONATED;
+        await healthCheck.save();
+      }
+
     } else if (status === BLOOD_DONATION_STATUS.CANCELLED) {
       donation.status = BLOOD_DONATION_STATUS.CANCELLED;
+      if (healthCheck) {
+        healthCheck.status = HEALTH_CHECK_STATUS.DONATED;
+        await healthCheck.save();
+      }
     } 
     if (notes) {
       donation.notes = notes;

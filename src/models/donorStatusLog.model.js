@@ -44,7 +44,8 @@ const donorStatusLogSchema = new mongoose.Schema(
       default: null,
     },
     recordedAt: {
-      type: Date
+      type: Date,
+      default: null
     },
   },
   {

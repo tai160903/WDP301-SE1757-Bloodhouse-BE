@@ -107,7 +107,7 @@ class BloodDonationRegistrationController {
     }).send(res);
   });
 
-  // API cho MANAGER: Lấy danh sách đăng ký hiến máu của facility với thống kê
+  // API cho MANAGER, NURSE: Lấy danh sách đăng ký hiến máu của facility với thống kê
   getFacilityRegistrations = asyncHandler(async (req, res) => {
     const { 
       status, 
