@@ -34,13 +34,18 @@ class BloodInventoryService {
 
   getBloodInventoryByFacilityIdAvailable = async (facilityId, query) => {
     const { componentId, groupId } = query;
-    const filter = { facilityId, totalQuantity: { $gt: 0 } };
-    
-    if (componentId) filter.componentId = componentId;
-    if (groupId) filter.groupId = groupId;
+
+    if (!componentId && !groupId) {
+      throw new BadRequestError("Thiếu thông tin bắt buộc để lấy inventory");
+    }
 
     const bloodInventories = await bloodInventoryModel
-      .find(filter)
+      .findOne({
+        facilityId,
+        totalQuantity: { $gt: 0 },
+        ...(componentId && { componentId }),
+        ...(groupId && { groupId }),
+      })
       .populate("facilityId", "name code address")
       .populate("componentId", "name")
       .populate("groupId", "name type");
@@ -51,14 +56,12 @@ class BloodInventoryService {
   // New enhanced methods based on API specification
 
   // Lấy inventory theo facility với pagination và unit stats
-  getInventoryByFacility = async (facilityId, { 
-    componentId, 
-    groupId,
-    page = 1, 
-    limit = 10 
-  }) => {
+  getInventoryByFacility = async (
+    facilityId,
+    { componentId, groupId, page = 1, limit = 10 }
+  ) => {
     const query = { facilityId };
-    
+
     if (componentId) query.componentId = componentId;
     if (groupId) query.groupId = groupId;
 
@@ -67,11 +70,12 @@ class BloodInventoryService {
       query,
       page,
       limit,
-      select: "_id facilityId componentId groupId totalQuantity createdAt updatedAt",
+      select:
+        "_id facilityId componentId groupId totalQuantity createdAt updatedAt",
       populate: [
         { path: "facilityId", select: "name code address" },
         { path: "componentId", select: "name description" },
-        { path: "groupId", select: "name type" }
+        { path: "groupId", select: "name type" },
       ],
       sort: { updatedAt: -1 },
     });
@@ -84,16 +88,18 @@ class BloodInventoryService {
             facilityId: item.facilityId._id,
             bloodGroupId: item.groupId._id,
             component: item.componentId.name,
-            status: { $in: ["available", "reserved", "expired", "testing", "rejected"] }
-          }
+            status: {
+              $in: ["available", "reserved", "expired", "testing", "rejected"],
+            },
+          },
         },
         {
           $group: {
             _id: "$status",
             count: { $sum: 1 },
-            totalQuantity: { $sum: "$quantity" }
-          }
-        }
+            totalQuantity: { $sum: "$quantity" },
+          },
+        },
       ]);
 
       item.unitStats = unitStats;
@@ -121,29 +127,32 @@ class BloodInventoryService {
         $match: {
           facilityId: inventory.facilityId._id,
           bloodGroupId: inventory.groupId._id,
-          component: inventory.componentId.name
-        }
+          component: inventory.componentId.name,
+        },
       },
       {
         $group: {
           _id: "$status",
           count: { $sum: 1 },
-          totalQuantity: { $sum: "$quantity" }
-        }
-      }
+          totalQuantity: { $sum: "$quantity" },
+        },
+      },
     ]);
 
     // Lấy units sắp hết hạn (trong 7 ngày)
-    const expiringUnits = await bloodUnitModel.find({
-      facilityId: inventory.facilityId._id,
-      bloodGroupId: inventory.groupId._id,
-      component: inventory.componentId.name,
-      status: "available",
-      expiresAt: {
-        $gte: new Date(),
-        $lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-      }
-    }).select("quantity expiresAt").sort({ expiresAt: 1 });
+    const expiringUnits = await bloodUnitModel
+      .find({
+        facilityId: inventory.facilityId._id,
+        bloodGroupId: inventory.groupId._id,
+        component: inventory.componentId.name,
+        status: "available",
+        expiresAt: {
+          $gte: new Date(),
+          $lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+      })
+      .select("quantity expiresAt")
+      .sort({ expiresAt: 1 });
 
     return getInfoData({
       fields: [
@@ -153,12 +162,12 @@ class BloodInventoryService {
         "groupId",
         "totalQuantity",
         "createdAt",
-        "updatedAt"
+        "updatedAt",
       ],
       object: {
         ...inventory,
         unitStats,
-        expiringUnits
+        expiringUnits,
       },
     });
   };
@@ -173,16 +182,16 @@ class BloodInventoryService {
           from: "bloodcomponents",
           localField: "componentId",
           foreignField: "_id",
-          as: "component"
-        }
+          as: "component",
+        },
       },
       {
         $lookup: {
           from: "bloodgroups",
-          localField: "groupId", 
+          localField: "groupId",
           foreignField: "_id",
-          as: "bloodGroup"
-        }
+          as: "bloodGroup",
+        },
       },
       { $unwind: "$component" },
       { $unwind: "$bloodGroup" },
@@ -190,23 +199,23 @@ class BloodInventoryService {
         $group: {
           _id: {
             component: "$component.name",
-            bloodType: "$bloodGroup.name"
+            bloodType: "$bloodGroup.name",
           },
-          totalQuantity: { $sum: "$totalQuantity" }
-        }
+          totalQuantity: { $sum: "$totalQuantity" },
+        },
       },
       {
         $group: {
           _id: "$_id.component",
           bloodTypes: {
             $push: {
-              type: "$_id.bloodType", 
-              quantity: "$totalQuantity"
-            }
+              type: "$_id.bloodType",
+              quantity: "$totalQuantity",
+            },
           },
-          totalQuantity: { $sum: "$totalQuantity" }
-        }
-      }
+          totalQuantity: { $sum: "$totalQuantity" },
+        },
+      },
     ]);
 
     // Thống kê units theo status với date filter
@@ -223,9 +232,9 @@ class BloodInventoryService {
         $group: {
           _id: "$status",
           count: { $sum: 1 },
-          totalQuantity: { $sum: "$quantity" }
-        }
-      }
+          totalQuantity: { $sum: "$quantity" },
+        },
+      },
     ]);
 
     // Units sắp hết hạn (trong 7 ngày)
@@ -234,15 +243,15 @@ class BloodInventoryService {
       status: "available",
       expiresAt: {
         $gte: new Date(),
-        $lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-      }
+        $lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
     });
 
     // Units đã hết hạn
     const expiredUnitsCount = await bloodUnitModel.countDocuments({
       facilityId,
       status: "available",
-      expiresAt: { $lt: new Date() }
+      expiresAt: { $lt: new Date() },
     });
 
     return {
@@ -252,10 +261,12 @@ class BloodInventoryService {
       expiredUnits: expiredUnitsCount,
       summary: {
         totalUnits: unitStatusStats.reduce((sum, stat) => sum + stat.count, 0),
-        availableUnits: unitStatusStats.find(s => s._id === "available")?.count || 0,
-        reservedUnits: unitStatusStats.find(s => s._id === "reserved")?.count || 0,
-        usedUnits: unitStatusStats.find(s => s._id === "used")?.count || 0,
-      }
+        availableUnits:
+          unitStatusStats.find((s) => s._id === "available")?.count || 0,
+        reservedUnits:
+          unitStatusStats.find((s) => s._id === "reserved")?.count || 0,
+        usedUnits: unitStatusStats.find((s) => s._id === "used")?.count || 0,
+      },
     };
   };
 
@@ -271,15 +282,20 @@ class BloodInventoryService {
         status: "available",
         expiresAt: {
           $gte: new Date(),
-          $lte: expiryDate
-        }
+          $lte: expiryDate,
+        },
       },
       page,
       limit,
-      select: "_id donationId bloodGroupId component quantity collectedAt expiresAt",
+      select:
+        "_id donationId bloodGroupId component quantity collectedAt expiresAt",
       populate: [
         { path: "bloodGroupId", select: "name type" },
-        { path: "donationId", select: "userId", populate: { path: "userId", select: "fullName" } }
+        {
+          path: "donationId",
+          select: "userId",
+          populate: { path: "userId", select: "fullName" },
+        },
       ],
       sort: { expiresAt: 1 },
     });
@@ -293,20 +309,22 @@ class BloodInventoryService {
       {
         facilityId,
         status: "available",
-        expiresAt: { $lt: new Date() }
+        expiresAt: { $lt: new Date() },
       },
       {
-        $set: { status: "expired" }
+        $set: { status: "expired" },
       }
     );
 
     // Cập nhật inventory tương ứng nếu có units expired
     if (result.modifiedCount > 0) {
-      const expiredUnits = await bloodUnitModel.find({
-        facilityId,
-        status: "expired",
-        expiresAt: { $lt: new Date() }
-      }).populate("bloodGroupId");
+      const expiredUnits = await bloodUnitModel
+        .find({
+          facilityId,
+          status: "expired",
+          expiresAt: { $lt: new Date() },
+        })
+        .populate("bloodGroupId");
 
       // Group by component and blood group để update inventory
       const updates = {};
@@ -316,7 +334,7 @@ class BloodInventoryService {
           updates[key] = {
             component: unit.component,
             bloodGroupId: unit.bloodGroupId._id,
-            quantity: 0
+            quantity: 0,
           };
         }
         updates[key].quantity += unit.quantity;
@@ -325,17 +343,19 @@ class BloodInventoryService {
       // Update inventory quantities
       for (const update of Object.values(updates)) {
         const bloodComponentModel = require("../models/bloodComponent.model");
-        const componentDoc = await bloodComponentModel.findOne({ name: update.component });
-        
+        const componentDoc = await bloodComponentModel.findOne({
+          name: update.component,
+        });
+
         if (componentDoc) {
           await bloodInventoryModel.findOneAndUpdate(
             {
               facilityId,
               componentId: componentDoc._id,
-              groupId: update.bloodGroupId
+              groupId: update.bloodGroupId,
             },
             {
-              $inc: { totalQuantity: -update.quantity }
+              $inc: { totalQuantity: -update.quantity },
             }
           );
         }
@@ -344,12 +364,15 @@ class BloodInventoryService {
 
     return {
       expiredUnitsCount: result.modifiedCount,
-      message: `Đã cập nhật ${result.modifiedCount} units hết hạn`
+      message: `Đã cập nhật ${result.modifiedCount} units hết hạn`,
     };
   };
 
   // Reserve blood units cho request
-  reserveUnits = async (facilityId, { component, bloodGroupId, quantity, requestId }) => {
+  reserveUnits = async (
+    facilityId,
+    { component, bloodGroupId, quantity, requestId }
+  ) => {
     if (!component || !bloodGroupId || !quantity || !requestId) {
       throw new BadRequestError("Thiếu thông tin bắt buộc để reserve units");
     }
@@ -360,7 +383,7 @@ class BloodInventoryService {
         facilityId,
         component,
         bloodGroupId,
-        status: "available"
+        status: "available",
       })
       .sort({ expiresAt: 1 }) // Ưu tiên units sắp hết hạn trước
       .limit(Math.ceil(quantity / 100)); // Estimate số units cần
@@ -372,7 +395,7 @@ class BloodInventoryService {
       if (reservedQuantity >= quantity) break;
 
       const reserveQty = Math.min(unit.quantity, quantity - reservedQuantity);
-      
+
       // Update unit status và link với blood request
       unit.status = "reserved";
       unit.bloodRequestId = requestId;
@@ -386,7 +409,7 @@ class BloodInventoryService {
       reservedUnits,
       reservedQuantity,
       requestedQuantity: quantity,
-      fulfilled: reservedQuantity >= quantity
+      fulfilled: reservedQuantity >= quantity,
     };
   };
 
@@ -399,13 +422,22 @@ class BloodInventoryService {
     if (!componentDoc) return;
 
     // Tìm hoặc tạo inventory record
-    let inventory = await this.findInventory(facilityId, componentDoc._id, bloodGroupId);
+    let inventory = await this.findInventory(
+      facilityId,
+      componentDoc._id,
+      bloodGroupId
+    );
 
     if (inventory) {
       inventory.totalQuantity += quantity;
       await inventory.save();
     } else {
-      await this.createInventory(facilityId, componentDoc._id, bloodGroupId, quantity);
+      await this.createInventory(
+        facilityId,
+        componentDoc._id,
+        bloodGroupId,
+        quantity
+      );
     }
   };
 
@@ -414,7 +446,7 @@ class BloodInventoryService {
     return await bloodInventoryModel.findOne({
       facilityId,
       componentId,
-      groupId
+      groupId,
     });
   };
 
@@ -424,9 +456,9 @@ class BloodInventoryService {
       facilityId,
       componentId: componentId,
       groupId: groupId,
-      totalQuantity: quantity
+      totalQuantity: quantity,
     });
   };
 }
 
-module.exports = new BloodInventoryService(); 
+module.exports = new BloodInventoryService();

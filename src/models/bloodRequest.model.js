@@ -22,7 +22,6 @@ const bloodRequestSchema = new mongoose.Schema(
     componentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "BloodComponent",
-      required: true,
     },
     quantity: { type: Number },
     isUrgent: { type: Boolean, default: false },
@@ -53,6 +52,7 @@ const bloodRequestSchema = new mongoose.Schema(
       },
       required: true,
     },
+    reason: { type: String, trim: true, required: true },
     note: { type: String, trim: true },
     preferredDate: { type: Date },
     scheduledDeliveryDate: { type: Date },
