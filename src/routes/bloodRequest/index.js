@@ -25,5 +25,6 @@ router.get(
 );
 router.get("/facility/:facilityId/:id", BloodRequestController.getFacilityBloodRequestDetails);
 router.patch("/facility/:facilityId/:id/status", BloodRequestController.updateBloodRequestStatus);
+router.patch("/facility/:facilityId/:id/component", BloodRequestController.updateBloodRequestComponent);
 
 module.exports = router;

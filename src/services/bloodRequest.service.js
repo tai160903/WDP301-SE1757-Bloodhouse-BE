@@ -39,6 +39,7 @@ class BloodRequestService {
     "createdAt",
     "updatedAt",
     "isFulfilled",
+    "componentId",
   ];
 
   // Tạo yêu cầu máu
@@ -56,19 +57,10 @@ class BloodRequestService {
     }
 
     // Step 3: Validate dữ liệu bắt buộc
-    if (
-      !requestData.componentId ||
-      !requestData.quantity ||
-      !requestData.preferredDate ||
-      !requestData.consent
-    ) {
+    if (!requestData.quantity || !requestData.preferredDate) {
       throw new BadRequestError(
-        "Thiếu thông tin bắt buộc: thành phần máu, số lượng, ngày yêu cầu, hoặc đồng ý"
+        "Thiếu thông tin bắt buộc: số lượng, ngày yêu cầu"
       );
-    }
-
-    if (requestData.consent !== "true" && requestData.consent !== true) {
-      throw new BadRequestError("Cần đồng ý với các điều khoản và điều kiện");
     }
 
     if (parseInt(requestData.quantity) < 1) {
@@ -97,12 +89,16 @@ class BloodRequestService {
       throw new BadRequestError("Cần tải lên ít nhất 1 file tài liệu y tế");
     }
 
+    if (!requestData.reason) {
+      throw new BadRequestError("Thiếu thông tin bắt buộc: lý do");
+    }
+
     // Step 5: Tạo yêu cầu máu
     const bloodRequest = await BloodRequest.create({
       groupId: bloodGroup._id,
       userId,
       facilityId: requestData.facilityId,
-      componentId: requestData.componentId,
+      componentId: requestData.componentId || null,
       quantity: parseInt(requestData.quantity),
       isUrgent:
         requestData.isUrgent === "true" || requestData.isUrgent === true,
@@ -117,6 +113,7 @@ class BloodRequestService {
           parseFloat(requestData.latitude) || 0,
         ],
       },
+      reason: requestData.reason,
       medicalDocumentUrl: medicalDocumentUrls,
       note: requestData.note,
       preferredDate: new Date(requestData.preferredDate),
@@ -401,6 +398,7 @@ class BloodRequestService {
   getFacilityBloodRequestDetails = async (id, facilityId) => {
     const bloodRequest = await BloodRequest.findOne({ _id: id, facilityId })
       .populate("groupId", "name")
+      .populate("componentId", "name")
       .populate("userId", "fullName email phone")
       .populate("facilityId", "name address")
       .populate("staffId", "fullName email phone")
@@ -499,6 +497,29 @@ class BloodRequestService {
           "needsSupport",
           "updatedAt",
         ],
+        object: bloodRequest,
+      }),
+    };
+  };
+
+  updateBloodRequestComponent = async (id, facilityId, { componentId }) => {
+    const bloodRequest = await BloodRequest.findOne({
+      _id: id,
+      facilityId,
+    });
+
+    if (!bloodRequest) {
+      throw new BadRequestError(
+        "Không tìm thấy yêu cầu máu hoặc không thuộc cơ sở này"
+      );
+    }
+
+    bloodRequest.componentId = componentId;
+    await bloodRequest.save();
+
+    return {
+      data: getInfoData({
+        fields: this.requestFields.concat(["componentId"]),
         object: bloodRequest,
       }),
     };
