@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon server.js",
-    "migrate:add-codes": "node src/scripts/addUniqueCodeToExistingDocuments.js"
+    "migrate:add-codes": "node src/scripts/addUniqueCodeToExistingDocuments.js",
+    "seed": "node scripts/seedDatabase.js"
   },
   "author": "RiseUp",
   "license": "ISC",

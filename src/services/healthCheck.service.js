@@ -750,6 +750,8 @@ class HealthCheckService {
           "notes",
           "createdAt",
           "updatedAt",
+          "code",
+          "status"
         ],
         object: healthCheck,
       }) : null

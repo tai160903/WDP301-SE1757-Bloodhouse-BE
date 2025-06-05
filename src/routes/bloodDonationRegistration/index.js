@@ -11,7 +11,7 @@ router.use(checkAuth);
 
 // Public routes for authenticated users
 router.post(
-  "/",
+  "/", checkRole([USER_ROLE.MEMBER]),
   bloodDonationRegistrationController.createBloodDonationRegistration
 );
 
@@ -48,7 +48,7 @@ router.post(
 // Manager-only routes
 router.get(
   "/facility/all",
-  checkStaff([STAFF_POSITION.MANAGER]),
+  checkStaff([STAFF_POSITION.MANAGER, STAFF_POSITION.NURSE]),
   bloodDonationRegistrationController.getFacilityRegistrations
 );
 
