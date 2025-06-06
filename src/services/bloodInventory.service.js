@@ -392,20 +392,19 @@ class BloodInventoryService {
 
   // Helper method: Cập nhật inventory khi blood unit được approve
   updateInventoryFromUnit = async (bloodUnit) => {
-    const { facilityId, bloodGroupId, component, quantity } = bloodUnit;
+    const { facilityId, bloodGroupId, componentId, quantity } = bloodUnit;
 
-    // Tìm component ID
-    const componentDoc = await bloodComponentModel.findOne({ name: component });
-    if (!componentDoc) return;
-
+    if (!facilityId || !bloodGroupId || !componentId || !quantity) {
+      throw new BadRequestError("Thiếu thông tin bắt buộc để cập nhật inventory");
+    }
     // Tìm hoặc tạo inventory record
-    let inventory = await this.findInventory(facilityId, componentDoc._id, bloodGroupId);
+    let inventory = await this.findInventory(facilityId, componentId, bloodGroupId);
 
     if (inventory) {
       inventory.totalQuantity += quantity;
       await inventory.save();
     } else {
-      await this.createInventory(facilityId, componentDoc._id, bloodGroupId, quantity);
+      await this.createInventory(facilityId, componentId, bloodGroupId, quantity);
     }
   };
 
@@ -423,7 +422,7 @@ class BloodInventoryService {
     return await bloodInventoryModel.create({
       facilityId,
       componentId: componentId,
-      groupId: groupId,
+      groupId: groupId, 
       totalQuantity: quantity
     });
   };

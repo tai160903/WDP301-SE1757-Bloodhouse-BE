@@ -111,7 +111,6 @@ class BloodDonationService {
         "userId",
         "facilityId",
         "bloodGroupId",
-        "bloodComponent",
         "preferredDate",
         "status",
         "source",
@@ -142,7 +141,7 @@ class BloodDonationService {
       page,
       limit,
       select:
-        "_id userId facilityId bloodGroupId bloodComponent code preferredDate status source notes createdAt expectedQuantity",
+        "_id userId facilityId bloodGroupId code preferredDate status source notes createdAt expectedQuantity",
       populate: [
         { path: "userId", select: "fullName email phone avatar gender" },
         { path: "facilityId", select: "name street city" },
@@ -337,7 +336,6 @@ class BloodDonationService {
         "facilityId",
         "bloodGroupId",
         "staffId",
-        "bloodComponent",
         "preferredDate",
         "status",
         "source",
@@ -364,7 +362,7 @@ class BloodDonationService {
       page,
       limit,
       select:
-        "_id userId bloodGroupId bloodComponent quantity donationDate status bloodDonationRegistrationId createdAt",
+        "_id userId bloodGroupId quantity donationDate status bloodDonationRegistrationId createdAt",
       populate: [
         { path: "bloodGroupId", select: "name" },
         {
@@ -385,7 +383,6 @@ class BloodDonationService {
     staffId,
     bloodGroupId,
     bloodDonationRegistrationId,
-    bloodComponent,
     healthCheckId,
   }) => {
 
@@ -394,7 +391,6 @@ class BloodDonationService {
     if (!staffId) throw new BadRequestError("Staff ID is required");
     if (!bloodGroupId) throw new BadRequestError("Blood group ID is required");
     if (!bloodDonationRegistrationId) throw new BadRequestError("Blood donation registration ID is required");
-    if (!bloodComponent) throw new BadRequestError("Blood component is required");
     if (!healthCheckId) throw new BadRequestError("Health check ID is required");
     
     // Kiểm tra user và registration
@@ -415,7 +411,6 @@ class BloodDonationService {
       staffId,
       bloodGroupId,
       bloodDonationRegistrationId,
-      bloodComponent,
       donationDate: new Date(),
       status: BLOOD_DONATION_STATUS.DONATING,
       healthCheckId,
@@ -471,7 +466,6 @@ class BloodDonationService {
         "staffId",
         "bloodGroupId",
         "bloodDonationRegistrationId",
-        "bloodComponent",
         "donationDate",
         "status",
         "doctorId",
@@ -492,7 +486,7 @@ class BloodDonationService {
       page,
       limit,
       select:
-        "_id userId bloodGroupId bloodComponent quantity donationDate status bloodDonationRegistrationId createdAt",
+        "_id userId bloodGroupId quantity donationDate status bloodDonationRegistrationId createdAt",
       populate: [
         { path: "userId", select: "fullName email phone avatar" },
         { path: "bloodGroupId", select: "name" },
@@ -553,7 +547,6 @@ class BloodDonationService {
         "staffId",
         "bloodGroupId",
         "bloodDonationRegistrationId",
-        "bloodComponent",
         "quantity",
         "donationDate",
         "status",
@@ -975,7 +968,6 @@ class BloodDonationService {
         "staffId",
         "bloodGroupId",
         "bloodDonationRegistrationId",
-        "bloodComponent",
         "quantity",
         "donationDate",
         "donationStartAt",
@@ -1064,7 +1056,7 @@ class BloodDonationService {
       query,
       page,
       limit,
-      select: "_id userId bloodGroupId bloodComponent quantity donationDate status isDivided bloodDonationRegistrationId createdAt updatedAt code",
+      select: "_id userId bloodGroupId quantity donationDate status isDivided bloodDonationRegistrationId createdAt updatedAt code",
       populate: [
         { path: "userId", select: "fullName email phone avatar" },
         { path: "bloodGroupId", select: "name type" },
@@ -1132,7 +1124,6 @@ class BloodDonationService {
         "userId",
         "bloodGroupId",
         "bloodDonationRegistrationId",
-        "bloodComponent",
         "quantity",
         "donationDate",
         "status",

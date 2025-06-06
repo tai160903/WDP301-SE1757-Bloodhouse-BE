@@ -32,10 +32,10 @@ const bloodUnitSchema = new mongoose.Schema(
       ref: "BloodGroup",
       required: true
     },
-    component: { 
-      type: String,
-      enum: Object.values(BLOOD_COMPONENT),
-      required: true 
+    componentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "BloodComponent",
+      required: true,
     },
     quantity: { 
       type: Number,
