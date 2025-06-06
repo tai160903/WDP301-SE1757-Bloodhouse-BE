@@ -1,6 +1,6 @@
 "use strict";
 const mongoose = require("mongoose");
-const { BLOOD_COMPONENT, BLOOD_DONATION_STATUS } = require("../constants/enum");
+const { BLOOD_DONATION_STATUS } = require("../constants/enum");
 const { generateUniqueCodeSafe } = require("../utils/codeGenerator");
 
 const DOCUMENT_NAME = "BloodDonation";
@@ -17,11 +17,6 @@ const bloodDonationSchema = new mongoose.Schema(
     staffId: { type: mongoose.Schema.Types.ObjectId, ref: "FacilityStaff" },
     bloodGroupId: { type: mongoose.Schema.Types.ObjectId, ref: "BloodGroup", required: true },
     bloodDonationRegistrationId: { type: mongoose.Schema.Types.ObjectId, ref: "BloodDonationRegistration" },
-    bloodComponent: {
-      type: String,
-      enum: Object.values(BLOOD_COMPONENT),
-      required: true,
-    },
     quantity: { type: Number },
     donationDate: { type: Date },
     status: {

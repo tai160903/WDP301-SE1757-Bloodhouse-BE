@@ -1,10 +1,6 @@
 "use strict";
 const mongoose = require("mongoose");
-const {
-  BLOOD_COMPONENT,
-  BLOOD_UNIT_STATUS,
-  TEST_BLOOD_UNIT_RESULT,
-} = require("../constants/enum");
+const { BLOOD_UNIT_STATUS, TEST_BLOOD_UNIT_RESULT } = require("../constants/enum");
 const { generateUniqueCodeSafe } = require("../utils/codeGenerator");
 
 const DOCUMENT_NAME = "BloodUnit";
@@ -17,45 +13,46 @@ const bloodUnitSchema = new mongoose.Schema(
       unique: true,
       index: true,
     },
-    donationId: {
-      type: mongoose.Schema.Types.ObjectId,
+    donationId: { 
+      type: mongoose.Schema.Types.ObjectId, 
       ref: "BloodDonation",
-      required: true,
+      required: true 
     },
-    facilityId: {
-      type: mongoose.Schema.Types.ObjectId,
+    facilityId: { 
+      type: mongoose.Schema.Types.ObjectId, 
       ref: "Facility",
-      required: true,
+      required: true 
     },
-    bloodRequestId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "BloodRequest",
+    bloodRequestId: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: "BloodRequest" 
     },
     bloodGroupId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "BloodGroup",
-      required: true,
+      required: true
     },
-    component: {
+    componentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "BloodComponent",
       required: true,
     },
-    quantity: {
+    quantity: { 
       type: Number,
-      required: true,
+      required: true 
     },
     remainingQuantity: {
       type: Number,
       required: true,
     },
     collectedAt: {
+
       type: Date,
-      required: true,
+      required: true 
     },
-    expiresAt: {
+    expiresAt: { 
       type: Date,
-      required: true,
+      required: true 
     },
     status: {
       type: String,
@@ -63,42 +60,26 @@ const bloodUnitSchema = new mongoose.Schema(
       default: BLOOD_UNIT_STATUS.TESTING,
     },
     testResults: {
-      hiv: {
-        type: String,
-        enum: Object.values(TEST_BLOOD_UNIT_RESULT),
-        default: TEST_BLOOD_UNIT_RESULT.PENDING,
-      },
-      hepatitisB: {
-        type: String,
-        enum: Object.values(TEST_BLOOD_UNIT_RESULT),
-        default: TEST_BLOOD_UNIT_RESULT.PENDING,
-      },
-      hepatitisC: {
-        type: String,
-        enum: Object.values(TEST_BLOOD_UNIT_RESULT),
-        default: TEST_BLOOD_UNIT_RESULT.PENDING,
-      },
-      syphilis: {
-        type: String,
-        enum: Object.values(TEST_BLOOD_UNIT_RESULT),
-        default: TEST_BLOOD_UNIT_RESULT.PENDING,
-      },
-      notes: { type: String },
+      hiv: { type: String, enum: Object.values(TEST_BLOOD_UNIT_RESULT), default: TEST_BLOOD_UNIT_RESULT.PENDING },
+      hepatitisB: { type: String, enum: Object.values(TEST_BLOOD_UNIT_RESULT), default: TEST_BLOOD_UNIT_RESULT.PENDING },
+      hepatitisC: { type: String, enum: Object.values(TEST_BLOOD_UNIT_RESULT), default: TEST_BLOOD_UNIT_RESULT.PENDING },
+      syphilis: { type: String, enum: Object.values(TEST_BLOOD_UNIT_RESULT), default: TEST_BLOOD_UNIT_RESULT.PENDING },
+      notes: { type: String }
     },
     processedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "FacilityStaff",
+      ref: "FacilityStaff"
     },
     processedAt: { type: Date },
     approvedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "FacilityStaff",
+      ref: "FacilityStaff"
     },
-    approvedAt: { type: Date },
+    approvedAt: { type: Date }
   },
-  {
-    timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" },
-    collection: COLLECTION_NAME,
+  { 
+    timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" }, 
+    collection: COLLECTION_NAME 
   }
 );
 
@@ -120,6 +101,7 @@ bloodUnitSchema.pre("save", async function (next) {
     // Initialize remainingQuantity to match quantity for new units
     if (!this.remainingQuantity) {
       this.remainingQuantity = this.quantity;
+
     }
   }
   next();

@@ -44,12 +44,17 @@ class BloodUnitService {
     const createdUnits = [];
 
     for (const unitData of units) {
-      const { component, quantity } = unitData;
+      const { componentId, quantity } = unitData;
 
-      // Validate component
-      if (!Object.values(BLOOD_COMPONENT).includes(component)) {
-        throw new BadRequestError(`Thành phần máu không hợp lệ: ${component}`);
+      // Validate componentId
+      if (!componentId) {
+        throw new BadRequestError("Thành phần máu không hợp lệ (componentId thiếu)");
       }
+      const componentDoc = await bloodComponentModel.findById(componentId);
+      if (!componentDoc) {
+        throw new BadRequestError(`Không tìm thấy thành phần máu với id: ${componentId}`);
+      }
+      const component = componentDoc.name;
 
       if (!quantity || quantity <= 0) {
         throw new BadRequestError(`Khối lượng không hợp lệ cho ${component}`);
@@ -62,7 +67,7 @@ class BloodUnitService {
         donationId,
         facilityId,
         bloodGroupId,
-        component,
+        componentId,
         quantity,
         collectedAt,
         expiresAt,
@@ -74,24 +79,22 @@ class BloodUnitService {
       createdUnits.push(bloodUnit);
     }
 
-    return createdUnits.map((unit) =>
-      getInfoData({
-        fields: [
-          "_id",
-          "donationId",
-          "facilityId",
-          "bloodGroupId",
-          "component",
-          "quantity",
-          "collectedAt",
-          "expiresAt",
-          "status",
-          "processedAt",
-          "createdAt",
-        ],
-        object: unit,
-      })
-    );
+    return createdUnits.map(unit => getInfoData({
+      fields: [
+        "_id",
+        "donationId",
+        "facilityId", 
+        "bloodGroupId",
+        "componentId",
+        "quantity",
+        "collectedAt",
+        "expiresAt",
+        "status",
+        "processedAt",
+        "createdAt"
+      ],
+      object: unit,
+    }));
   };
 
   // Cập nhật kết quả test và approve blood unit
@@ -160,8 +163,8 @@ class BloodUnitService {
         "_id",
         "donationId",
         "facilityId",
-        "bloodGroupId",
-        "component",
+        "bloodGroupId", 
+        "componentId",
         "quantity",
         "collectedAt",
         "expiresAt",
@@ -184,8 +187,7 @@ class BloodUnitService {
       query: { donationId },
       page,
       limit,
-      select:
-        "_id donationId facilityId bloodGroupId component quantity collectedAt expiresAt status testResults processedAt approvedAt createdAt",
+      select: "_id donationId facilityId bloodGroupId componentId quantity collectedAt expiresAt status testResults processedAt approvedAt createdAt",
       populate: [
         { path: "facilityId", select: "name code" },
         { path: "bloodGroupId", select: "name type" },
@@ -237,8 +239,9 @@ class BloodUnitService {
       query,
       page,
       limit,
-      select:
-        "_id code donationId facilityId bloodGroupId component quantity collectedAt expiresAt status testResults processedAt approvedAt createdAt remainingQuantity",
+
+      select: "_id donationId facilityId bloodGroupId componentId quantity collectedAt expiresAt status testResults processedAt approvedAt createdAt",
+
       populate: [
         { path: "bloodGroupId", select: "name type" },
         { path: "component", select: "name" },
@@ -290,7 +293,7 @@ class BloodUnitService {
       query,
       page,
       limit,
-      select: "_id code donationId facilityId bloodGroupId component quantity collectedAt expiresAt status testResults processedBy processedAt approvedBy approvedAt createdAt updatedAt",
+      select: "_id code donationId facilityId bloodGroupId componentId quantity collectedAt expiresAt status testResults processedBy processedAt approvedBy approvedAt createdAt updatedAt",
       populate: [
         { path: "bloodGroupId", select: "name type" },
         { 
@@ -350,7 +353,7 @@ class BloodUnitService {
         "donationId",
         "facilityId",
         "bloodGroupId",
-        "component",
+        "componentId", 
         "quantity",
         "collectedAt",
         "expiresAt",
@@ -426,13 +429,7 @@ class BloodUnitService {
       // Thống kê theo component
       bloodUnitModel.aggregate([
         { $match: matchQuery },
-        {
-          $group: {
-            _id: "$component",
-            count: { $sum: 1 },
-            totalQuantity: { $sum: "$quantity" },
-          },
-        },
+        { $group: { _id: "$componentId", count: { $sum: 1 }, totalQuantity: { $sum: "$quantity" } } }
       ]),
 
       // Units sắp hết hạn (trong 7 ngày)
