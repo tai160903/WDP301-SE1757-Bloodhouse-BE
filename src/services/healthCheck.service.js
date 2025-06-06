@@ -602,8 +602,14 @@ class HealthCheckService {
       })
       .populate({
         path: "registrationId",
-        select: "facilityId",
-        populate: { path: "facilityId", select: "name" }
+        select: "facilityId bloodGroupId",
+        populate: { 
+          path: "facilityId", 
+          select: "name" 
+        },
+        populate: { 
+          path: "bloodGroupId", 
+          select: "name" }
       })
       .lean();
 

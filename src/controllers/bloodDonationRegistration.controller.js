@@ -80,14 +80,14 @@ class BloodDonationRegistrationController {
 
   // API cho NURSE: Lấy danh sách đăng ký hiến máu được gán cho mình
   getStaffAssignedRegistrations = asyncHandler(async (req, res) => {
-    const { 
-      status, 
-      page = 1, 
-      limit = 10, 
+    const {
+      status,
+      page = 1,
+      limit = 10,
       search,
       startDate,
       endDate,
-      bloodGroupId 
+      bloodGroupId,
     } = req.query;
 
     const result = await bloodDonationService.getStaffAssignedRegistrations({
@@ -98,7 +98,7 @@ class BloodDonationRegistrationController {
       search,
       startDate,
       endDate,
-      bloodGroupId
+      bloodGroupId,
     });
 
     new OK({
@@ -109,16 +109,16 @@ class BloodDonationRegistrationController {
 
   // API cho MANAGER, NURSE: Lấy danh sách đăng ký hiến máu của facility với thống kê
   getFacilityRegistrations = asyncHandler(async (req, res) => {
-    const { 
-      status, 
-      page = 1, 
-      limit = 10, 
+    const {
+      status,
+      page = 1,
+      limit = 10,
       search,
       startDate,
       endDate,
       bloodGroupId,
       staffId,
-      includeStats = false
+      includeStats = false,
     } = req.query;
 
     const result = await bloodDonationService.getFacilityRegistrations({
@@ -131,7 +131,7 @@ class BloodDonationRegistrationController {
       endDate,
       bloodGroupId,
       staffId,
-      includeStats: includeStats === 'true'
+      includeStats: includeStats === "true",
     });
 
     new OK({
@@ -142,17 +142,17 @@ class BloodDonationRegistrationController {
 
   // API cho MANAGER: Lấy thống kê tổng quan về đăng ký hiến máu
   getRegistrationStatistics = asyncHandler(async (req, res) => {
-    const { 
+    const {
       startDate,
       endDate,
-      groupBy = 'day' // day, week, month
+      groupBy = "day", // day, week, month
     } = req.query;
 
     const result = await bloodDonationService.getRegistrationStatistics({
       facilityId: req.user.facilityId,
       startDate,
       endDate,
-      groupBy
+      groupBy,
     });
 
     new OK({
@@ -164,15 +164,50 @@ class BloodDonationRegistrationController {
   // API cho STAFF: Cập nhật trạng thái check-in qua QR code
   updateCheckInStatus = asyncHandler(async (req, res) => {
     const { qrData } = req.body;
-    
+
     const result = await bloodDonationService.processCheckIn({
       qrData,
       staffId: req.user.staffId,
-      checkedBy: req.user.userId
+      checkedBy: req.user.userId,
     });
 
     new OK({
       message: BLOOD_DONATION_REGISTRATION_MESSAGE.CHECK_IN_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  // Doctor QR scan to get health check details
+  processDoctorQRScan = asyncHandler(async (req, res) => {
+    const result = await bloodDonationService.processDoctorQRScan({
+      qrData: req.body.qrData,
+      doctorId: req.user.staffId,
+    });
+    new OK({
+      message: "Quét QR thành công",
+      data: result,
+    }).send(res);
+  });
+
+  // Nurse QR scan to get registration and health check details
+  processNurseQRScan = asyncHandler(async (req, res) => {
+    const result = await bloodDonationService.processNurseQRScan({
+      qrData: req.body.qrData,
+      nurseId: req.user.staffId,
+    });
+    new OK({
+      message: "Quét QR thành công",
+      data: result,
+    }).send(res);
+  });
+
+  // Scan QR registration to get only status
+  processRegistrationQRScanForStatus = asyncHandler(async (req, res) => {
+    const result = await bloodDonationService.processRegistrationQRScanForStatus({
+      qrData: req.body.qrData,
+    });
+    new OK({
+      message: "Quét QR thành công",
       data: result,
     }).send(res);
   });

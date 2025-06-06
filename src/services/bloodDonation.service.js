@@ -415,6 +415,7 @@ class BloodDonationService {
       status: BLOOD_DONATION_STATUS.DONATING,
       healthCheckId,
       doctorId: healthCheck.doctorId,
+      createdBy: staffId,
     });
 
     // Update registration status
@@ -447,7 +448,7 @@ class BloodDonationService {
           path: "facilityId",
           select: "name street city"
         }),
-        createNestedPopulateConfig("staffId", "userId position", {
+        createNestedPopulateConfig("createdBy", "userId position", {
           path: "userId",
           select: "fullName"
         }),
@@ -463,7 +464,7 @@ class BloodDonationService {
       fields: [
         "_id",
         "userId",
-        "staffId",
+        "createdBy",
         "bloodGroupId",
         "bloodDonationRegistrationId",
         "donationDate",
@@ -490,7 +491,7 @@ class BloodDonationService {
       populate: [
         { path: "userId", select: "fullName email phone avatar" },
         { path: "bloodGroupId", select: "name" },
-        {path: "staffId", select: "userId position",
+        {path: "createdBy", select: "userId position",
           populate: { path: "userId", select: "fullName" }
         },
         {
@@ -527,7 +528,7 @@ class BloodDonationService {
       .populate("userId", "fullName email phone sex yob avatar")
       .populate("bloodGroupId", "name")
       .populate({
-        path: "staffId",
+        path: "createdBy",
         select: "userId position",
         populate: { path: "userId", select: "fullName" }
       })
@@ -544,7 +545,7 @@ class BloodDonationService {
       fields: [
         "_id",
         "userId",
-        "staffId",
+        "createdBy",
         "bloodGroupId",
         "bloodDonationRegistrationId",
         "quantity",
@@ -895,6 +896,8 @@ class BloodDonationService {
     if (notes) {
       donation.notes = notes;
     }
+    // Update updatedBy
+    donation.updatedBy = staffId;
 
     await donation.save();
 
@@ -1133,6 +1136,348 @@ class BloodDonationService {
       ],
       object: result,
     });
+  };
+
+  // Doctor QR scan to get health check details
+  processDoctorQRScan = async ({ qrData, doctorId }) => {
+    let parsedData;
+    try {
+      parsedData = typeof qrData === 'string' ? JSON.parse(qrData) : qrData;
+    } catch (error) {
+      throw new BadRequestError("QR code data không hợp lệ");
+    }
+    
+    const { registrationId, userId } = parsedData;
+    if (!registrationId) {
+      throw new BadRequestError("QR code không chứa thông tin registration ID");
+    }
+    if (!userId) {
+      throw new BadRequestError("QR code không chứa thông tin user ID");
+    }
+
+    // Find registration first to validate
+    const registration = await bloodDonationRegistrationModel.findById(registrationId);
+    if (!registration) {
+      throw new NotFoundError("Không tìm thấy đăng ký hiến máu");
+    }
+
+    // Validate userId matches registration
+    if (registration.userId.toString() !== userId) {
+      throw new BadRequestError("Thông tin người dùng không khớp với đăng ký");
+    }
+
+    // Find health check corresponding to this registration
+    const healthCheck = await healthCheckModel.findOne({ registrationId })
+      .populate("userId", "fullName email phone avatar sex yob bloodId", null, {
+        populate: { path: "bloodId", select: "type name" }
+      })
+      .populate({
+        path: "staffId",
+        select: "userId position",
+        populate: { path: "userId", select: "fullName email phone" }
+      })
+      .populate({
+        path: "doctorId",
+        select: "userId position",
+        populate: { path: "userId", select: "fullName email phone" }
+      })
+      .populate({
+        path: "registrationId",
+        select: "facilityId bloodGroupId code preferredDate status",
+        populate: [
+          { path: "facilityId", select: "name street city address" },
+          { path: "bloodGroupId", select: "name type" }
+        ]
+      })
+      .lean();
+
+    if (!healthCheck) {
+      throw new NotFoundError("Không tìm thấy health check tương ứng với đăng ký này");
+    }
+
+    // Validate that this health check is assigned to the requesting doctor
+    if (healthCheck.doctorId._id.toString() !== doctorId) {
+      throw new BadRequestError("Health check này không được phân công cho bạn");
+    }
+
+    // Get doctor staff info to validate facility
+    const doctorStaff = await facilityStaffModel.findById(doctorId);
+    if (!doctorStaff) {
+      throw new BadRequestError("Không tìm thấy thông tin bác sĩ");
+    }
+
+    // Validate facility match
+    if (healthCheck.facilityId.toString() !== doctorStaff.facilityId.toString()) {
+      throw new BadRequestError("Health check không thuộc cơ sở của bạn");
+    }
+
+    return getInfoData({
+      fields: [
+        "_id",
+        "registrationId",
+        "userId",
+        "doctorId",
+        "staffId",
+        "facilityId",
+        "checkDate",
+        "isEligible",
+        "bloodPressure",
+        "hemoglobin",
+        "weight",
+        "pulse",
+        "temperature",
+        "generalCondition",
+        "deferralReason",
+        "notes",
+        "createdAt",
+        "updatedAt",
+        "status",
+        "code"
+      ],
+      object: healthCheck,
+    });
+  };
+
+  // Nurse QR scan to get registration and health check details
+  processNurseQRScan = async ({ qrData, nurseId }) => {
+    let parsedData;
+    try {
+      parsedData = typeof qrData === 'string' ? JSON.parse(qrData) : qrData;
+    } catch (error) {
+      throw new BadRequestError("QR code data không hợp lệ");
+    }
+    
+    const { registrationId, userId } = parsedData;
+    if (!registrationId) {
+      throw new BadRequestError("QR code không chứa thông tin registration ID");
+    }
+    if (!userId) {
+      throw new BadRequestError("QR code không chứa thông tin user ID");
+    }
+
+    // Get nurse staff info to validate facility
+    const nurseStaff = await facilityStaffModel.findById(nurseId);
+    if (!nurseStaff) {
+      throw new BadRequestError("Không tìm thấy thông tin y tá");
+    }
+
+    // Find registration with full populate (similar to getHealthCheckByRegistrationId)
+    const registration = await bloodDonationRegistrationModel.findById(registrationId)
+      .populate("userId", "fullName email phone avatar sex yob bloodId", null, {
+        populate: { path: "bloodId", select: "type name" }
+      })
+      .populate("facilityId", "name street city address contactPhone contactEmail")
+      .populate("bloodGroupId", "name type")
+      .populate({
+        path: "staffId",
+        select: "userId position",
+        populate: { path: "userId", select: "fullName email phone" }
+      })
+      .lean();
+
+    if (!registration) {
+      throw new NotFoundError("Không tìm thấy đăng ký hiến máu");
+    }
+
+    // Validate userId matches registration
+    if (registration.userId._id.toString() !== userId) {
+      throw new BadRequestError("Thông tin người dùng không khớp với đăng ký");
+    }
+
+    // Validate facility access
+    if (registration.facilityId._id.toString() !== nurseStaff.facilityId.toString()) {
+      throw new BadRequestError("Đăng ký này không thuộc cơ sở của bạn");
+    }
+
+    // Find health check corresponding to this registration (if exists)
+    let healthCheck = null;
+    try {
+      healthCheck = await healthCheckModel.findOne({ registrationId })
+        .populate({
+          path: "staffId",
+          select: "userId position",
+          populate: { path: "userId", select: "fullName email phone" }
+        })
+        .populate({
+          path: "doctorId", 
+          select: "userId position",
+          populate: { path: "userId", select: "fullName email phone" }
+        })
+        .lean();
+    } catch (error) {
+      // Health check chưa tồn tại, không sao
+    }
+
+    return {
+      registration: getInfoData({
+        fields: [
+          "_id",
+          "userId",
+          "facilityId",
+          "bloodGroupId",
+          "staffId",
+          "preferredDate",
+          "status",
+          "source",
+          "notes",
+          "code",
+          "location",
+          "expectedQuantity",
+          "qrCodeUrl",
+          "checkInAt",
+          "completedAt",
+          "createdAt",
+          "updatedAt",
+        ],
+        object: registration,
+      }),
+      healthCheck: healthCheck ? getInfoData({
+        fields: [
+          "_id",
+          "registrationId",
+          "userId",
+          "doctorId",
+          "staffId",
+          "facilityId",
+          "checkDate",
+          "isEligible",
+          "bloodPressure",
+          "hemoglobin",
+          "weight",
+          "pulse",
+          "temperature",
+          "generalCondition",
+          "deferralReason",
+          "notes",
+          "createdAt",
+          "updatedAt",
+          "code",
+          "status"
+        ],
+        object: healthCheck,
+      }) : null
+    };
+  };
+
+  // Nurse QR scan to get blood donation details
+  processNurseQRScanForDonation = async ({ qrData, nurseId }) => {
+    let parsedData;
+    try {
+      parsedData = typeof qrData === 'string' ? JSON.parse(qrData) : qrData;
+    } catch (error) {
+      throw new BadRequestError("QR code data không hợp lệ");
+    }
+    
+    const { registrationId, userId } = parsedData;
+    if (!registrationId) {
+      throw new BadRequestError("QR code không chứa thông tin registration ID");
+    }
+    if (!userId) {
+      throw new BadRequestError("QR code không chứa thông tin user ID");
+    }
+
+    // Get nurse staff info to validate facility
+    const nurseStaff = await facilityStaffModel.findById(nurseId);
+    if (!nurseStaff) {
+      throw new BadRequestError("Không tìm thấy thông tin y tá");
+    }
+
+    // Find blood donation that matches registrationId and userId
+    const donation = await bloodDonationModel
+      .findOne({ 
+        bloodDonationRegistrationId: registrationId,
+        userId: userId 
+      })
+      .populate("userId", "fullName email phone sex yob avatar")
+      .populate("bloodGroupId", "name")
+      .populate({
+        path: "createdBy",
+        select: "userId position",
+        populate: { path: "userId", select: "fullName" }
+      })
+      .populate({
+        path: "updatedBy",
+        select: "userId position", 
+        populate: { path: "userId", select: "fullName" }
+      })
+      .populate({
+        path: "doctorId",
+        select: "userId position",
+        populate: { path: "userId", select: "fullName" }
+      })
+      .populate({
+        path: "bloodDonationRegistrationId",
+        select: "preferredDate facilityId code",
+        populate: { path: "facilityId", select: "name street city location" },
+      })
+      .lean();
+
+    if (!donation) {
+      throw new NotFoundError("Không tìm thấy bản ghi hiến máu tương ứng với QR code");
+    }
+
+    // Validate facility access - check if donation's facility matches nurse's facility
+    if (donation.bloodDonationRegistrationId?.facilityId?._id.toString() !== nurseStaff.facilityId.toString()) {
+      throw new BadRequestError("Bản ghi hiến máu này không thuộc cơ sở của bạn");
+    }
+
+    return getInfoData({
+      fields: [
+        "_id",
+        "userId",
+        "createdBy",
+        "updatedBy",
+        "bloodGroupId",
+        "bloodDonationRegistrationId",
+        "quantity",
+        "donationDate",
+        "status",
+        "createdAt",
+        "code",
+        "updatedAt",
+        "notes",
+        "isDivided",
+        "doctorId",
+        "healthCheckId"
+      ],
+      object: donation,
+    });
+  };
+
+  // Scan QR registration to get only status
+  processRegistrationQRScanForStatus = async ({ qrData }) => {
+    let parsedData;
+    try {
+      parsedData = typeof qrData === 'string' ? JSON.parse(qrData) : qrData;
+    } catch (error) {
+      throw new BadRequestError("QR code data không hợp lệ");
+    }
+    
+    const { registrationId, userId } = parsedData;
+    if (!registrationId) {
+      throw new BadRequestError("QR code không chứa thông tin registration ID");
+    }
+    if (!userId) {
+      throw new BadRequestError("QR code không chứa thông tin user ID");
+    }
+
+    // Find registration and validate
+    const registration = await bloodDonationRegistrationModel.findById(registrationId);
+    if (!registration) {
+      throw new NotFoundError("Không tìm thấy đăng ký hiến máu");
+    }
+
+    // Validate userId matches registration
+    if (registration.userId.toString() !== userId) {
+      throw new BadRequestError("Thông tin người dùng không khớp với đăng ký");
+    }
+
+    // Return only registration status
+    return {
+      registrationId: registration._id,
+      status: registration.status,
+      code: registration.code
+    };
   };
 }
 
