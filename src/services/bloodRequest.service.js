@@ -10,6 +10,8 @@ const { uploadSingleImage } = require("../helpers/cloudinaryHelper");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
 const notificationService = require("./notification.service");
 const BloodRequestSupport = require("../models/bloodRequestSupport.model");
+const BloodUnit = require("../models/bloodUnit.model");
+const { BLOOD_UNIT_STATUS } = require("../constants/enum");
 
 class BloodRequestService {
   requestFields = [
@@ -668,6 +670,36 @@ class BloodRequestService {
       throw new BadRequestError("Không tìm thấy yêu cầu máu");
     }
     return bloodRequest;
+  };
+
+  assignBloodUnitsToRequest = async ({ id, facilityId, bloodUnitIds }) => {
+    // Step 1: Kiểm tra request có tồn tại và thuộc cơ sở này không
+    const bloodRequest = await BloodRequest.findOne({ _id: id, facilityId });
+    if (!bloodRequest) {
+      throw new BadRequestError("Không tìm thấy yêu cầu máu");
+    }
+
+    // Step 2: Kiểm tra các bloodUnit hợp lệ
+    const validUnits = await BloodUnit.find({
+      _id: { $in: bloodUnitIds },
+      facilityId,
+      status: BLOOD_UNIT_STATUS.AVAILABLE,
+      bloodGroupId: bloodRequest.groupId,
+      component: bloodRequest.componentId,
+      expiresAt: { $gt: new Date() },
+      bloodRequestId: { $exists: false },
+    });
+    if (validUnits.length !== bloodUnitIds.length) {
+      throw new BadRequestError("Một số đơn vị máu không hợp lệ");
+    }
+
+    // Step 3: Cập nhật request với các đơn vị máu đã chọn
+    const updatedRequest = await BloodRequest.findByIdAndUpdate(
+      id,
+      { $set: { bloodUnitIds } },
+      { new: true }
+    );
+    return updatedRequest;
   };
 }
 

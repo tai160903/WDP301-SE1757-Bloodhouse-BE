@@ -169,7 +169,8 @@ class BloodRequestController {
       userId
     );
     new OK({
-      message: BLOOD_REQUEST_MESSAGE.GET_REQUEST_BLOOD_NEED_SUPPORT_BY_ID_SUCCESS,
+      message:
+        BLOOD_REQUEST_MESSAGE.GET_REQUEST_BLOOD_NEED_SUPPORT_BY_ID_SUCCESS,
       data: result,
     }).send(res);
   });
@@ -197,6 +198,20 @@ class BloodRequestController {
     );
     new OK({
       message: BLOOD_REQUEST_MESSAGE.GET_SUPPORT_REQUEST_DETAILS_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  assignBloodUnitsToRequest = asyncHandler(async (req, res, next) => {
+    const { id } = req.params;
+    const { bloodUnitIds, facilityId } = req.body;
+    const result = await bloodRequestService.assignBloodUnitsToRequest({
+      id,
+      facilityId,
+      bloodUnitIds,
+    });
+    new OK({
+      message: BLOOD_REQUEST_MESSAGE.ASSIGN_BLOOD_UNITS_TO_REQUEST_SUCCESS,
       data: result,
     }).send(res);
   });

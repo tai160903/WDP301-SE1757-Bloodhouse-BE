@@ -238,9 +238,10 @@ class BloodUnitService {
       page,
       limit,
       select:
-        "_id donationId facilityId bloodGroupId component quantity collectedAt expiresAt status testResults processedAt approvedAt createdAt",
+        "_id code donationId facilityId bloodGroupId component quantity collectedAt expiresAt status testResults processedAt approvedAt createdAt remainingQuantity",
       populate: [
         { path: "bloodGroupId", select: "name type" },
+        { path: "component", select: "name" },
         {
           path: "donationId",
           select: "userId donationDate",
