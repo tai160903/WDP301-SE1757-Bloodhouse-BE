@@ -1,6 +1,6 @@
 "use strict";
 const mongoose = require("mongoose");
-const { BLOOD_COMPONENT, BLOOD_UNIT_STATUS, TEST_BLOOD_UNIT_RESULT } = require("../constants/enum");
+const { BLOOD_UNIT_STATUS, TEST_BLOOD_UNIT_RESULT } = require("../constants/enum");
 const { generateUniqueCodeSafe } = require("../utils/codeGenerator");
 
 const DOCUMENT_NAME = "BloodUnit";
