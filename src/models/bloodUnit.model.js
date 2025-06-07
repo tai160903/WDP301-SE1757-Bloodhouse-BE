@@ -23,10 +23,6 @@ const bloodUnitSchema = new mongoose.Schema(
       ref: "Facility",
       required: true 
     },
-    bloodRequestId: { 
-      type: mongoose.Schema.Types.ObjectId, 
-      ref: "BloodRequest" 
-    },
     bloodGroupId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "BloodGroup",
@@ -45,8 +41,11 @@ const bloodUnitSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    deliveredQuantity: {
+      type: Number,
+      default: 0,
+    },
     collectedAt: {
-
       type: Date,
       required: true 
     },
@@ -112,5 +111,6 @@ bloodUnitSchema.index({ donationId: 1 });
 bloodUnitSchema.index({ facilityId: 1 });
 bloodUnitSchema.index({ status: 1 });
 bloodUnitSchema.index({ expiresAt: 1 });
+bloodUnitSchema.index({ bloodRequestId: 1 });
 
 module.exports = mongoose.model(DOCUMENT_NAME, bloodUnitSchema);

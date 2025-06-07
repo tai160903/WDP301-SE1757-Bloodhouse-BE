@@ -5,12 +5,14 @@ const USER_ROLE = {
   DOCTOR: "DOCTOR",
   NURSE: "NURSE",
   GUEST: "GUEST",
+  TRANSPORTER: "TRANSPORTER",
 };
 
 const STAFF_POSITION = {
   MANAGER: "MANAGER",
   NURSE: "NURSE",
   DOCTOR: "DOCTOR",
+  TRANSPORTER: "TRANSPORTER",
 };
 
 const NOTIFICATION_TYPE = {
@@ -93,7 +95,6 @@ const BLOOD_DONATION_STATUS = {
   COMPLETED: "completed",
 };
 
-
 const USER_STATUS = {
   ACTIVE: "active",
   INACTIVE: "inactive",
@@ -104,7 +105,7 @@ const USER_STATUS = {
 const PROFILE_LEVEL = {
   BASIC: 1,
   VERIFIED_CCCD: 2,
-}
+};
 
 const CONTENT_STATUS = {
   DRAFT: "draft",
@@ -151,6 +152,12 @@ const TEST_BLOOD_UNIT_RESULT = {
   PENDING: "pending",
 };
 
+const BLOOD_DELIVERY_STATUS = {
+  PENDING: "pending",
+  IN_TRANSIT: "in_transit",
+  DELIVERED: "delivered",
+  CANCELLED: "cancelled",
+};
 
 module.exports = {
   USER_ROLE,
@@ -170,7 +177,8 @@ module.exports = {
   ENTITY_TYPE,
   DONOR_STATUS,
   PROFILE_LEVEL,
-  HEALTH_CHECK_STATUS    ,
+  HEALTH_CHECK_STATUS,
   BLOOD_UNIT_STATUS,
-  TEST_BLOOD_UNIT_RESULT               
+  TEST_BLOOD_UNIT_RESULT,
+  BLOOD_DELIVERY_STATUS,
 };

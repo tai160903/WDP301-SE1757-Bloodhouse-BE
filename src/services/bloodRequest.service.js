@@ -3,15 +3,25 @@
 const BloodRequest = require("../models/bloodRequest.model");
 const { getInfoData } = require("../utils");
 const { BadRequestError } = require("../configs/error.response");
-const { BLOOD_REQUEST_STATUS } = require("../constants/enum");
+const {
+  BLOOD_REQUEST_STATUS,
+  BLOOD_DELIVERY_STATUS,
+  STAFF_POSITION,
+} = require("../constants/enum");
 const bloodGroupModel = require("../models/bloodGroup.model");
 const userModel = require("../models/user.model");
 const { uploadSingleImage } = require("../helpers/cloudinaryHelper");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
 const notificationService = require("./notification.service");
 const BloodRequestSupport = require("../models/bloodRequestSupport.model");
-const BloodUnit = require("../models/bloodUnit.model");
+const bloodUnitModel = require("../models/bloodUnit.model");
 const { BLOOD_UNIT_STATUS } = require("../constants/enum");
+const bloodDeliveryModel = require("../models/bloodDelivery.model");
+const facilityStaffModel = require("../models/facilityStaff.model");
+const bloodDistributionLogModel = require("../models/bloodDistributionLog.model");
+const { default: mongoose } = require("mongoose");
+const { BLOOD_REQUEST_MESSAGE } = require("../constants/message");
+const QRCode = require("qrcode");
 
 class BloodRequestService {
   requestFields = [
@@ -42,6 +52,7 @@ class BloodRequestService {
     "updatedAt",
     "isFulfilled",
     "componentId",
+    "qrCodeUrl",
   ];
 
   // Tạo yêu cầu máu
@@ -230,7 +241,7 @@ class BloodRequestService {
       .populate("componentId", "name")
       .populate("userId", "fullName email phone")
       .populate("facilityId", "name address")
-      .populate("staffId", "fullName email phone")
+      .populate("approvedBy", "fullName email phone")
       .lean();
 
     if (!bloodRequest) {
@@ -241,7 +252,7 @@ class BloodRequestService {
 
     return {
       data: getInfoData({
-        fields: this.requestFields.concat(["facilityId", "staffId"]),
+        fields: this.requestFields.concat(["facilityId", "approvedBy"]),
         object: bloodRequest,
       }),
     };
@@ -322,7 +333,7 @@ class BloodRequestService {
       .populate("groupId", "name")
       .populate("userId", "fullName email phone")
       .populate("facilityId", "name address")
-      .populate("staffId", "fullName email phone")
+      .populate("approvedBy", "fullName email phone")
       .lean();
 
     if (!bloodRequest) {
@@ -333,7 +344,7 @@ class BloodRequestService {
 
     return {
       data: getInfoData({
-        fields: this.requestFields.concat(["facilityId", "staffId"]),
+        fields: this.requestFields.concat(["facilityId", "approvedBy"]),
         object: bloodRequest,
       }),
     };
@@ -403,7 +414,7 @@ class BloodRequestService {
       .populate("componentId", "name")
       .populate("userId", "fullName email phone")
       .populate("facilityId", "name address")
-      .populate("staffId", "fullName email phone")
+      .populate("approvedBy", "fullName email phone")
       .lean();
 
     if (!bloodRequest) {
@@ -414,7 +425,7 @@ class BloodRequestService {
 
     return {
       data: getInfoData({
-        fields: this.requestFields.concat(["facilityId", "staffId"]),
+        fields: this.requestFields.concat(["facilityId", "approvedBy"]),
         object: bloodRequest,
       }),
     };
@@ -424,7 +435,7 @@ class BloodRequestService {
   updateBloodRequestStatus = async (
     id,
     facilityId,
-    { status, staffId, scheduledDeliveryDate, needsSupport }
+    { status, staffId, needsSupport }
   ) => {
     const bloodRequest = await BloodRequest.findOne({
       _id: id,
@@ -450,10 +461,8 @@ class BloodRequestService {
     }
 
     if (staffId) {
-      bloodRequest.staffId = staffId;
-    }
-    if (scheduledDeliveryDate) {
-      bloodRequest.scheduledDeliveryDate = scheduledDeliveryDate;
+      bloodRequest.approvedBy = staffId;
+      bloodRequest.approvedAt = new Date();
     }
     if (needsSupport !== undefined) {
       bloodRequest.needsSupport = needsSupport;
@@ -491,14 +500,7 @@ class BloodRequestService {
 
     return {
       data: getInfoData({
-        fields: [
-          "_id",
-          "status",
-          "staffId",
-          "scheduledDeliveryDate",
-          "needsSupport",
-          "updatedAt",
-        ],
+        fields: ["_id", "status", "approvedBy", "needsSupport", "updatedAt"],
         object: bloodRequest,
       }),
     };
@@ -626,7 +628,7 @@ class BloodRequestService {
     return getInfoData({
       fields: this.requestFields.concat([
         "facilityId",
-        "staffId",
+        "approvedBy",
         "isRegistered",
         "numberRegistered",
         "componentId",
@@ -672,34 +674,164 @@ class BloodRequestService {
     return bloodRequest;
   };
 
-  assignBloodUnitsToRequest = async ({ id, facilityId, bloodUnitIds }) => {
-    // Step 1: Kiểm tra request có tồn tại và thuộc cơ sở này không
-    const bloodRequest = await BloodRequest.findOne({ _id: id, facilityId });
-    if (!bloodRequest) {
-      throw new BadRequestError("Không tìm thấy yêu cầu máu");
-    }
+  assignBloodUnitsToRequest = async ({
+    requestId,
+    facilityId,
+    bloodUnits,
+    transporterId,
+    userId,
+    note,
+    scheduledDeliveryDate,
+  }) => {
+    // Step 0: Tạo session
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      // Step 1: Kiểm tra request có tồn tại và thuộc cơ sở này không
+      const bloodRequest = await BloodRequest.findOne({
+        _id: requestId,
+        facilityId,
+      }).session(session);
+      if (!bloodRequest) {
+        throw new BadRequestError("Không tìm thấy yêu cầu máu");
+      }
 
-    // Step 2: Kiểm tra các bloodUnit hợp lệ
-    const validUnits = await BloodUnit.find({
-      _id: { $in: bloodUnitIds },
-      facilityId,
-      status: BLOOD_UNIT_STATUS.AVAILABLE,
-      bloodGroupId: bloodRequest.groupId,
-      component: bloodRequest.componentId,
-      expiresAt: { $gt: new Date() },
-      bloodRequestId: { $exists: false },
-    });
-    if (validUnits.length !== bloodUnitIds.length) {
-      throw new BadRequestError("Một số đơn vị máu không hợp lệ");
-    }
+      // Step 2: Kiểm tra các bloodUnit hợp lệ
+      const bloodUnitIds = bloodUnits.map((unit) => unit.unitId);
+      const validUnits = await bloodUnitModel
+        .find({
+          _id: { $in: bloodUnitIds },
+          facilityId,
+          status: BLOOD_UNIT_STATUS.AVAILABLE,
+          bloodGroupId: bloodRequest.groupId,
+          componentId: bloodRequest.componentId,
+          expiresAt: { $gt: new Date() },
+          bloodRequestId: { $exists: false },
+        })
+        .session(session);
+      if (validUnits.length !== bloodUnitIds.length) {
+        throw new BadRequestError("Một số đơn vị máu không hợp lệ");
+      }
 
-    // Step 3: Cập nhật request với các đơn vị máu đã chọn
-    const updatedRequest = await BloodRequest.findByIdAndUpdate(
-      id,
-      { $set: { bloodUnitIds } },
-      { new: true }
-    );
-    return updatedRequest;
+      // Step 3: Kiểm tra số lượng và cập nhật remainingQuantity
+      const updateOps = [];
+      const logOps = [];
+
+      for (const { unitId, quantity } of bloodUnits) {
+        const unit = validUnits.find(
+          (u) => u._id.toString() === unitId.toString()
+        );
+        if (!unit) {
+          throw new BadRequestError("Đơn vị máu không hợp lệ");
+        }
+
+        const remaining = unit.remainingQuantity ?? unit.quantity;
+        if (quantity > remaining) {
+          throw new BadRequestError(
+            "Số lượng máu yêu cầu vượt quá số lượng máu có sẵn"
+          );
+        }
+
+        // Trừ remainingQuantity và cập nhật status
+        updateOps.push({
+          updateOne: {
+            filter: { _id: unitId },
+            update: {
+              $set: {
+                remainingQuantity: remaining - quantity,
+                status:
+                  remaining - quantity === 0
+                    ? BLOOD_UNIT_STATUS.RESERVED
+                    : BLOOD_UNIT_STATUS.AVAILABLE,
+              },
+            },
+          },
+        });
+
+        // Tạo log phân phối máu
+        logOps.push({
+          bloodRequestId: requestId,
+          bloodUnitId: unitId,
+          quantityDistributed: quantity,
+          assignedBy: userId,
+        });
+      }
+      // Step 4: Ghi cập nhật vào DB
+      if (updateOps.length) {
+        await bloodUnitModel.bulkWrite(updateOps, { session });
+        await bloodDistributionLogModel.insertMany(logOps, { session });
+      }
+
+      // Step 5: Kiểm tra transporter có tồn tại và thuộc cơ sở này không
+      const transporter = await facilityStaffModel
+        .findOne({
+          _id: transporterId,
+          facilityId,
+          position: STAFF_POSITION.TRANSPORTER,
+        })
+        .session(session);
+      if (!transporter) {
+        throw new BadRequestError(
+          "Không tìm thấy transporter hoặc không thuộc cơ sở này"
+        );
+      }
+
+      // Step 6: Tạo delivery
+      const delivery = await bloodDeliveryModel.create([{
+        bloodRequestId: requestId,
+        facilityId,
+        facilityToAddress: bloodRequest.address,
+        bloodUnits: bloodUnits.map(unit => ({
+          unitId: unit.unitId,
+          quantity: unit.quantity
+        })),
+        transporterId,
+        assignedBy: userId,
+        status: BLOOD_DELIVERY_STATUS.PENDING,
+        note,
+      }], { session });
+
+      // Step 7: Cập nhật request
+      const totalAssigned = bloodUnits.reduce(
+        (sum, item) => sum + item.quantity,
+        0
+      );
+      const isFull = totalAssigned >= bloodRequest.quantity;
+      bloodRequest.status = BLOOD_REQUEST_STATUS.ASSIGNED;
+      bloodRequest.scheduledDeliveryDate = scheduledDeliveryDate;
+      bloodRequest.isFulfilled = isFull;
+      bloodRequest.needsSupport = !isFull;
+      bloodRequest.distributedBy = userId;
+      bloodRequest.distributedAt = new Date();
+
+      // Step 8: Tạo QR code cho delivery
+      const deliveryId = delivery[0]._id;
+      const qrData = {
+        type: "blood_delivery",
+        deliveryId: deliveryId,
+        requestId: bloodRequest._id,
+        facilityId: bloodRequest.facilityId,
+        recipientId: bloodRequest.userId,
+        timestamp: new Date().toISOString(),
+      };
+      try {
+        const qrCodeUrl = await QRCode.toDataURL(JSON.stringify(qrData));
+        bloodRequest.qrCodeUrl = qrCodeUrl;
+      } catch (error) {
+        throw new BadRequestError(
+          BLOOD_REQUEST_MESSAGE.FAILED_TO_GENERATE_QR_CODE
+        );
+      }
+      await bloodRequest.save({ session });
+
+      await session.commitTransaction();
+      session.endSession();
+      return delivery;
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
   };
 }
 

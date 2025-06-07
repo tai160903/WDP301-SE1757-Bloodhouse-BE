@@ -18,7 +18,7 @@ router.get("/need-support/:id", BloodRequestController.getRequestBloodNeedSuppor
 router.use(checkRole([USER_ROLE.MANAGER]))
 router.post("/:id/assign-blood-units", BloodRequestController.assignBloodUnitsToRequest);
 
-router.use(checkRole([USER_ROLE.NURSE]))
+router.use(checkRole([USER_ROLE.MANAGER,USER_ROLE.NURSE]))
 router.get("/facility/:facilityId/support-requests", BloodRequestController.getSupportRequestsForFacility);
 router.get("/facility/:facilityId/support-requests/:id", BloodRequestController.getSupportRequestDetails);
 router.get("/facility/:facilityId", BloodRequestController.getFacilityBloodRequests);

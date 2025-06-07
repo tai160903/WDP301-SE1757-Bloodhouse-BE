@@ -17,7 +17,8 @@ const bloodRequestSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    staffId: { type: mongoose.Schema.Types.ObjectId, ref: "FacilityStaff" },
+    approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "FacilityStaff" },
+    approvedAt: { type: Date },
     facilityId: { type: mongoose.Schema.Types.ObjectId, ref: "Facility" },
     componentId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -58,6 +59,12 @@ const bloodRequestSchema = new mongoose.Schema(
     scheduledDeliveryDate: { type: Date },
     isFulfilled: { type: Boolean, default: false },
     needsSupport: { type: Boolean, default: false },
+    qrCodeUrl: { type: String, trim: true },
+    distributedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "FacilityStaff",
+    },
+    distributedAt: { type: Date },
   },
   {
     timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" },
