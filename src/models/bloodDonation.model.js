@@ -25,6 +25,8 @@ const bloodDonationSchema = new mongoose.Schema(
       default: BLOOD_DONATION_STATUS.DONATING,
     },
     notes: { type: String },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "FacilityStaff" },
+    updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "FacilityStaff" },
     isDivided: { type: Boolean, default: false },
     doctorId: { type: mongoose.Schema.Types.ObjectId, ref: "FacilityStaff" },
     healthCheckId: { type: mongoose.Schema.Types.ObjectId, ref: "HealthCheck" },

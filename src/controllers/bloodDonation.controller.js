@@ -128,6 +128,18 @@ class BloodDonationController {
       data: result,
     }).send(res);
   });
+
+  // Nurse QR scan to get blood donation details
+  processNurseQRScanForDonation = asyncHandler(async (req, res) => {
+    const result = await bloodDonationService.processNurseQRScanForDonation({
+      qrData: req.body.qrData,
+      nurseId: req.user.staffId,
+    });
+    new OK({
+      message: "Quét QR thành công",
+      data: result,
+    }).send(res);
+  });
 }
 
 module.exports = new BloodDonationController();

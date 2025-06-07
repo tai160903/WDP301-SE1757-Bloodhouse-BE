@@ -415,6 +415,7 @@ class BloodDonationService {
       status: BLOOD_DONATION_STATUS.DONATING,
       healthCheckId,
       doctorId: healthCheck.doctorId,
+      createdBy: staffId,
     });
 
     // Update registration status
@@ -447,7 +448,7 @@ class BloodDonationService {
           path: "facilityId",
           select: "name street city"
         }),
-        createNestedPopulateConfig("staffId", "userId position", {
+        createNestedPopulateConfig("createdBy", "userId position", {
           path: "userId",
           select: "fullName"
         }),
@@ -463,7 +464,7 @@ class BloodDonationService {
       fields: [
         "_id",
         "userId",
-        "staffId",
+        "createdBy",
         "bloodGroupId",
         "bloodDonationRegistrationId",
         "donationDate",
@@ -490,7 +491,7 @@ class BloodDonationService {
       populate: [
         { path: "userId", select: "fullName email phone avatar" },
         { path: "bloodGroupId", select: "name" },
-        {path: "staffId", select: "userId position",
+        {path: "createdBy", select: "userId position",
           populate: { path: "userId", select: "fullName" }
         },
         {
@@ -527,7 +528,7 @@ class BloodDonationService {
       .populate("userId", "fullName email phone sex yob avatar")
       .populate("bloodGroupId", "name")
       .populate({
-        path: "staffId",
+        path: "createdBy",
         select: "userId position",
         populate: { path: "userId", select: "fullName" }
       })
@@ -544,7 +545,7 @@ class BloodDonationService {
       fields: [
         "_id",
         "userId",
-        "staffId",
+        "createdBy",
         "bloodGroupId",
         "bloodDonationRegistrationId",
         "quantity",
@@ -679,7 +680,7 @@ class BloodDonationService {
       ],
       search,
       searchFields: ["notes"],
-      sort: { createdAt: -1 },
+      sort: { createdAt: 1 },
     });
 
     // Include statistics if requested
@@ -777,7 +778,7 @@ class BloodDonationService {
   };
 
   // Xử lý check-in qua QR code
-  processCheckIn = async ({ qrData, staffId, checkedBy }) => {
+  processCheckIn = async ({ qrData, staffId }) => {
     let parsedData;
     try {
       parsedData = typeof qrData === 'string' ? JSON.parse(qrData) : qrData;
@@ -785,15 +786,28 @@ class BloodDonationService {
       throw new BadRequestError("QR code data không hợp lệ");
     }
     
-    const { registrationId } = parsedData;
+    const { registrationId, userId, bloodGroupId } = parsedData;
     if (!registrationId) {
       throw new BadRequestError("QR code không chứa thông tin registration ID");
+    }
+    if (!userId) {
+      throw new BadRequestError("QR code không chứa thông tin user ID");
     }
 
     // Find and validate registration
     const registration = await bloodDonationRegistrationModel.findById(registrationId);
     if (!registration) {
       throw new NotFoundError("Không tìm thấy đăng ký hiến máu");
+    }
+
+    // Validate userId matches registration
+    if (registration.userId.toString() !== userId) {
+      throw new BadRequestError("Thông tin người dùng không khớp với đăng ký");
+    }
+
+    // Validate bloodGroupId if provided in QR
+    if (bloodGroupId && registration.bloodGroupId.toString() !== bloodGroupId) {
+      throw new BadRequestError("Thông tin nhóm máu không khớp với đăng ký");
     }
 
     // Check if already checked in
@@ -895,6 +909,8 @@ class BloodDonationService {
     if (notes) {
       donation.notes = notes;
     }
+    // Update updatedBy
+    donation.updatedBy = staffId;
 
     await donation.save();
 
@@ -1133,6 +1149,781 @@ class BloodDonationService {
       ],
       object: result,
     });
+  };
+
+  // Doctor QR scan to get health check details
+  processDoctorQRScan = async ({ qrData, doctorId }) => {
+    let parsedData;
+    try {
+      parsedData = typeof qrData === 'string' ? JSON.parse(qrData) : qrData;
+    } catch (error) {
+      throw new BadRequestError("QR code data không hợp lệ");
+    }
+    
+    const { registrationId, userId, bloodGroupId } = parsedData;
+    if (!registrationId) {
+      throw new BadRequestError("QR code không chứa thông tin registration ID");
+    }
+    if (!userId) {
+      throw new BadRequestError("QR code không chứa thông tin user ID");
+    }
+
+    // Find registration first to validate
+    const registration = await bloodDonationRegistrationModel.findById(registrationId);
+    if (!registration) {
+      throw new NotFoundError("Không tìm thấy đăng ký hiến máu");
+    }
+
+    // Validate userId matches registration
+    if (registration.userId.toString() !== userId) {
+      throw new BadRequestError("Thông tin người dùng không khớp với đăng ký");
+    }
+
+    // Validate bloodGroupId if provided in QR
+    if (bloodGroupId && registration.bloodGroupId.toString() !== bloodGroupId) {
+      throw new BadRequestError("Thông tin nhóm máu không khớp với đăng ký");
+    }
+
+    // Find health check corresponding to this registration
+    const healthCheck = await healthCheckModel.findOne({ registrationId })
+      .populate("userId", "fullName email phone avatar sex yob bloodId", null, {
+        populate: { path: "bloodId", select: "type name" }
+      })
+      .populate({
+        path: "staffId",
+        select: "userId position",
+        populate: { path: "userId", select: "fullName email phone" }
+      })
+      .populate({
+        path: "doctorId",
+        select: "userId position",
+        populate: { path: "userId", select: "fullName email phone" }
+      })
+      .populate({
+        path: "registrationId",
+        select: "facilityId bloodGroupId code preferredDate status",
+        populate: [
+          { path: "facilityId", select: "name street city address" },
+          { path: "bloodGroupId", select: "name type" }
+        ]
+      })
+      .lean();
+
+    if (!healthCheck) {
+      throw new NotFoundError("Không tìm thấy health check tương ứng với đăng ký này");
+    }
+
+    // Validate that this health check is assigned to the requesting doctor
+    if (healthCheck.doctorId._id.toString() !== doctorId) {
+      throw new BadRequestError("Health check này không được phân công cho bạn");
+    }
+
+    // Get doctor staff info to validate facility
+    const doctorStaff = await facilityStaffModel.findById(doctorId);
+    if (!doctorStaff) {
+      throw new BadRequestError("Không tìm thấy thông tin bác sĩ");
+    }
+
+    // Validate facility match
+    if (healthCheck.facilityId.toString() !== doctorStaff.facilityId.toString()) {
+      throw new BadRequestError("Health check không thuộc cơ sở của bạn");
+    }
+
+    return getInfoData({
+      fields: [
+        "_id",
+        "registrationId",
+        "userId",
+        "doctorId",
+        "staffId",
+        "facilityId",
+        "checkDate",
+        "isEligible",
+        "bloodPressure",
+        "hemoglobin",
+        "weight",
+        "pulse",
+        "temperature",
+        "generalCondition",
+        "deferralReason",
+        "notes",
+        "createdAt",
+        "updatedAt",
+        "status",
+        "code"
+      ],
+      object: healthCheck,
+    });
+  };
+
+  // Nurse smart scan - Comprehensive QR analysis for nurse workflow
+  processNurseSmartScan = async ({ qrData, nurseId }) => {
+    let parsedData;
+    try {
+      parsedData = typeof qrData === 'string' ? JSON.parse(qrData) : qrData;
+    } catch (error) {
+      throw new BadRequestError("QR code data không hợp lệ");
+    }
+    
+    const { registrationId, userId, bloodGroupId } = parsedData;
+    if (!registrationId) {
+      throw new BadRequestError("QR code không chứa thông tin registration ID");
+    }
+    if (!userId) {
+      throw new BadRequestError("QR code không chứa thông tin user ID");
+    }
+
+    // Get nurse staff info to validate facility
+    const nurseStaff = await facilityStaffModel.findById(nurseId);
+    if (!nurseStaff) {
+      throw new BadRequestError("Không tìm thấy thông tin y tá");
+    }
+
+    // Find registration and validate
+    const registration = await bloodDonationRegistrationModel.findById(registrationId)
+      .populate("userId", "fullName email phone avatar sex yob bloodId")
+      .populate("facilityId", "name street city")
+      .populate("bloodGroupId", "name type")
+      .lean();
+
+    if (!registration) {
+      throw new NotFoundError("Không tìm thấy đăng ký hiến máu");
+    }
+
+    // Validate userId matches registration
+    if (registration.userId._id.toString() !== userId) {
+      throw new BadRequestError("Thông tin người dùng không khớp với đăng ký");
+    }
+
+    // Validate bloodGroupId if provided in QR
+    if (bloodGroupId && registration.bloodGroupId._id.toString() !== bloodGroupId) {
+      throw new BadRequestError("Thông tin nhóm máu không khớp với đăng ký");
+    }
+
+    // Validate facility access
+    if (registration.facilityId._id.toString() !== nurseStaff.facilityId.toString()) {
+      throw new BadRequestError("Đăng ký này không thuộc cơ sở của bạn");
+    }
+
+    // Analyze status and determine nurse action + data
+    const { action, data, actionData } = await this.analyzeNurseAction(registration, nurseId);
+
+    return {
+      action,
+      status: registration.status,
+      code: registration.code,
+      data,
+      actionData
+    };
+  };
+
+  // Analyze what action nurse should take based on registration status
+  analyzeNurseAction = async (registration, nurseId) => {
+    const { status, _id: registrationId } = registration;
+
+    switch (status) {
+      case BLOOD_DONATION_REGISTRATION_STATUS.REGISTERED:
+        // Nurse can perform check-in
+        return {
+          action: 'check_in',
+          data: {
+            registration: {
+              id: registration._id,
+              code: registration.code,
+              status: registration.status,
+              preferredDate: registration.preferredDate,
+              createdAt: registration.createdAt,
+              facility: {
+                id: registration.facilityId._id,
+                name: registration.facilityId.name,
+                address: `${registration.facilityId.street}, ${registration.facilityId.city}`
+              },
+              donor: {
+                id: registration.userId._id,
+                name: registration.userId.fullName,
+                email: registration.userId.email,
+                phone: registration.userId.phone,
+                avatar: registration.userId.avatar,
+                gender: registration.userId.sex,
+                yob: registration.userId.yob,
+                bloodType: registration.bloodGroupId.name || registration.bloodGroupId.type
+              },
+              bloodGroup: {
+                id: registration.bloodGroupId._id,
+                name: registration.bloodGroupId.name,
+                type: registration.bloodGroupId.type
+              },
+              notes: registration.notes
+            }
+          },
+          actionData: {
+            message: 'Có thể thực hiện check-in',
+            buttonText: 'Check-in',
+            endpoint: '/check-in',
+            navigateTo: 'RegistrationDetail'
+          }
+        };
+
+      case BLOOD_DONATION_REGISTRATION_STATUS.CHECKED_IN:
+      case BLOOD_DONATION_REGISTRATION_STATUS.IN_CONSULT:
+        // Get health check info if exists
+        let healthCheck = null;
+        try {
+          healthCheck = await healthCheckModel.findOne({ registrationId })
+            .populate({
+              path: "staffId",
+              select: "userId position",
+              populate: { path: "userId", select: "fullName email phone" }
+            })
+            .populate({
+              path: "doctorId", 
+              select: "userId position",
+              populate: { path: "userId", select: "fullName email phone" }
+            })
+            .lean();
+        } catch (error) {
+          // Health check chưa tồn tại
+        }
+
+        const registrationData = {
+          id: registration._id,
+          code: registration.code,
+          status: registration.status,
+          preferredDate: registration.preferredDate,
+          createdAt: registration.createdAt,
+          facility: {
+            id: registration.facilityId._id,
+            name: registration.facilityId.name,
+            address: `${registration.facilityId.street}, ${registration.facilityId.city}`
+          },
+          donor: {
+            id: registration.userId._id,
+            name: registration.userId.fullName,
+            email: registration.userId.email,
+            phone: registration.userId.phone,
+            avatar: registration.userId.avatar,
+            gender: registration.userId.sex,
+            yob: registration.userId.yob,
+            bloodType: registration.bloodGroupId.name || registration.bloodGroupId.type
+          },
+          bloodGroup: {
+            id: registration.bloodGroupId._id,
+            name: registration.bloodGroupId.name,
+            type: registration.bloodGroupId.type
+          },
+          notes: registration.notes
+        };
+
+        return {
+          action: 'view_registration',
+          data: {
+            registration: registrationData,
+            healthCheck: healthCheck ? {
+              id: healthCheck._id,
+              code: healthCheck.code,
+              status: healthCheck.status,
+              checkDate: healthCheck.checkDate,
+              isEligible: healthCheck.isEligible,
+              bloodPressure: healthCheck.bloodPressure,
+              pulse: healthCheck.pulse,
+              temperature: healthCheck.temperature,
+              weight: healthCheck.weight,
+              hemoglobin: healthCheck.hemoglobin,
+              generalCondition: healthCheck.generalCondition,
+              deferralReason: healthCheck.deferralReason,
+              notes: healthCheck.notes,
+              doctor: healthCheck.doctorId ? {
+                id: healthCheck.doctorId._id,
+                name: healthCheck.doctorId.userId?.fullName,
+                email: healthCheck.doctorId.userId?.email,
+                phone: healthCheck.doctorId.userId?.phone
+              } : null,
+              staff: healthCheck.staffId ? {
+                id: healthCheck.staffId._id,
+                name: healthCheck.staffId.userId?.fullName,
+                email: healthCheck.staffId.userId?.email,
+                phone: healthCheck.staffId.userId?.phone
+              } : null
+            } : null
+          },
+          actionData: {
+            message: status === BLOOD_DONATION_REGISTRATION_STATUS.CHECKED_IN 
+              ? 'Đã check-in, đang chờ khám sức khỏe'
+              : 'Đang trong quá trình tư vấn',
+            buttonText: healthCheck ? 'Xem chi tiết khám' : 'Tạo phiếu khám',
+            endpoint: healthCheck ? '/health-check-detail' : '/create-health-check',
+            navigateTo: healthCheck ? 'HealthCheckDetail' : 'HealthCheckCreateFromDonor',
+            canCreateHealthCheck: !healthCheck && status === BLOOD_DONATION_REGISTRATION_STATUS.CHECKED_IN
+          }
+        };
+
+      case BLOOD_DONATION_REGISTRATION_STATUS.WAITING_DONATION:
+        // Get health check details
+        const healthCheckForDonation = await healthCheckModel.findOne({ registrationId })
+          .populate({
+            path: "staffId",
+            select: "userId position",
+            populate: { path: "userId", select: "fullName email phone" }
+          })
+          .populate({
+            path: "doctorId", 
+            select: "userId position",
+            populate: { path: "userId", select: "fullName email phone" }
+          })
+          .lean();
+
+        const waitingRegistrationData = {
+          id: registration._id,
+          code: registration.code,
+          status: registration.status,
+          preferredDate: registration.preferredDate,
+          createdAt: registration.createdAt,
+          facility: {
+            id: registration.facilityId._id,
+            name: registration.facilityId.name,
+            address: `${registration.facilityId.street}, ${registration.facilityId.city}`
+          },
+          donor: {
+            id: registration.userId._id,
+            name: registration.userId.fullName,
+            email: registration.userId.email,
+            phone: registration.userId.phone,
+            avatar: registration.userId.avatar,
+            gender: registration.userId.sex,
+            yob: registration.userId.yob,
+            bloodType: registration.bloodGroupId.name || registration.bloodGroupId.type
+          },
+          bloodGroup: {
+            id: registration.bloodGroupId._id,
+            name: registration.bloodGroupId.name,
+            type: registration.bloodGroupId.type
+          },
+          notes: registration.notes
+        };
+
+        return {
+          action: 'start_donation',
+          data: {
+            registration: waitingRegistrationData,
+            healthCheck: healthCheckForDonation ? {
+              id: healthCheckForDonation._id,
+              code: healthCheckForDonation.code,
+              status: healthCheckForDonation.status,
+              checkDate: healthCheckForDonation.checkDate,
+              isEligible: healthCheckForDonation.isEligible,
+              bloodPressure: healthCheckForDonation.bloodPressure,
+              pulse: healthCheckForDonation.pulse,
+              temperature: healthCheckForDonation.temperature,
+              weight: healthCheckForDonation.weight,
+              hemoglobin: healthCheckForDonation.hemoglobin,
+              generalCondition: healthCheckForDonation.generalCondition,
+              deferralReason: healthCheckForDonation.deferralReason,
+              notes: healthCheckForDonation.notes,
+              doctor: healthCheckForDonation.doctorId ? {
+                id: healthCheckForDonation.doctorId._id,
+                name: healthCheckForDonation.doctorId.userId?.fullName,
+                email: healthCheckForDonation.doctorId.userId?.email,
+                phone: healthCheckForDonation.doctorId.userId?.phone
+              } : null,
+              staff: healthCheckForDonation.staffId ? {
+                id: healthCheckForDonation.staffId._id,
+                name: healthCheckForDonation.staffId.userId?.fullName,
+                email: healthCheckForDonation.staffId.userId?.email,
+                phone: healthCheckForDonation.staffId.userId?.phone
+              } : null
+            } : null
+          },
+          actionData: {
+            message: 'Sẵn sàng bắt đầu hiến máu',
+            buttonText: 'Bắt đầu hiến máu',
+            endpoint: '/start-donation',
+            navigateTo: 'HealthCheckDetail',
+            canStartDonation: healthCheckForDonation?.isEligible === true
+          }
+        };
+
+      case BLOOD_DONATION_REGISTRATION_STATUS.DONATING:
+        // Get blood donation details
+        const donation = await bloodDonationModel
+          .findOne({ 
+            bloodDonationRegistrationId: registrationId,
+            userId: registration.userId._id 
+          })
+          .populate("userId", "fullName email phone sex yob avatar")
+          .populate("bloodGroupId", "name type")
+          .populate({
+            path: "staffId",
+            select: "userId position",
+            populate: { path: "userId", select: "fullName email phone" }
+          })
+          .populate({
+            path: "healthCheckId",
+            select: "checkDate isEligible bloodPressure pulse temperature weight hemoglobin"
+          })
+          .lean();
+
+        const donatingRegistrationData = {
+          id: registration._id,
+          code: registration.code,
+          status: registration.status,
+          preferredDate: registration.preferredDate,
+          createdAt: registration.createdAt,
+          facility: {
+            id: registration.facilityId._id,
+            name: registration.facilityId.name,
+            address: `${registration.facilityId.street}, ${registration.facilityId.city}`
+          },
+          donor: {
+            id: registration.userId._id,
+            name: registration.userId.fullName,
+            email: registration.userId.email,
+            phone: registration.userId.phone,
+            avatar: registration.userId.avatar,
+            gender: registration.userId.sex,
+            yob: registration.userId.yob,
+            bloodType: registration.bloodGroupId.name || registration.bloodGroupId.type
+          },
+          bloodGroup: {
+            id: registration.bloodGroupId._id,
+            name: registration.bloodGroupId.name,
+            type: registration.bloodGroupId.type
+          },
+          notes: registration.notes
+        };
+
+        return {
+          action: 'manage_donation',
+          data: {
+            registration: donatingRegistrationData,
+            donation: donation ? {
+              id: donation._id,
+              code: donation.code,
+              status: donation.status,
+              quantity: donation.quantity,
+              donationDate: donation.donationDate,
+              notes: donation.notes,
+              bloodComponent: donation.bloodComponent,
+              donor: {
+                id: donation.userId._id,
+                name: donation.userId.fullName,
+                email: donation.userId.email,
+                phone: donation.userId.phone,
+                avatar: donation.userId.avatar,
+                gender: donation.userId.sex,
+                yob: donation.userId.yob,
+                bloodType: donation.bloodGroupId.name || donation.bloodGroupId.type
+              },
+              staff: donation.staffId ? {
+                id: donation.staffId._id,
+                name: donation.staffId.userId?.fullName,
+                email: donation.staffId.userId?.email,
+                phone: donation.staffId.userId?.phone
+              } : null,
+              healthCheck: donation.healthCheckId ? {
+                id: donation.healthCheckId._id,
+                checkDate: donation.healthCheckId.checkDate,
+                isEligible: donation.healthCheckId.isEligible,
+                bloodPressure: donation.healthCheckId.bloodPressure,
+                pulse: donation.healthCheckId.pulse,
+                temperature: donation.healthCheckId.temperature,
+                weight: donation.healthCheckId.weight,
+                hemoglobin: donation.healthCheckId.hemoglobin
+              } : null
+            } : null
+          },
+          actionData: {
+            message: 'Đang trong quá trình hiến máu',
+            buttonText: 'Quản lý hiến máu',
+            endpoint: '/donation-detail',
+            navigateTo: 'DonationDetail',
+            canUpdateDonation: true,
+            mode: 'update'
+          }
+        };
+
+      case BLOOD_DONATION_REGISTRATION_STATUS.REJECTED_REGISTRATION:
+        const rejectedRegistrationData = {
+          id: registration._id,
+          code: registration.code,
+          status: registration.status,
+          preferredDate: registration.preferredDate,
+          createdAt: registration.createdAt,
+          facility: {
+            id: registration.facilityId._id,
+            name: registration.facilityId.name,
+            address: `${registration.facilityId.street}, ${registration.facilityId.city}`
+          },
+          donor: {
+            id: registration.userId._id,
+            name: registration.userId.fullName,
+            email: registration.userId.email,
+            phone: registration.userId.phone,
+            avatar: registration.userId.avatar,
+            gender: registration.userId.sex,
+            yob: registration.userId.yob,
+            bloodType: registration.bloodGroupId.name || registration.bloodGroupId.type
+          },
+          bloodGroup: {
+            id: registration.bloodGroupId._id,
+            name: registration.bloodGroupId.name,
+            type: registration.bloodGroupId.type
+          },
+          notes: registration.notes
+        };
+
+        // Get rejection health check if exists
+        let rejectionHealthCheck = null;
+        try {
+          rejectionHealthCheck = await healthCheckModel.findOne({ registrationId })
+            .populate({
+              path: "doctorId", 
+              select: "userId position",
+              populate: { path: "userId", select: "fullName email phone" }
+            })
+            .lean();
+        } catch (error) {
+          // Health check not found
+        }
+
+        return {
+          action: 'view_rejection',
+          data: {
+            registration: rejectedRegistrationData,
+            healthCheck: rejectionHealthCheck ? {
+              id: rejectionHealthCheck._id,
+              code: rejectionHealthCheck.code,
+              status: rejectionHealthCheck.status,
+              checkDate: rejectionHealthCheck.checkDate,
+              isEligible: rejectionHealthCheck.isEligible,
+              deferralReason: rejectionHealthCheck.deferralReason,
+              notes: rejectionHealthCheck.notes,
+              doctor: rejectionHealthCheck.doctorId ? {
+                id: rejectionHealthCheck.doctorId._id,
+                name: rejectionHealthCheck.doctorId.userId?.fullName,
+                email: rejectionHealthCheck.doctorId.userId?.email,
+                phone: rejectionHealthCheck.doctorId.userId?.phone
+              } : null
+            } : null
+          },
+          actionData: {
+            message: 'Đăng ký đã bị từ chối',
+            buttonText: 'Xem lý do',
+            endpoint: '/registration-detail',
+            navigateTo: 'HealthCheckDetail',
+            isRejected: true
+          }
+        };
+
+      case BLOOD_DONATION_REGISTRATION_STATUS.DONATED:
+      case BLOOD_DONATION_REGISTRATION_STATUS.COMPLETED:
+        // Get final donation info
+        const completedDonation = await bloodDonationModel
+          .findOne({ 
+            bloodDonationRegistrationId: registrationId,
+            userId: registration.userId._id 
+          })
+          .populate("userId", "fullName email phone sex yob avatar")
+          .populate("bloodGroupId", "name type")
+          .populate({
+            path: "staffId",
+            select: "userId position",
+            populate: { path: "userId", select: "fullName email phone" }
+          })
+          .populate({
+            path: "healthCheckId",
+            select: "checkDate isEligible bloodPressure pulse temperature weight hemoglobin"
+          })
+          .lean();
+
+        // Get donor status log if exists
+        const donorStatusLogModel = require('../models/donorStatusLog.model');
+        let donorStatusLog = null;
+        try {
+          if (completedDonation) {
+            donorStatusLog = await donorStatusLogModel.findOne({ 
+              donationId: completedDonation._id 
+            }).lean();
+          }
+        } catch (error) {
+          // Status log not found
+        }
+
+        const completedRegistrationData = {
+          id: registration._id,
+          code: registration.code,
+          status: registration.status,
+          preferredDate: registration.preferredDate,
+          createdAt: registration.createdAt,
+          facility: {
+            id: registration.facilityId._id,
+            name: registration.facilityId.name,
+            address: `${registration.facilityId.street}, ${registration.facilityId.city}`
+          },
+          donor: {
+            id: registration.userId._id,
+            name: registration.userId.fullName,
+            email: registration.userId.email,
+            phone: registration.userId.phone,
+            avatar: registration.userId.avatar,
+            gender: registration.userId.sex,
+            yob: registration.userId.yob,
+            bloodType: registration.bloodGroupId.name || registration.bloodGroupId.type
+          },
+          bloodGroup: {
+            id: registration.bloodGroupId._id,
+            name: registration.bloodGroupId.name,
+            type: registration.bloodGroupId.type
+          },
+          notes: registration.notes
+        };
+
+        return {
+          action: 'view_completed',
+          data: {
+            registration: completedRegistrationData,
+            donation: completedDonation ? {
+              id: completedDonation._id,
+              code: completedDonation.code,
+              status: completedDonation.status,
+              quantity: completedDonation.quantity,
+              donationDate: completedDonation.donationDate,
+              notes: completedDonation.notes,
+              bloodComponent: completedDonation.bloodComponent,
+              donor: {
+                id: completedDonation.userId._id,
+                name: completedDonation.userId.fullName,
+                email: completedDonation.userId.email,
+                phone: completedDonation.userId.phone,
+                avatar: completedDonation.userId.avatar,
+                gender: completedDonation.userId.sex,
+                yob: completedDonation.userId.yob,
+                bloodType: completedDonation.bloodGroupId.name || completedDonation.bloodGroupId.type
+              },
+              staff: completedDonation.staffId ? {
+                id: completedDonation.staffId._id,
+                name: completedDonation.staffId.userId?.fullName,
+                email: completedDonation.staffId.userId?.email,
+                phone: completedDonation.staffId.userId?.phone
+              } : null,
+              healthCheck: completedDonation.healthCheckId ? {
+                id: completedDonation.healthCheckId._id,
+                checkDate: completedDonation.healthCheckId.checkDate,
+                isEligible: completedDonation.healthCheckId.isEligible,
+                bloodPressure: completedDonation.healthCheckId.bloodPressure,
+                pulse: completedDonation.healthCheckId.pulse,
+                temperature: completedDonation.healthCheckId.temperature,
+                weight: completedDonation.healthCheckId.weight,
+                hemoglobin: completedDonation.healthCheckId.hemoglobin
+              } : null
+            } : null,
+            donorStatusLog: donorStatusLog ? {
+              id: donorStatusLog._id,
+              status: donorStatusLog.status,
+              phase: donorStatusLog.phase,
+              notes: donorStatusLog.notes,
+              recordedAt: donorStatusLog.recordedAt
+            } : null
+          },
+          actionData: {
+            message: status === BLOOD_DONATION_REGISTRATION_STATUS.DONATED 
+              ? 'Đã hoàn thành hiến máu'
+              : 'Hoàn thành toàn bộ quy trình',
+            buttonText: donorStatusLog ? 'Xem trạng thái' : 'Xem kết quả',
+            endpoint: '/donation-detail',
+            navigateTo: donorStatusLog ? 'DonorStatus' : 'DonationDetail',
+            canViewStatus: !!donorStatusLog,
+            mode: 'view'
+          }
+        };
+
+      case BLOOD_DONATION_REGISTRATION_STATUS.CANCELLED:
+        const cancelledRegistrationData = {
+          id: registration._id,
+          code: registration.code,
+          status: registration.status,
+          preferredDate: registration.preferredDate,
+          createdAt: registration.createdAt,
+          facility: {
+            id: registration.facilityId._id,
+            name: registration.facilityId.name,
+            address: `${registration.facilityId.street}, ${registration.facilityId.city}`
+          },
+          donor: {
+            id: registration.userId._id,
+            name: registration.userId.fullName,
+            email: registration.userId.email,
+            phone: registration.userId.phone,
+            avatar: registration.userId.avatar,
+            gender: registration.userId.sex,
+            yob: registration.userId.yob,
+            bloodType: registration.bloodGroupId.name || registration.bloodGroupId.type
+          },
+          bloodGroup: {
+            id: registration.bloodGroupId._id,
+            name: registration.bloodGroupId.name,
+            type: registration.bloodGroupId.type
+          },
+          notes: registration.notes
+        };
+
+        return {
+          action: 'view_cancelled',
+          data: {
+            registration: cancelledRegistrationData
+          },
+          actionData: {
+            message: 'Đăng ký đã bị hủy',
+            buttonText: 'Xem chi tiết',
+            endpoint: '/registration-detail',
+            navigateTo: 'RegistrationDetail',
+            isCancelled: true
+          }
+        };
+
+      default:
+        const unknownRegistrationData = {
+          id: registration._id,
+          code: registration.code,
+          status: registration.status,
+          preferredDate: registration.preferredDate,
+          createdAt: registration.createdAt,
+          facility: {
+            id: registration.facilityId._id,
+            name: registration.facilityId.name,
+            address: `${registration.facilityId.street}, ${registration.facilityId.city}`
+          },
+          donor: {
+            id: registration.userId._id,
+            name: registration.userId.fullName,
+            email: registration.userId.email,
+            phone: registration.userId.phone,
+            avatar: registration.userId.avatar,
+            gender: registration.userId.sex,
+            yob: registration.userId.yob,
+            bloodType: registration.bloodGroupId.name || registration.bloodGroupId.type
+          },
+          bloodGroup: {
+            id: registration.bloodGroupId._id,
+            name: registration.bloodGroupId.name,
+            type: registration.bloodGroupId.type
+          },
+          notes: registration.notes
+        };
+
+        return {
+          action: 'unknown_status',
+          data: {
+            registration: unknownRegistrationData
+          },
+          actionData: {
+            message: `Trạng thái không xác định: ${status}`,
+            buttonText: 'Xem chi tiết',
+            endpoint: '/registration-detail',
+            navigateTo: 'RegistrationDetail',
+            isUnknown: true
+          }
+        };
+    }
   };
 }
 

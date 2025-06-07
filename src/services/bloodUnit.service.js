@@ -310,7 +310,7 @@ class BloodUnitService {
         }
       ],
       search,
-      searchFields: ["donationId.userId.fullName", "donationId.userId.email", "donationId.userId.phone"],
+      searchFields: ["code", "donationId.userId.fullName", "donationId.userId.email", "donationId.userId.phone"],
       sort: { createdAt: -1 },
     });
 
@@ -323,6 +323,7 @@ class BloodUnitService {
       .findById(unitId)
       .populate("facilityId", "name code address")
       .populate("bloodGroupId", "name type")
+      .populate("componentId", "name")
       .populate({
         path: "donationId",
         select: "userId donationDate quantity",

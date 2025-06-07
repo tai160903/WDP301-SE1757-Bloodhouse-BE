@@ -11,7 +11,8 @@ router.use(checkAuth);
 
 // Public routes for authenticated users
 router.post(
-  "/", checkRole([USER_ROLE.MEMBER]),
+  "/",
+  checkRole([USER_ROLE.MEMBER]),
   bloodDonationRegistrationController.createBloodDonationRegistration
 );
 
@@ -45,6 +46,20 @@ router.post(
   bloodDonationRegistrationController.updateCheckInStatus
 );
 
+// Doctor QR scan to get health check details
+router.post(
+  "/doctor/qr-scan",
+  checkStaff([STAFF_POSITION.DOCTOR]),
+  bloodDonationRegistrationController.processDoctorQRScan
+);
+
+// Nurse smart scan - comprehensive QR analysis for nurse workflow
+router.post(
+  "/nurse/smart-scan",
+  checkStaff([STAFF_POSITION.NURSE]),
+  bloodDonationRegistrationController.processNurseSmartScan
+);
+
 // Manager-only routes
 router.get(
   "/facility/all",
@@ -60,7 +75,7 @@ router.get(
 
 // Routes requiring manager/nurse role for registration updates
 router.put(
-  "/:id", 
+  "/:id",
   checkStaff([STAFF_POSITION.MANAGER, STAFF_POSITION.NURSE]),
   bloodDonationRegistrationController.updateBloodDonationRegistration
 );
