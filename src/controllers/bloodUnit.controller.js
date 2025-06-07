@@ -49,14 +49,14 @@ class BloodUnitController {
 
   // Lấy blood units theo facility (Manager)
   getBloodUnitsByFacility = asyncHandler(async (req, res) => {
-    const { status, component, bloodGroupId, page, limit, search, startDate, endDate } =
+    const { status, componentId, bloodGroupId, page, limit, search, startDate, endDate } =
       req.query;
       
     const result = await bloodUnitService.getBloodUnitsByFacility(
       req.params.facilityId,
       {
         status,
-        component,
+        componentId,
         bloodGroupId,
         page: parseInt(page) || 1,
         limit: parseInt(limit) || 10,
@@ -84,7 +84,7 @@ class BloodUnitController {
   getBloodUnitsByProcessedBy = asyncHandler(async (req, res) => {
     const { 
       status, 
-      component, 
+      componentId, 
       page, 
       limit, 
       search, 
@@ -96,7 +96,7 @@ class BloodUnitController {
       req.user.staffId,
       {
         status,
-        component,
+        componentId,
         page: parseInt(page) || 1,
         limit: parseInt(limit) || 10,
         search,

@@ -250,12 +250,13 @@ class AccessService {
     if (
       foundUser.role === USER_ROLE.MANAGER ||
       foundUser.role === USER_ROLE.DOCTOR ||
-      foundUser.role === USER_ROLE.NURSE
+      foundUser.role === USER_ROLE.NURSE ||
+      foundUser.role === USER_ROLE.TRANSPORTER
     ) {
       const staff = await facilityStaffModel.findOne({
         userId: foundUser._id,
       });
-
+      console.log("staff", staff);
       if (staff) {
         payload.facilityId = staff.facilityId;
         payload.staffId = staff._id;
@@ -294,6 +295,7 @@ class AccessService {
       USER_ROLE.MANAGER,
       USER_ROLE.DOCTOR,
       USER_ROLE.NURSE,
+      USER_ROLE.TRANSPORTER,
     ];
     if (STAFF_POSITION.includes(foundUser.role)) {
       const staffRecord = await facilityStaffModel

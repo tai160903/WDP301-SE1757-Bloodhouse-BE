@@ -213,7 +213,7 @@ class BloodUnitService {
     facilityId,
     {
       status,
-      component,
+      componentId,
       bloodGroupId,
       page = 1,
       limit = 10,
@@ -225,7 +225,7 @@ class BloodUnitService {
     const query = { facilityId };
 
     if (status) query.status = status;
-    if (component) query.component = component;
+    if (componentId) query.componentId = componentId;
     if (bloodGroupId) query.bloodGroupId = bloodGroupId;
 
     if (startDate || endDate) {
@@ -233,15 +233,15 @@ class BloodUnitService {
       if (startDate) query.collectedAt.$gte = new Date(startDate);
       if (endDate) query.collectedAt.$lte = new Date(endDate);
     }
-
     const result = await getPaginatedData({
       model: bloodUnitModel,
       query,
       page,
       limit,
-      select: "_id donationId facilityId bloodGroupId componentId quantity collectedAt expiresAt status testResults processedAt approvedAt createdAt",
+      select: "_id donationId remainingQuantity facilityId bloodGroupId componentId quantity collectedAt expiresAt status testResults processedAt approvedAt createdAt",
       populate: [
         { path: "bloodGroupId", select: "name type" },
+        { path: "componentId", select: "name" },
         {
           path: "donationId",
           select: "userId donationDate",

@@ -23,10 +23,6 @@ const bloodUnitSchema = new mongoose.Schema(
       ref: "Facility",
       required: true 
     },
-    bloodRequestId: { 
-      type: mongoose.Schema.Types.ObjectId, 
-      ref: "BloodRequest" 
-    },
     bloodGroupId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "BloodGroup",
@@ -41,7 +37,15 @@ const bloodUnitSchema = new mongoose.Schema(
       type: Number,
       required: true 
     },
-    collectedAt: { 
+    remainingQuantity: {
+      type: Number,
+      required: true,
+    },
+    deliveredQuantity: {
+      type: Number,
+      default: 0,
+    },
+    collectedAt: {
       type: Date,
       required: true 
     },
@@ -79,16 +83,24 @@ const bloodUnitSchema = new mongoose.Schema(
 );
 
 // Pre-save middleware to generate unique code
-bloodUnitSchema.pre('save', async function(next) {
-  if (this.isNew && !this.code) {
-    try {
-      this.code = await generateUniqueCodeSafe(
-        mongoose.model(DOCUMENT_NAME), 
-        'BUNT', // Blood UNiT
-        'code'
-      );
-    } catch (error) {
-      return next(error);
+bloodUnitSchema.pre("save", async function (next) {
+  if (this.isNew) {
+    // Generate unique code if new document
+    if (!this.code) {
+      try {
+        this.code = await generateUniqueCodeSafe(
+          mongoose.model(DOCUMENT_NAME),
+          "BUNT", // Blood UNiT
+          "code"
+        );
+      } catch (error) {
+        return next(error);
+      }
+    }
+    // Initialize remainingQuantity to match quantity for new units
+    if (!this.remainingQuantity) {
+      this.remainingQuantity = this.quantity;
+
     }
   }
   next();
@@ -99,5 +111,6 @@ bloodUnitSchema.index({ donationId: 1 });
 bloodUnitSchema.index({ facilityId: 1 });
 bloodUnitSchema.index({ status: 1 });
 bloodUnitSchema.index({ expiresAt: 1 });
+bloodUnitSchema.index({ bloodRequestId: 1 });
 
 module.exports = mongoose.model(DOCUMENT_NAME, bloodUnitSchema);
