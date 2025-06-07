@@ -168,7 +168,6 @@ class BloodDonationRegistrationController {
     const result = await bloodDonationService.processCheckIn({
       qrData,
       staffId: req.user.staffId,
-      checkedBy: req.user.userId,
     });
 
     new OK({
@@ -189,25 +188,14 @@ class BloodDonationRegistrationController {
     }).send(res);
   });
 
-  // Nurse QR scan to get registration and health check details
-  processNurseQRScan = asyncHandler(async (req, res) => {
-    const result = await bloodDonationService.processNurseQRScan({
+  // Nurse smart scan - comprehensive QR analysis for nurse workflow
+  processNurseSmartScan = asyncHandler(async (req, res) => {
+    const result = await bloodDonationService.processNurseSmartScan({
       qrData: req.body.qrData,
       nurseId: req.user.staffId,
     });
     new OK({
-      message: "Quét QR thành công",
-      data: result,
-    }).send(res);
-  });
-
-  // Scan QR registration to get only status
-  processRegistrationQRScanForStatus = asyncHandler(async (req, res) => {
-    const result = await bloodDonationService.processRegistrationQRScanForStatus({
-      qrData: req.body.qrData,
-    });
-    new OK({
-      message: "Quét QR thành công",
+      message: "Smart scan thành công",
       data: result,
     }).send(res);
   });

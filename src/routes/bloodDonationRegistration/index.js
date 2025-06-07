@@ -53,17 +53,11 @@ router.post(
   bloodDonationRegistrationController.processDoctorQRScan
 );
 
-// Nurse QR scan to get registration and health check details
+// Nurse smart scan - comprehensive QR analysis for nurse workflow
 router.post(
-  "/nurse/qr-scan",
+  "/nurse/smart-scan",
   checkStaff([STAFF_POSITION.NURSE]),
-  bloodDonationRegistrationController.processNurseQRScan
-);
-
-// Scan QR registration to get only status (public for authenticated users)
-router.post(
-  "/qr-scan/status",
-  bloodDonationRegistrationController.processRegistrationQRScanForStatus
+  bloodDonationRegistrationController.processNurseSmartScan
 );
 
 // Manager-only routes
