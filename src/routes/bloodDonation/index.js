@@ -27,6 +27,9 @@ router.get("/doctor/", checkStaff([STAFF_POSITION.DOCTOR]), bloodDonationControl
 // Add new route for doctor to manage blood splitting
 router.patch("/doctor/:id/mark-divided", checkStaff([STAFF_POSITION.DOCTOR]), bloodDonationController.markBloodDonationAsDivided);
 
+// Nurse QR scan to get blood donation details
+router.post("/nurse/qr-scan", checkStaff([STAFF_POSITION.NURSE]), bloodDonationController.processNurseQRScanForDonation);
+
 router.get("/:id", bloodDonationController.getBloodDonationDetail);
 
 module.exports = router;
