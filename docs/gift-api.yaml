@@ -1,0 +1,1806 @@
+openapi: 3.0.3
+info:
+  title: Gift Management System API
+  description: |
+    Comprehensive API documentation for Blood Donation Gift Management System.
+    
+    ## Role-Based Access Control
+    - Admin: System-wide gift items management
+    - Manager: Facility-specific packages, inventory, budget management  
+    - Nurse: Facility-specific gift distribution operations
+    
+    ## Facility-Specific Architecture
+    - Packages: Tied to specific facilities, managers create packages for their facility only
+    - Inventory Validation: Packages validated against actual facility inventory
+    - Budget Control: Facility-specific budget limits enforced
+    - Data Isolation: Staff can only access their facility's data
+    
+    ## Authentication
+    All endpoints require authentication via Bearer token in Authorization header.
+    
+    ## Business Logic
+    - Each donation can only receive gifts once (prevents duplicate distribution)
+    - Package distribution creates multiple distribution records atomically
+    - Automatic inventory and budget updates on distribution
+    - Complete audit trail via gift logs
+    - Facility-specific access control for all operations
+    
+  version: 1.0.0
+  contact:
+    name: Gift Management System
+    email: admin@bloodhouse.com
+
+servers:
+  - url: http://localhost:3052/api/v1
+    description: Development server
+  - url: https://api.bloodhouse.com/api/v1
+    description: Production server
+
+tags:
+  - name: Admin - Gift Items
+    description: System-wide gift items management (Admin only)
+  - name: Admin - System View
+    description: System-wide package viewing (Admin only)
+  - name: Manager - Gift Packages
+    description: Facility gift packages management (Manager only)
+  - name: Manager - Inventory
+    description: Facility inventory management (Manager only)
+  - name: Manager - Budget
+    description: Facility budget management (Manager only)  
+  - name: Manager - Reports
+    description: Facility reports and analytics (Manager only)
+  - name: Nurse - Distribution
+    description: Gift distribution operations (Nurse only)
+  - name: Nurse - Read-Only
+    description: Read-only access for nurses
+  - name: Shared
+    description: Shared endpoints for multiple roles
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login
+  
+  schemas:
+    GiftItem:
+      type: object
+      required:
+        - name
+        - image
+        - unit
+        - category
+      properties:
+        _id:
+          type: string
+          description: Unique identifier
+        name:
+          type: string
+          maxLength: 100
+          description: Gift item name (must be unique system-wide)
+          example: "Vitamin C"
+        description:
+          type: string
+          description: Detailed description
+          example: "Vitamin C tablets for health"
+        image:
+          type: string
+          format: uri
+          description: Gift item image URL
+          example: "https://example.com/vitamin-c.jpg"
+        unit:
+          type: string
+          enum: [item, box, bag, pack]
+          description: Unit of measurement
+          example: "bottle"
+        category:
+          type: string
+          enum: [food, beverage, merchandise, health, other]
+          description: Gift category
+          example: "health"
+        costPerUnit:
+          type: number
+          minimum: 0
+          description: Cost per unit in VND
+          example: 15000
+        isActive:
+          type: boolean
+          description: Active status
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    GiftPackage:
+      type: object
+      required:
+        - name
+        - facilityId
+        - items
+        - createdBy
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+          maxLength: 100
+          example: "Gói Cảm Ơn Standard"
+          description: Package name (unique per facility)
+        description:
+          type: string
+          maxLength: 500
+          example: "Gói quà cảm ơn cho người hiến máu lần đầu"
+        facilityId:
+          type: string
+          description: Reference to Facility - packages are facility-specific
+          example: "64a7c8b5f123456789abcdef"
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - giftItemId
+              - quantity
+            properties:
+              giftItemId:
+                type: string
+                description: Reference to GiftItem
+              quantity:
+                type: integer
+                minimum: 1
+                example: 1
+        isActive:
+          type: boolean
+          example: true
+        createdBy:
+          type: string
+          description: Staff ID who created the package
+        minAge:
+          type: integer
+          minimum: 0
+          default: 0
+          example: 18
+        maxAge:
+          type: integer
+          minimum: 0
+          default: 100
+          example: 65
+        image:
+          type: string
+          format: uri
+          example: "https://example.com/package.jpg"
+        priority:
+          type: integer
+          default: 0
+          description: Higher number = higher priority
+          example: 5
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    GiftInventory:
+      type: object
+      properties:
+        _id:
+          type: string
+        facilityId:
+          type: string
+          description: Reference to Facility
+        giftItemId:
+          $ref: '#/components/schemas/GiftItem'
+        quantity:
+          type: integer
+          minimum: 0
+          example: 100
+        reservedQuantity:
+          type: integer
+          minimum: 0
+          default: 0
+          example: 5
+        availableQuantity:
+          type: integer
+          description: quantity - reservedQuantity
+          example: 95
+        minStockLevel:
+          type: integer
+          minimum: 0
+          default: 10
+          example: 20
+        lastStockDate:
+          type: string
+          format: date-time
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+
+    GiftDistribution:
+      type: object
+      properties:
+        _id:
+          type: string
+        facilityId:
+          type: string
+          description: Reference to Facility
+        giftItemId:
+          type: string
+        userId:
+          type: string
+          description: Donor user ID
+        donationId:
+          type: string
+          description: Blood donation ID
+        packageId:
+          type: string
+          nullable: true
+          description: Package ID (null for individual gifts)
+        quantity:
+          type: integer
+          minimum: 1
+          example: 1
+        costPerUnit:
+          type: number
+          minimum: 0
+          example: 15000
+        distributedBy:
+          type: string
+          description: Staff ID who distributed
+        distributedAt:
+          type: string
+          format: date-time
+        notes:
+          type: string
+          example: "Phân phát gói cảm ơn"
+
+    GiftBudget:
+      type: object
+      properties:
+        _id:
+          type: string
+        facilityId:
+          type: string
+          description: Reference to Facility
+        budget:
+          type: number
+          minimum: 0
+          example: 10000000
+        spent:
+          type: number
+          minimum: 0
+          example: 2500000
+        remainingBudget:
+          type: number
+          description: budget - spent
+          example: 7500000
+        utilizationPercentage:
+          type: number
+          description: (spent / budget) * 100
+          example: 25
+        startDate:
+          type: string
+          format: date
+          example: "2024-01-01"
+        endDate:
+          type: string
+          format: date
+          example: "2024-12-31"
+        createdAt:
+          type: string
+          format: date-time
+
+    AvailableGifts:
+      type: object
+      properties:
+        packages:
+          type: array
+          items:
+            type: object
+            properties:
+              package:
+                $ref: '#/components/schemas/GiftPackage'
+              items:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    giftItem:
+                      $ref: '#/components/schemas/GiftItem'
+                    quantity:
+                      type: integer
+                    availableQuantity:
+                      type: integer
+              totalCost:
+                type: number
+        individualGifts:
+          type: array
+          items:
+            type: object
+            properties:
+              inventoryId:
+                type: string
+              giftItem:
+                $ref: '#/components/schemas/GiftItem'
+              availableQuantity:
+                type: integer
+
+    Error:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "error"
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: "Validation error"
+
+    Success:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "success"
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+        data:
+          type: object
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ===== ADMIN - GIFT ITEMS =====
+  /gift/admin/gift-items:
+    post:
+      tags:
+        - Admin - Gift Items
+      summary: Create new gift item
+      description: |
+        [Admin Only] - Create a new gift item in the system.
+        
+        Business Rules:
+        - Gift item names must be unique system-wide
+        - All fields are validated for proper format
+        - Cost per unit represents the standard cost
+        
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - image
+                - unit
+                - category
+              properties:
+                name:
+                  type: string
+                  example: "Vitamin C"
+                description:
+                  type: string
+                  example: "Vitamin C tablets for health"
+                image:
+                  type: string
+                  format: uri
+                  example: "https://example.com/vitamin-c.jpg"
+                unit:
+                  type: string
+                  enum: [item, box, bag, pack]
+                  example: "bottle"
+                category:
+                  type: string
+                  enum: [food, beverage, merchandise, health, other]
+                  example: "health"
+                costPerUnit:
+                  type: number
+                  minimum: 0
+                  example: 15000
+      responses:
+        201:
+          description: Gift item created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/GiftItem'
+        400:
+          description: Validation error or duplicate name
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        403:
+          description: Insufficient permissions (Admin only)
+
+    get:
+      tags:
+        - Admin - Gift Items
+      summary: Get all gift items
+      description: |
+        [Admin Only] - Retrieve all gift items with filtering and pagination.
+        Admins can see all items including inactive ones.
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [food, beverage, merchandise, health, other]
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search in name and description
+      responses:
+        200:
+          description: Gift items retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/GiftItem'
+                          totalItems:
+                            type: integer
+                          totalPages:
+                            type: integer
+                          currentPage:
+                            type: integer
+
+  /gift/admin/gift-items/{giftItemId}:
+    get:
+      tags:
+        - Admin - Gift Items
+      summary: Get gift item by ID
+      description: Get detailed information about a specific gift item.
+      parameters:
+        - name: giftItemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Gift item found
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/GiftItem'
+        404:
+          description: Gift item not found
+
+    patch:
+      tags:
+        - Admin - Gift Items
+      summary: Update gift item
+      description: |
+        [Admin Only] - Update an existing gift item.
+        
+        Business Rules:
+        - Name must remain unique if changed
+        - Cannot update if item is referenced in active packages
+        
+      parameters:
+        - name: giftItemId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                image:
+                  type: string
+                  format: uri
+                unit:
+                  type: string
+                  enum: [item, box, bag, pack]
+                category:
+                  type: string
+                  enum: [food, beverage, merchandise, health, other]
+                costPerUnit:
+                  type: number
+                  minimum: 0
+                isActive:
+                  type: boolean
+      responses:
+        200:
+          description: Gift item updated successfully
+        400:
+          description: Validation error
+        404:
+          description: Gift item not found
+
+    delete:
+      tags:
+        - Admin - Gift Items
+      summary: Delete gift item
+      description: |
+        [Admin Only] - Delete a gift item.
+        
+        Business Rules:
+        - Soft delete if item has inventory records
+        - Hard delete if no references exist
+        - Cannot delete if item is in active packages
+        
+      parameters:
+        - name: giftItemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Gift item deleted successfully
+        400:
+          description: Cannot delete - item is referenced
+        404:
+          description: Gift item not found
+
+  # ===== ADMIN - SYSTEM-WIDE PACKAGE VIEW =====
+  /gift/admin/gift-packages:
+    get:
+      tags:
+        - Admin - System View
+      summary: Get all gift packages (system-wide)
+      description: |
+        [Admin Only] - View all gift packages across all facilities.
+        
+        Business Rules:
+        - Admin can see packages from all facilities
+        - Includes facility information in response
+        - Complete system overview for management
+        
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: facilityId
+          in: query
+          schema:
+            type: string
+          description: Optional filter by specific facility
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: All packages retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              allOf:
+                                - $ref: '#/components/schemas/GiftPackage'
+                                - type: object
+                                  properties:
+                                    facilityId:
+                                      type: object
+                                      properties:
+                                        _id:
+                                          type: string
+                                        name:
+                                          type: string
+                                        code:
+                                          type: string
+
+  /gift/admin/gift-packages/{packageId}:
+    get:
+      tags:
+        - Admin - System View
+      summary: Get any gift package by ID
+      description: "[Admin Only] - Access any package across all facilities."
+      parameters:
+        - name: packageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Gift package found
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/GiftPackage'
+
+  # ===== MANAGER - GIFT PACKAGES =====
+  /gift/gift-packages:
+    post:
+      tags:
+        - Manager - Gift Packages
+      summary: Create gift package
+      description: |
+        [Manager Only] - Create a new gift package for the manager's facility.
+        
+        Business Rules:
+        - Package is automatically tied to manager's facility
+        - All items in package must exist and be active
+        - Must have sufficient inventory at facility for all items
+        - Package name must be unique within the facility
+        - minAge ≤ maxAge
+        
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - items
+              properties:
+                name:
+                  type: string
+                  example: "Gói Cảm Ơn Standard"
+                  description: "Must be unique within the facility"
+                description:
+                  type: string
+                  example: "Gói quà cảm ơn cho người hiến máu"
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required:
+                      - giftItemId
+                      - quantity
+                    properties:
+                      giftItemId:
+                        type: string
+                      quantity:
+                        type: integer
+                        minimum: 1
+                minAge:
+                  type: integer
+                  minimum: 0
+                  default: 0
+                maxAge:
+                  type: integer
+                  minimum: 0
+                  default: 100
+                image:
+                  type: string
+                  format: uri
+                priority:
+                  type: integer
+                  default: 0
+      responses:
+        201:
+          description: Gift package created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/GiftPackage'
+        400:
+          description: Validation error or insufficient inventory
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                  - type: object
+                    properties:
+                      message:
+                        example: "Insufficient inventory for items: vitaminId (need: 10, available: 5)"
+        403:
+          description: Insufficient permissions
+
+    get:
+      tags:
+        - Manager - Gift Packages
+      summary: Get facility gift packages
+      description: |
+        [Manager Only] - Get all gift packages for the manager's facility.
+        
+        Data Isolation:
+        - Only shows packages created for this facility
+        - Cannot see packages from other facilities
+        
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: Facility gift packages retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/GiftPackage'
+
+  /gift/gift-packages/{packageId}:
+    get:
+      tags:
+        - Manager - Gift Packages
+      summary: Get facility gift package by ID
+      description: |
+        [Manager Only] - Get specific package from manager's facility.
+        
+        Access Control:
+        - Can only access packages from own facility
+        - Returns 404 if package exists but belongs to different facility
+        
+      parameters:
+        - name: packageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Gift package found
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/GiftPackage'
+        404:
+          description: Package not found or access denied
+
+    patch:
+      tags:
+        - Manager - Gift Packages
+      summary: Update gift package
+      description: |
+        [Manager Only] - Update package from manager's facility.
+        
+        Business Rules:
+        - Can only update packages from own facility
+        - Name uniqueness check within facility
+        - Inventory validation if items are updated
+        
+      parameters:
+        - name: packageId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      giftItemId:
+                        type: string
+                      quantity:
+                        type: integer
+                        minimum: 1
+                isActive:
+                  type: boolean
+                priority:
+                  type: integer
+      responses:
+        200:
+          description: Gift package updated successfully
+        400:
+          description: Validation error or insufficient inventory
+        404:
+          description: Package not found or access denied
+
+    delete:
+      tags:
+        - Manager - Gift Packages
+      summary: Delete gift package
+      description: |
+        [Manager Only] - Delete package from manager's facility.
+        
+        Business Rules:
+        - Can only delete packages from own facility
+        - Soft delete if package has distribution history
+        - Hard delete if never distributed
+        
+      parameters:
+        - name: packageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Gift package deleted successfully
+        400:
+          description: Cannot delete - validation error
+        404:
+          description: Package not found or access denied
+
+  # ===== MANAGER - INVENTORY =====
+  /gift/inventory:
+    post:
+      tags:
+        - Manager - Inventory
+      summary: Add gifts to facility inventory
+      description: |
+        [Manager Only] - Add gift items to manager's facility inventory.
+        
+        Business Rules:
+        - Validates budget availability before adding
+        - Updates inventory quantity and last stock date
+        - Creates audit log entry
+        - Triggers low stock notification if below minimum
+        
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - giftItemId
+                - quantity
+                - costPerUnit
+              properties:
+                giftItemId:
+                  type: string
+                  description: Gift item to add to inventory
+                quantity:
+                  type: integer
+                  minimum: 1
+                  example: 100
+                costPerUnit:
+                  type: number
+                  minimum: 0
+                  example: 15000
+                  description: Actual cost per unit for this batch
+      responses:
+        201:
+          description: Gifts added to inventory successfully
+        400:
+          description: Insufficient budget or validation error
+
+    get:
+      tags:
+        - Manager - Inventory
+      summary: Get facility inventory
+      description: |
+        [Manager Only] - Get current inventory status for manager's facility.
+        
+        Data Isolation:
+        - Only shows inventory for manager's facility
+        
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: lowStock
+          in: query
+          schema:
+            type: boolean
+          description: Filter items with low stock
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: Inventory retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/GiftInventory'
+
+  /gift/inventory/{inventoryId}:
+    patch:
+      tags:
+        - Manager - Inventory
+      summary: Update facility inventory item
+      description: |
+        [Manager Only] - Update inventory quantities and settings.
+        
+        Business Rules:
+        - Cannot set quantity below 0
+        - Budget validation for cost changes
+        - Creates audit log for all changes
+        - Can only update inventory from own facility
+        
+      parameters:
+        - name: inventoryId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quantity:
+                  type: integer
+                  minimum: 0
+                minStockLevel:
+                  type: integer
+                  minimum: 0
+      responses:
+        200:
+          description: Inventory updated successfully
+        400:
+          description: Validation error
+        404:
+          description: Inventory not found or access denied
+
+    delete:
+      tags:
+        - Manager - Inventory
+      summary: Delete facility inventory item
+      description: |
+        [Manager Only] - Remove item from facility inventory.
+        
+        Business Rules:
+        - Can only delete if quantity is 0
+        - Creates audit log entry
+        - Can only delete inventory from own facility
+        
+      parameters:
+        - name: inventoryId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Inventory item deleted successfully
+        400:
+          description: Cannot delete - quantity > 0 or validation error
+        404:
+          description: Inventory not found or access denied
+
+  # ===== MANAGER - BUDGET =====
+  /gift/budget:
+    post:
+      tags:
+        - Manager - Budget
+      summary: Set/Update facility budget
+      description: |
+        [Manager Only] - Set or update the gift budget for manager's facility.
+        
+        Business Rules:
+        - New budget cannot be less than already spent amount
+        - startDate must be before endDate
+        - Only one active budget per facility
+        
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - budget
+                - startDate
+                - endDate
+              properties:
+                budget:
+                  type: number
+                  minimum: 0
+                  example: 10000000
+                  description: Total budget in VND
+                startDate:
+                  type: string
+                  format: date
+                  example: "2024-01-01"
+                endDate:
+                  type: string
+                  format: date
+                  example: "2024-12-31"
+      responses:
+        201:
+          description: Budget set successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/GiftBudget'
+        400:
+          description: Budget validation error
+
+    get:
+      tags:
+        - Manager - Budget
+      summary: Get facility budget
+      description: |
+        [Manager Only] - Get current budget information for manager's facility.
+        
+      responses:
+        200:
+          description: Budget information retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/GiftBudget'
+        404:
+          description: No budget set for facility
+
+  # ===== MANAGER - REPORTS =====
+  /gift/distributions/report:
+    get:
+      tags:
+        - Manager - Reports
+      summary: Get facility distribution report
+      description: |
+        [Manager Only] - Get comprehensive distribution report for manager's facility.
+        
+        Features:
+        - Filter by date range, gift item, staff member, package
+        - Summary statistics (total distributions, cost, quantity)
+        - Detailed distribution records with donor info
+        - Only shows data from manager's facility
+        
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: giftItemId
+          in: query
+          schema:
+            type: string
+        - name: distributedBy
+          in: query
+          schema:
+            type: string
+          description: Staff ID who distributed
+        - name: packageId
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: Distribution report generated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/GiftDistribution'
+                          summary:
+                            type: object
+                            properties:
+                              totalDistributions:
+                                type: integer
+                              totalQuantity:
+                                type: integer
+                              totalCost:
+                                type: number
+
+  /gift/logs:
+    get:
+      tags:
+        - Manager - Reports
+      summary: Get facility activity logs
+      description: |
+        [Manager Only] - Get activity logs for gift operations at manager's facility.
+        
+        Features:
+        - Filter by action type, date range, user, item, package
+        - Complete audit trail with details
+        - Populated references for easy reading
+        - Only shows logs from manager's facility
+        
+      parameters:
+        - name: action
+          in: query
+          schema:
+            type: string
+            enum: [stock_in, stock_out, distribute, distribute_package, update_budget, create_package, update_package, delete_package]
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: giftItemId
+          in: query
+          schema:
+            type: string
+        - name: packageId
+          in: query
+          schema:
+            type: string
+        - name: userId
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: Activity logs retrieved
+
+  # ===== NURSE - DISTRIBUTION =====
+  /gift/nurse/donations/{donationId}/available-gifts:
+    get:
+      tags:
+        - Nurse - Distribution
+      summary: Get available gifts for donation
+      description: |
+        [Nurse Only] - Get available gifts and packages for a specific donation.
+        
+        Business Rules:
+        - Donation must be completed
+        - No existing distribution for this donation
+        - Shows only gifts with sufficient inventory at nurse's facility
+        - Shows only packages from nurse's facility
+        - Separates packages and individual gifts
+        
+      parameters:
+        - name: donationId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Blood donation ID
+      responses:
+        200:
+          description: Available gifts retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AvailableGifts'
+        400:
+          description: Invalid donation or already distributed
+        404:
+          description: Donation not found
+
+  /gift/nurse/distribute-package:
+    post:
+      tags:
+        - Nurse - Distribution
+      summary: Distribute gift package
+      description: |
+        [Nurse Only] - Distribute a complete gift package to a donor.
+        
+        Business Process:
+        1. Validate donation is completed and not already distributed
+        2. Check inventory for ALL items in package at nurse's facility
+        3. Create multiple distribution records (one per item)
+        4. Update inventory quantities atomically
+        5. Update budget spent amount
+        6. Create audit log
+        7. Send notification to donor
+        
+        Important: This is an atomic operation - either all items are distributed or none.
+        
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - packageId
+                - donationId
+              properties:
+                packageId:
+                  type: string
+                  description: Gift package to distribute (must be from nurse's facility)
+                donationId:
+                  type: string
+                  description: Blood donation ID
+                notes:
+                  type: string
+                  example: "Phân phát gói cảm ơn"
+      responses:
+        201:
+          description: Gift package distributed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          packageName:
+                            type: string
+                          totalCost:
+                            type: number
+                          items:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                _id:
+                                  type: string
+                                giftItemId:
+                                  type: string
+                                quantity:
+                                  type: integer
+                                costPerUnit:
+                                  type: number
+                                distributedAt:
+                                  type: string
+                                  format: date-time
+        400:
+          description: Validation error or insufficient inventory
+        404:
+          description: Package or donation not found
+
+  /gift/nurse/distribute:
+    post:
+      tags:
+        - Nurse - Distribution
+      summary: Distribute individual gift
+      description: |
+        [Nurse Only] - Distribute individual gift items to a donor.
+        
+        Business Process:
+        1. Validate donation is completed and not already distributed
+        2. Check inventory availability at nurse's facility
+        3. Create single distribution record
+        4. Update inventory quantity
+        5. Update budget spent amount
+        6. Create audit log
+        7. Send notification to donor
+        
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - giftItemId
+                - donationId
+              properties:
+                giftItemId:
+                  type: string
+                  description: Gift item to distribute (must be available at nurse's facility)
+                donationId:
+                  type: string
+                  description: Blood donation ID
+                quantity:
+                  type: integer
+                  minimum: 1
+                  default: 1
+                  example: 1
+                notes:
+                  type: string
+                  example: "Phân phát đơn lẻ"
+      responses:
+        201:
+          description: Gift distributed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/GiftDistribution'
+        400:
+          description: Validation error or insufficient inventory
+
+  /gift/nurse/distributions:
+    get:
+      tags:
+        - Nurse - Distribution
+      summary: Get distribution history
+      description: |
+        [Nurse Only] - View distribution history for nurse's facility.
+        
+        Features:
+        - Option to filter by own distributions only
+        - Basic pagination and filtering
+        - Shows distribution details with donor info
+        - Only shows distributions from nurse's facility
+        
+      parameters:
+        - name: myDistributions
+          in: query
+          schema:
+            type: boolean
+          description: If true, show only distributions by this nurse
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: Distribution history retrieved
+
+  # ===== NURSE - READ-ONLY =====
+  /gift/nurse/gift-items:
+    get:
+      tags:
+        - Nurse - Read-Only
+      summary: Get active gift items
+      description: |
+        [Nurse Only] - View active gift items for reference.
+        
+        Note: Shows all active gift items system-wide for reference.
+        
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: Active gift items retrieved
+
+  /gift/nurse/gift-items/{giftItemId}:
+    get:
+      tags:
+        - Nurse - Read-Only
+      summary: Get gift item by ID
+      parameters:
+        - name: giftItemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Gift item details
+
+  /gift/nurse/gift-packages:
+    get:
+      tags:
+        - Nurse - Read-Only
+      summary: Get facility gift packages
+      description: |
+        [Nurse Only] - View active gift packages from nurse's facility for distribution reference.
+        
+        Data Isolation:
+        - Only shows packages from nurse's facility
+        
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: Active gift packages retrieved
+
+  /gift/nurse/gift-packages/{packageId}:
+    get:
+      tags:
+        - Nurse - Read-Only
+      summary: Get gift package by ID
+      description: |
+        [Nurse Only] - View specific package from nurse's facility.
+        
+        Access Control:
+        - Can only access packages from own facility
+        
+      parameters:
+        - name: packageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Gift package details
+        404:
+          description: Package not found or access denied
+
+  /gift/nurse/inventory:
+    get:
+      tags:
+        - Nurse - Read-Only
+      summary: Get facility inventory
+      description: |
+        [Nurse Only] - View current inventory for distribution planning.
+        
+        Data Isolation:
+        - Only shows inventory from nurse's facility
+        
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: Facility inventory retrieved
+
+  /gift/nurse/budget:
+    get:
+      tags:
+        - Nurse - Read-Only
+      summary: Get budget status
+      description: |
+        [Nurse Only] - View current budget status for awareness.
+        
+        Data Isolation:
+        - Only shows budget from nurse's facility
+        
+      responses:
+        200:
+          description: Budget status retrieved
+
+  # ===== SHARED ENDPOINTS =====
+  /gift/shared/gift-items:
+    get:
+      tags:
+        - Shared
+      summary: Get gift items (shared)
+      description: |
+        [Manager/Nurse Shared] - Shared access to gift items.
+        - Manager: Full view for package creation
+        - Nurse: Active items only for reference
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: Gift items retrieved
+
+  /gift/shared/gift-items/{giftItemId}:
+    get:
+      tags:
+        - Shared
+      summary: Get gift item by ID (shared)
+      parameters:
+        - name: giftItemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Gift item details
+
+  /gift/shared/gift-packages:
+    get:
+      tags:
+        - Shared
+      summary: Get gift packages (shared)
+      description: |
+        [Manager/Nurse Shared] - Shared access to gift packages.
+        
+        Data Isolation:
+        - Always filtered by user's facility
+        - Automatic facility filtering in middleware
+        
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: Gift packages retrieved
+
+  /gift/shared/gift-packages/{packageId}:
+    get:
+      tags:
+        - Shared
+      summary: Get gift package by ID (shared)
+      description: |
+        [Manager/Nurse Shared] - Access to facility package.
+        
+        Access Control:
+        - Can only access packages from own facility
+        
+      parameters:
+        - name: packageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Gift package details
+        404:
+          description: Package not found or access denied
+
+  /gift/shared/inventory:
+    get:
+      tags:
+        - Shared
+      summary: Get inventory (shared)
+      description: |
+        [Manager/Nurse Shared] - Shared access to inventory.
+        - Manager: Full management view
+        - Nurse: Read-only for distribution planning
+        
+        Data Isolation:
+        - Always filtered by user's facility
+        
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: lowStock
+          in: query
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: Inventory retrieved 
