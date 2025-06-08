@@ -35,7 +35,9 @@ class FacilityStaffService {
     if (position) {
       query.position = { $in: position };
     }
-    const result = await facilityStaffModel.find(query);
+    const result = await facilityStaffModel
+      .find(query)
+      .populate("userId", "fullName email phone avatar");
     return result;
   };
 
