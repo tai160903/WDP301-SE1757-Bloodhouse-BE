@@ -50,7 +50,7 @@ class FacilityController {
   deleteFacility = asyncHandler(async (req, res, next) => {
     const result = await facilityService.deleteFacility(req.params.id);
     new OK({
-      message: ACCESS_MESSAGE.DELETE_FACILITY_SUCCESS,
+      message: FACILITY_MESSAGE.DELETE_FACILITY_SUCCESS,
       data: result,
     }).send(res);
   });

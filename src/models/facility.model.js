@@ -25,12 +25,10 @@ const facilitySchema = new mongoose.Schema(
     contactPhone: { type: String, trim: true },
     contactEmail: { type: String, trim: true },
     isActive: { type: Boolean, default: true },
+    isDeleted: { type: Boolean, default: false },
   },
   { timestamps: true, collection: COLLECTION_NAME }
 );
-
-// Tạo index 2dsphere cho trường location
-// facilitySchema.index({ location: "2dsphere" });
 
 facilitySchema.virtual("schedules", {
   ref: "FacilitySchedule",

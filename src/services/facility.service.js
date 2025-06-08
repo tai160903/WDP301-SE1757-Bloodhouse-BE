@@ -18,13 +18,12 @@ const bloodInventoryModel = require("../models/bloodInventory.model");
 const bloodDonationRegistrationModel = require("../models/bloodDonationRegistration.model");
 const bloodRequestModel = require("../models/bloodRequest.model");
 const { calculateDistance } = require("../utils/distanceCaculate");
-const { default: mongoose } = require("mongoose");
 
 class FacilityService {
   getAllFacilities = async ({ latitude, longitude, distance }) => {
     const today = new Date().getDay();
     const facilities = await facilityModel
-      .find({ isActive: true })
+      .find({ isActive: true, isDeleted: { $ne: true } })
       .populate({
         path: "schedules", // giả sử facility có mảng schedules ref đến FacilitySchedule
         match: { dayOfWeek: today }, // chỉ lấy lịch hôm nay
@@ -112,7 +111,7 @@ class FacilityService {
         isUrgent: true,
       })
       .countDocuments();
-      
+
     return {
       totalBloodInventory: totalBloodQuantity,
       totalDonationRequestPending,
@@ -268,10 +267,11 @@ class FacilityService {
 
   deleteFacility = async (id) => {
     try {
-      const result = await facilityModel.update(
-        id,
-        ($set = { isDelete: true })
-      );
+      console.log("Deleting facility with ID:", id);
+      const result = await facilityModel.findByIdAndUpdate(id, {
+        $set: { isDeleted: true },
+      });
+      console.log("result", result);
       return {
         result,
       };
