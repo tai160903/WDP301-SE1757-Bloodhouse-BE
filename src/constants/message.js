@@ -218,6 +218,7 @@ const DONATION_PROCESS_LOG_MESSAGE = {
   STATUS_REQUIRED_OR_INVALID: "Trạng thái không hợp lệ",
   CHANGED_BY_REQUIRED_OR_INVALID: "Mã nhân viên không hợp lệ",
   NOTES_REQUIRED_OR_INVALID: "Ghi chú không hợp lệ",
+  REGISTRATION_NOT_FOUND: "Đăng ký hiến máu không tồn tại",
 };
 
 const BLOOD_DONATION_PROCESS_MESSAGE = {

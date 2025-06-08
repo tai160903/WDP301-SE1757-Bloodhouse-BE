@@ -855,7 +855,7 @@ class BloodDonationService {
     // Find and validate registration
     const registration = await bloodDonationRegistrationModel.findById(
       registrationId
-    );
+    ).populate("facilityId", "name");
     if (!registration) {
       throw new NotFoundError("Không tìm thấy đăng ký hiến máu");
     }
@@ -1065,7 +1065,7 @@ class BloodDonationService {
   transitionToResting = async ({ registrationId, staffId, notes }) => {
     const registration = await bloodDonationRegistrationModel.findById(
       registrationId
-    );
+    ).populate("facilityId", "name");
     if (!registration) {
       throw new NotFoundError("Không tìm thấy đăng ký hiến máu");
     }
