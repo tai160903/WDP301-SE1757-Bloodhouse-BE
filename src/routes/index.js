@@ -27,5 +27,6 @@ router.use("/process-donation-log", require("./processDonationLog"));
 router.use("/donor-status-log", require("./donorStatusLog"));
 router.use("/blood-request-support", require("./bloodRequestSupport"));
 router.use("/blood-delivery", require("./bloodDelivery"));
+router.use("/user-badge", require("./userBadge"));
 
 module.exports = router;

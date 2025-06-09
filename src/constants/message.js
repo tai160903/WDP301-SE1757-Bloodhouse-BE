@@ -275,6 +275,11 @@ const BLOOD_DELIVERY_MESSAGE = {
   GET_FAILED: "Lấy thông tin vận chuyển thất bại",
 };
 
+const USER_BADGE_MESSAGE = {
+  GET_SUCCESS: "Lấy badge thành công",
+  GET_FAILED: "Lấy badge thất bại",
+};
+
 module.exports = {
   ACCESS_MESSAGE,
   BLOOD_COMPATIBILITY_MESSAGE,
@@ -298,4 +303,5 @@ module.exports = {
   BLOOD_UNIT_MESSAGE,
   BLOOD_REQUEST_SUPPORT_MESSAGE,
   BLOOD_DELIVERY_MESSAGE,
+  USER_BADGE_MESSAGE,
 };

@@ -40,6 +40,12 @@ class ProcessDonationLogService {
         .sort({ createdAt: -1 })
         .lean();
 
+      const registration = await bloodDonationRegistrationModel.findById(
+        registrationId
+      )
+      .select("_id preferredDate status facilityId")
+      .lean();
+
       // Transform logs to include additional info
       const enrichedLogs = logs.map((log) => {
         const enrichedLog = {
@@ -47,6 +53,10 @@ class ProcessDonationLogService {
           timestamp: log.createdAt,
           description: this.getDescriptionForStatus(log.status),
         };
+
+        if (log.status === BLOOD_DONATION_REGISTRATION_STATUS.REGISTERED) {
+          enrichedLog.registration = registration;
+        }
 
         // Add health check info for waiting_donation status
         if (

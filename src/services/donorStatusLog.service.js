@@ -13,6 +13,9 @@ const processDonationLogService = require("./processDonationLog.service");
 const userModel = require("../models/user.model");
 const bloodDonationRegistrationModel = require("../models/bloodDonationRegistration.model");
 const notificationService = require("./notification.service");
+const badgeService = require("./badge.service");
+const badgeModel = require("../models/badge.model");
+const userBadgeModel = require("../models/userBadge.model");
 
 class DonorStatusLogService {
   // Tạo bản ghi trạng thái người hiến
@@ -124,6 +127,20 @@ class DonorStatusLogService {
       status: BLOOD_DONATION_REGISTRATION_STATUS.COMPLETED,
       notes: "Quy trình hiến máu hoàn tất",
     });
+
+    // Cập nhật số lần hiến máu của user
+    const user = await userModel.findByIdAndUpdate(
+      statusLog.userId,
+      {
+        $inc: { donationCount: 1 },
+      },
+      { new: true }
+    );
+
+    await badgeService.checkAndAssignBadges(
+      user._id,
+      user.donationCount
+    );
 
     // Gửi thông báo đến user
     await notificationService.sendBloodDonationRegistrationStatusNotification(
