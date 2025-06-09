@@ -123,11 +123,11 @@ class BloodRequestController {
   // Cập nhật trạng thái yêu cầu máu
   updateBloodRequestStatus = asyncHandler(async (req, res, next) => {
     const { id, facilityId } = req.params;
-    const { status, staffId, scheduledDeliveryDate, needsSupport } = req.body;
+    const { status, staffId, needsSupport } = req.body;
     const result = await bloodRequestService.updateBloodRequestStatus(
       id,
       facilityId,
-      { status, staffId, scheduledDeliveryDate, needsSupport }
+      { status, staffId, needsSupport }
     );
     new OK({
       message: BLOOD_REQUEST_MESSAGE.UPDATE_STATUS_SUCCESS,
@@ -169,7 +169,8 @@ class BloodRequestController {
       userId
     );
     new OK({
-      message: BLOOD_REQUEST_MESSAGE.GET_REQUEST_BLOOD_NEED_SUPPORT_BY_ID_SUCCESS,
+      message:
+        BLOOD_REQUEST_MESSAGE.GET_REQUEST_BLOOD_NEED_SUPPORT_BY_ID_SUCCESS,
       data: result,
     }).send(res);
   });
@@ -197,6 +198,25 @@ class BloodRequestController {
     );
     new OK({
       message: BLOOD_REQUEST_MESSAGE.GET_SUPPORT_REQUEST_DETAILS_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  assignBloodUnitsToRequest = asyncHandler(async (req, res, next) => {
+    const { id } = req.params;
+    const { bloodUnits, facilityId, transporterId, note, scheduledDeliveryDate } = req.body;
+    const userId = req.user.userId;
+    const result = await bloodRequestService.assignBloodUnitsToRequest({
+      requestId: id,
+      facilityId,
+      bloodUnits,
+      transporterId,
+      userId,
+      note,
+      scheduledDeliveryDate,
+    });
+    new OK({
+      message: BLOOD_REQUEST_MESSAGE.ASSIGN_BLOOD_UNITS_TO_REQUEST_SUCCESS,
       data: result,
     }).send(res);
   });

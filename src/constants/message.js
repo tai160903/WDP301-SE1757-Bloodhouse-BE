@@ -178,6 +178,11 @@ const BLOOD_REQUEST_MESSAGE = {
     "Lấy chi tiết yêu cầu máu cần hỗ trợ thành công",
   GET_SUPPORT_REQUESTS_FOR_FACILITY_SUCCESS:
     "Lấy danh sách yêu cầu cần hỗ trợ của cơ sở thành công",
+  ASSIGN_BLOOD_UNITS_TO_REQUEST_SUCCESS:
+    "Gán đơn vị máu thành công và tạo đơn vị vận chuyển thành công",
+  ASSIGN_BLOOD_UNITS_TO_REQUEST_FAILED:
+    "Gán đơn vị máu thất bại hoặc tạo đơn vị vận chuyển thất bại",
+  FAILED_TO_GENERATE_QR_CODE: "Lỗi khi tạo QR code",
 };
 
 const FEEDBACK_MESSAGE = {
@@ -332,6 +337,11 @@ const GIFT_MESSAGE = {
   GIFT_OPERATION_FAILED: "Thao tác quà tặng thất bại",
 };
 
+const BLOOD_DELIVERY_MESSAGE = {
+  GET_SUCCESS: "Lấy thông tin vận chuyển thành công",
+  GET_FAILED: "Lấy thông tin vận chuyển thất bại",
+};
+
 module.exports = {
   ACCESS_MESSAGE,
   BLOOD_COMPATIBILITY_MESSAGE,
@@ -355,4 +365,5 @@ module.exports = {
   BLOOD_UNIT_MESSAGE,
   BLOOD_REQUEST_SUPPORT_MESSAGE,
   GIFT_MESSAGE,
+  BLOOD_DELIVERY_MESSAGE,
 };
