@@ -80,7 +80,6 @@ bloodDeliverySchema.pre("save", async function (next) {
   next();
 });
 
-bloodDeliverySchema.index({ code: 1 });
 bloodDeliverySchema.index({ bloodRequestId: 1 });
 bloodDeliverySchema.index({ facilityId: 1 });
 bloodDeliverySchema.index({ status: 1 });

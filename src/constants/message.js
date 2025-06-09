@@ -269,6 +269,74 @@ const BLOOD_UNIT_MESSAGE = {
     "Chỉ có thể tạo blood units từ donation đã hoàn thành",
 };
 
+const GIFT_MESSAGE = {
+  // Gift Items
+  GIFT_ITEM_CREATE_SUCCESS: "Tạo loại quà tặng thành công",
+  GIFT_ITEM_CREATE_FAILED: "Tạo loại quà tặng thất bại",
+  GIFT_ITEM_UPDATE_SUCCESS: "Cập nhật loại quà tặng thành công",
+  GIFT_ITEM_UPDATE_FAILED: "Cập nhật loại quà tặng thất bại",
+  GIFT_ITEM_DELETE_SUCCESS: "Xóa loại quà tặng thành công",
+  GIFT_ITEM_DELETE_FAILED: "Xóa loại quà tặng thất bại",
+  GIFT_ITEM_GET_SUCCESS: "Lấy danh sách loại quà tặng thành công",
+  GIFT_ITEM_GET_FAILED: "Lấy danh sách loại quà tặng thất bại",
+  GIFT_ITEM_NOT_FOUND: "Loại quà tặng không tồn tại",
+
+  // Gift Packages
+  GIFT_PACKAGE_CREATE_SUCCESS: "Tạo gói quà tặng thành công",
+  GIFT_PACKAGE_CREATE_FAILED: "Tạo gói quà tặng thất bại",
+  GIFT_PACKAGE_UPDATE_SUCCESS: "Cập nhật gói quà tặng thành công",
+  GIFT_PACKAGE_UPDATE_FAILED: "Cập nhật gói quà tặng thất bại",
+  GIFT_PACKAGE_DELETE_SUCCESS: "Xóa gói quà tặng thành công",
+  GIFT_PACKAGE_DELETE_FAILED: "Xóa gói quà tặng thất bại",
+  GIFT_PACKAGE_GET_SUCCESS: "Lấy danh sách gói quà tặng thành công",
+  GIFT_PACKAGE_GET_FAILED: "Lấy danh sách gói quà tặng thất bại",
+  GIFT_PACKAGE_NOT_FOUND: "Gói quà tặng không tồn tại",
+
+  // Gift Inventory
+  GIFT_INVENTORY_ADD_SUCCESS: "Thêm quà tặng vào kho thành công",
+  GIFT_INVENTORY_ADD_FAILED: "Thêm quà tặng vào kho thất bại",
+  GIFT_INVENTORY_UPDATE_SUCCESS: "Cập nhật kho quà tặng thành công",
+  GIFT_INVENTORY_UPDATE_FAILED: "Cập nhật kho quà tặng thất bại",
+  GIFT_INVENTORY_DELETE_SUCCESS: "Xóa quà tặng khỏi kho thành công",
+  GIFT_INVENTORY_DELETE_FAILED: "Xóa quà tặng khỏi kho thất bại",
+  GIFT_INVENTORY_FETCH_SUCCESS: "Lấy kho quà tặng thành công",
+  GIFT_INVENTORY_FETCH_FAILED: "Lấy kho quà tặng thất bại",
+  GIFT_INVENTORY_NOT_FOUND: "Quà tặng không có trong kho",
+  GIFT_INVENTORY_INSUFFICIENT_QUANTITY: "Số lượng quà tặng trong kho không đủ",
+
+  // Gift Distribution
+  GIFT_DISTRIBUTION_SUCCESS: "Phân phát quà tặng thành công",
+  GIFT_DISTRIBUTION_FAILED: "Phân phát quà tặng thất bại",
+  GIFT_DISTRIBUTION_GET_SUCCESS: "Lấy danh sách phân phát quà tặng thành công",
+  GIFT_DISTRIBUTION_GET_FAILED: "Lấy danh sách phân phát quà tặng thất bại",
+  GIFT_DISTRIBUTION_NOT_FOUND: "Bản ghi phân phát quà tặng không tồn tại",
+  GIFT_ALREADY_DISTRIBUTED: "Quà tặng đã được phân phát cho lần hiến máu này",
+
+  // Gift Package Distribution
+  GIFT_PACKAGE_DISTRIBUTION_SUCCESS: "Phân phát gói quà tặng thành công",
+  GIFT_PACKAGE_DISTRIBUTION_FAILED: "Phân phát gói quà tặng thất bại",
+  GIFT_PACKAGE_INSUFFICIENT_INVENTORY: "Không đủ quà tặng trong kho để phân phát gói này",
+
+  // Gift Budget
+  BUDGET_UPDATE_SUCCESS: "Cập nhật ngân sách quà tặng thành công",
+  BUDGET_UPDATE_FAILED: "Cập nhật ngân sách quà tặng thất bại",
+  BUDGET_GET_SUCCESS: "Lấy thông tin ngân sách thành công",
+  BUDGET_GET_FAILED: "Lấy thông tin ngân sách thất bại",
+  BUDGET_INSUFFICIENT: "Ngân sách không đủ cho thao tác này",
+  BUDGET_NOT_FOUND: "Không tìm thấy ngân sách cho cơ sở này",
+
+  // Gift Reports & Logs
+  REPORT_FETCH_SUCCESS: "Lấy báo cáo phân phát quà tặng thành công",
+  REPORT_FETCH_FAILED: "Lấy báo cáo phân phát quà tặng thất bại",
+  LOG_CREATE_SUCCESS: "Ghi log hoạt động quà tặng thành công",
+  LOG_GET_SUCCESS: "Lấy lịch sử hoạt động quà tặng thành công",
+
+  // General
+  INVALID_GIFT_DATA: "Dữ liệu quà tặng không hợp lệ",
+  UNAUTHORIZED_GIFT_ACCESS: "Không có quyền truy cập chức năng quà tặng này",
+  GIFT_OPERATION_FAILED: "Thao tác quà tặng thất bại",
+};
+
 const BLOOD_DELIVERY_MESSAGE = {
   GET_SUCCESS: "Lấy thông tin vận chuyển thành công",
   GET_FAILED: "Lấy thông tin vận chuyển thất bại",
@@ -296,5 +364,6 @@ module.exports = {
   BLOOD_DONATION_MESSAGE,
   BLOOD_UNIT_MESSAGE,
   BLOOD_REQUEST_SUPPORT_MESSAGE,
+  GIFT_MESSAGE,
   BLOOD_DELIVERY_MESSAGE,
 };
