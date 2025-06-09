@@ -6,7 +6,12 @@ const User = require("../models/user.model");
 const FacilityStaff = require("../models/facilityStaff.model");
 const { getInfoData } = require("../utils");
 const { BadRequestError } = require("../configs/error.response");
-const { STAFF_POSITION, USER_ROLE, BLOOD_DONATION_REGISTRATION_STATUS, HEALTH_CHECK_STATUS } = require("../constants/enum");
+const {
+  STAFF_POSITION,
+  USER_ROLE,
+  BLOOD_DONATION_REGISTRATION_STATUS,
+  HEALTH_CHECK_STATUS,
+} = require("../constants/enum");
 const healthCheckModel = require("../models/healthCheck.model");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
 const processDonationLogService = require("./processDonationLog.service");
@@ -14,15 +19,12 @@ const notificationService = require("./notification.service");
 
 class HealthCheckService {
   // Nhân viên tạo đơn kiểm tra sức khỏe
-  createHealthCheck = async (
-    { userId, doctorId, registrationId },
-    staffId
-  ) => {
+  createHealthCheck = async ({ userId, doctorId, registrationId }, staffId) => {
     // Step 1: Validate staff
     const staff = await FacilityStaff.findOne({
       _id: staffId,
       position: STAFF_POSITION.NURSE,
-      isDeleted: false
+      isDeleted: false,
     });
     if (!staff) {
       throw new BadRequestError("Nhân viên không tồn tại hoặc không có quyền");
@@ -30,9 +32,7 @@ class HealthCheckService {
 
     // Step 2: Validate required fields
     if (!registrationId || !userId || !doctorId) {
-      throw new BadRequestError(
-        "Thiếu registrationId, userId hoặc doctorId"
-      );
+      throw new BadRequestError("Thiếu registrationId, userId hoặc doctorId");
     }
 
     // Step 3: Validate ObjectIds
@@ -47,7 +47,9 @@ class HealthCheckService {
     }
 
     // Step 4: Check if registration, user, and doctor exist
-    const registration = await BloodDonationRegistration.findById(registrationId);
+    const registration = await BloodDonationRegistration.findById(
+      registrationId
+    ).populate("facilityId", "name");
     if (!registration) {
       throw new BadRequestError("Đăng ký hiến máu không tồn tại");
     }
@@ -59,15 +61,19 @@ class HealthCheckService {
       _id: doctorId,
       position: STAFF_POSITION.DOCTOR,
       facilityId: staff.facilityId,
-      isDeleted: false
+      isDeleted: false,
     });
     if (!doctor) {
-      throw new BadRequestError("Bác sĩ không tồn tại hoặc không thuộc cơ sở này");
+      throw new BadRequestError(
+        "Bác sĩ không tồn tại hoặc không thuộc cơ sở này"
+      );
     }
-    
+
     // check if registration is in CHECKED_IN status
     if (registration.status !== BLOOD_DONATION_REGISTRATION_STATUS.CHECKED_IN) {
-      throw new BadRequestError("Đăng ký hiến máu không ở trạng thái đã check-in");
+      throw new BadRequestError(
+        "Đăng ký hiến máu không ở trạng thái đã check-in"
+      );
     }
 
     // update registration status to IN_CONSULT
@@ -130,7 +136,7 @@ class HealthCheckService {
           "createdAt",
           "updatedAt",
           "status",
-          "code"
+          "code",
         ],
         object: result,
       }),
@@ -152,9 +158,10 @@ class HealthCheckService {
 
     // Step 3: Verify doctor is assigned to this health check
     if (healthCheck.doctorId.toString() !== staffId) {
-      throw new BadRequestError("Bạn không được phân công cho kiểm tra sức khỏe này");
+      throw new BadRequestError(
+        "Bạn không được phân công cho kiểm tra sức khỏe này"
+      );
     }
-
 
     // Step 4: Update allowed fields
     const updateData = {
@@ -171,7 +178,6 @@ class HealthCheckService {
         reqBody.generalCondition || healthCheck.generalCondition,
       deferralReason: reqBody.deferralReason || healthCheck.deferralReason,
       notes: reqBody.notes || healthCheck.notes,
-      
     };
 
     // Step 5: Validate isEligible and deferralReason
@@ -180,9 +186,11 @@ class HealthCheckService {
         "Cần cung cấp lý do không đủ điều kiện (deferralReason)"
       );
     }
-    const registration = await BloodDonationRegistration.findById(healthCheck.registrationId);
+    const registration = await BloodDonationRegistration.findById(
+      healthCheck.registrationId
+    ).populate("facilityId", "name");
     // Update registration status if eligible
-    if (updateData.isEligible === true ) {
+    if (updateData.isEligible === true) {
       // Send notification to user
       updateData.deferralReason = null;
       updateData.status = HEALTH_CHECK_STATUS.COMPLETED;
@@ -203,12 +211,11 @@ class HealthCheckService {
         BLOOD_DONATION_REGISTRATION_STATUS.REGISTERED,
         registration.facilityId.name,
         registration._id
-      );  
+      );
       // Update registration status
       registration.status = BLOOD_DONATION_REGISTRATION_STATUS.REGISTERED;
       await registration.save();
     }
-    
 
     // Step 6: Update health check
     const updatedHealthCheck = await healthCheckModel.findByIdAndUpdate(
@@ -217,14 +224,12 @@ class HealthCheckService {
       { new: true }
     );
 
-    
-
     if (!updatedHealthCheck) {
       throw new BadRequestError("Cập nhật kiểm tra sức khỏe không thành công");
     }
 
     // Step 7: Create process donation  log
-    if(updateData.isEligible === true) {
+    if (updateData.isEligible === true) {
       await processDonationLogService.createProcessDonationLog({
         registrationId: updatedHealthCheck.registrationId,
         userId: updatedHealthCheck.userId,
@@ -245,17 +250,21 @@ class HealthCheckService {
     // Step 7: Populate and return
     const result = await updatedHealthCheck.populate([
       { path: "userId", select: "fullName email" },
-      { path: "staffId", select: "position userId", 
-        populate: { path: "userId", select: "fullName email" }
+      {
+        path: "staffId",
+        select: "position userId",
+        populate: { path: "userId", select: "fullName email" },
       },
-      { path: "doctorId", select: "position userId", 
-        populate: { path: "userId", select: "fullName email" }
+      {
+        path: "doctorId",
+        select: "position userId",
+        populate: { path: "userId", select: "fullName email" },
       },
-      { 
-        path: "registrationId", 
+      {
+        path: "registrationId",
         select: "facilityId",
-        populate: { path: "facilityId", select: "name" }
-      }
+        populate: { path: "facilityId", select: "name" },
+      },
     ]);
     return {
       data: getInfoData({
@@ -278,7 +287,7 @@ class HealthCheckService {
           "createdAt",
           "updatedAt",
           "status",
-          "code"
+          "code",
         ],
         object: result,
       }),
@@ -304,7 +313,7 @@ class HealthCheckService {
     }
 
     if (isEligible) {
-      query.isEligible = isEligible === 'true' || isEligible === true;
+      query.isEligible = isEligible === "true" || isEligible === true;
     }
 
     // Validate sortBy
@@ -325,24 +334,29 @@ class HealthCheckService {
       query,
       page,
       limit,
-      select: "_id registrationId userId doctorId staffId facilityId checkDate isEligible bloodPressure hemoglobin weight pulse temperature generalCondition deferralReason notes createdAt updatedAt status code",
+      select:
+        "_id registrationId userId doctorId staffId facilityId checkDate isEligible bloodPressure hemoglobin weight pulse temperature generalCondition deferralReason notes createdAt updatedAt status code",
       populate: [
-        { 
-          path: "userId", 
+        {
+          path: "userId",
           select: "fullName email phone avatar sex yob bloodId",
-          populate: { path: "bloodId", select: "type name" }
+          populate: { path: "bloodId", select: "type name" },
         },
-        { path: "staffId", select: "position userId", 
-          populate: { path: "userId", select: "fullName email" }
+        {
+          path: "staffId",
+          select: "position userId",
+          populate: { path: "userId", select: "fullName email" },
         },
-        { path: "doctorId", select: "position userId", 
-          populate: { path: "userId", select: "fullName email" }
+        {
+          path: "doctorId",
+          select: "position userId",
+          populate: { path: "userId", select: "fullName email" },
         },
-        { 
-          path: "registrationId", 
+        {
+          path: "registrationId",
           select: "facilityId",
-          populate: { path: "facilityId", select: "name address" }
-        }
+          populate: { path: "facilityId", select: "name address" },
+        },
       ],
       search,
       searchFields: ["generalCondition", "notes", "deferralReason"],
@@ -360,8 +374,7 @@ class HealthCheckService {
       search,
       sortBy = "createdAt",
       sortOrder = -1,
-      isEligible
-      ,
+      isEligible,
     }
   ) => {
     // Get staff info to get facilityId
@@ -370,17 +383,17 @@ class HealthCheckService {
       throw new BadRequestError("Không tìm thấy thông tin nhân viên");
     }
 
-    const query = { 
+    const query = {
       doctorId: staffId,
-      facilityId: staff.facilityId
+      facilityId: staff.facilityId,
     };
-    
+
     if (status) {
       query.status = status;
     }
 
     if (isEligible) {
-      query.isEligible = isEligible === 'true' || isEligible === true;
+      query.isEligible = isEligible === "true" || isEligible === true;
     }
 
     // Validate sortBy
@@ -401,24 +414,29 @@ class HealthCheckService {
       query,
       page,
       limit,
-      select: "_id registrationId userId doctorId staffId facilityId checkDate isEligible bloodPressure hemoglobin weight pulse temperature generalCondition deferralReason notes createdAt updatedAt status code",
+      select:
+        "_id registrationId userId doctorId staffId facilityId checkDate isEligible bloodPressure hemoglobin weight pulse temperature generalCondition deferralReason notes createdAt updatedAt status code",
       populate: [
-        { 
-          path: "userId", 
+        {
+          path: "userId",
           select: "fullName email phone avatar sex yob bloodId",
-          populate: { path: "bloodId", select: "type name" }
+          populate: { path: "bloodId", select: "type name" },
         },
-        { path: "staffId", select: "position userId", 
-          populate: { path: "userId", select: "fullName email" }
+        {
+          path: "staffId",
+          select: "position userId",
+          populate: { path: "userId", select: "fullName email" },
         },
-        { path: "doctorId", select: "position userId", 
-          populate: { path: "userId", select: "fullName email" }
+        {
+          path: "doctorId",
+          select: "position userId",
+          populate: { path: "userId", select: "fullName email" },
         },
-        { 
-          path: "registrationId", 
+        {
+          path: "registrationId",
           select: "facilityId",
-          populate: { path: "facilityId", select: "name" }
-        }
+          populate: { path: "facilityId", select: "name" },
+        },
       ],
       search,
       searchFields: ["generalCondition", "notes", "deferralReason"],
@@ -445,7 +463,7 @@ class HealthCheckService {
     }
 
     if (isEligible) {
-      query.isEligible = isEligible === 'true' || isEligible === true;
+      query.isEligible = isEligible === "true" || isEligible === true;
     }
 
     // Validate sortBy
@@ -466,24 +484,29 @@ class HealthCheckService {
       query,
       page,
       limit,
-      select: "_id registrationId userId doctorId staffId facilityId checkDate isEligible bloodPressure hemoglobin weight pulse temperature generalCondition deferralReason notes createdAt updatedAt status code",
+      select:
+        "_id registrationId userId doctorId staffId facilityId checkDate isEligible bloodPressure hemoglobin weight pulse temperature generalCondition deferralReason notes createdAt updatedAt status code",
       populate: [
-        { 
-          path: "userId", 
+        {
+          path: "userId",
           select: "fullName email phone avatar sex yob bloodId",
-          populate: { path: "bloodId", select: "type name" }
+          populate: { path: "bloodId", select: "type name" },
         },
-        { path: "staffId", select: "position userId", 
-          populate: { path: "userId", select: "fullName email" }
+        {
+          path: "staffId",
+          select: "position userId",
+          populate: { path: "userId", select: "fullName email" },
         },
-        { path: "doctorId", select: "position userId", 
-          populate: { path: "userId", select: "fullName email" }
+        {
+          path: "doctorId",
+          select: "position userId",
+          populate: { path: "userId", select: "fullName email" },
         },
-        { 
-          path: "registrationId", 
+        {
+          path: "registrationId",
           select: "facilityId",
-          populate: { path: "facilityId", select: "name" }
-        }
+          populate: { path: "facilityId", select: "name" },
+        },
       ],
       search,
       searchFields: ["generalCondition", "notes", "deferralReason"],
@@ -510,17 +533,17 @@ class HealthCheckService {
       throw new BadRequestError("Không tìm thấy thông tin nhân viên");
     }
 
-    const query = { 
+    const query = {
       staffId,
-      facilityId: staff.facilityId
+      facilityId: staff.facilityId,
     };
-    
+
     if (status) {
       query.status = status;
     }
 
     if (isEligible) {
-      query.isEligible = isEligible === 'true' || isEligible === true;
+      query.isEligible = isEligible === "true" || isEligible === true;
     }
 
     // Validate sortBy
@@ -541,24 +564,29 @@ class HealthCheckService {
       query,
       page,
       limit,
-      select: "_id registrationId userId doctorId staffId facilityId checkDate isEligible bloodPressure hemoglobin weight pulse temperature generalCondition deferralReason notes createdAt updatedAt status code",
+      select:
+        "_id registrationId userId doctorId staffId facilityId checkDate isEligible bloodPressure hemoglobin weight pulse temperature generalCondition deferralReason notes createdAt updatedAt status code",
       populate: [
-        { 
-          path: "userId", 
+        {
+          path: "userId",
           select: "fullName email phone avatar sex yob bloodId",
-          populate: { path: "bloodId", select: "type name" }
+          populate: { path: "bloodId", select: "type name" },
         },
-        { path: "staffId", select: "position userId", 
-          populate: { path: "userId", select: "fullName email" }
+        {
+          path: "staffId",
+          select: "position userId",
+          populate: { path: "userId", select: "fullName email" },
         },
-        { path: "doctorId", select: "position userId", 
-          populate: { path: "userId", select: "fullName email" }
+        {
+          path: "doctorId",
+          select: "position userId",
+          populate: { path: "userId", select: "fullName email" },
         },
-        { 
-          path: "registrationId", 
+        {
+          path: "registrationId",
           select: "facilityId",
-          populate: { path: "facilityId", select: "name" }
-        }
+          populate: { path: "facilityId", select: "name" },
+        },
       ],
       search,
       searchFields: ["generalCondition", "notes", "deferralReason"],
@@ -569,7 +597,7 @@ class HealthCheckService {
   // Lấy chi tiết kiểm tra sức khỏe
   getHealthCheckDetail = async (id, userId, role, staffId) => {
     const query = { _id: id };
-    
+
     // Nếu là user thông thường, chỉ được xem health check của mình
     if (role === USER_ROLE.USER) {
       query.userId = userId;
@@ -584,32 +612,34 @@ class HealthCheckService {
       query.facilityId = staff.facilityId;
     }
 
-    const healthCheck = await healthCheckModel.findOne(query)
+    const healthCheck = await healthCheckModel
+      .findOne(query)
       .populate("userId", "fullName email phone avatar sex yob bloodId")
       .populate({
         path: "userId",
-        populate: { path: "bloodId", select: "type name" }
+        populate: { path: "bloodId", select: "type name" },
       })
       .populate({
         path: "staffId",
         select: "position userId",
-        populate: { path: "userId", select: "fullName email" }
+        populate: { path: "userId", select: "fullName email" },
       })
       .populate({
         path: "doctorId",
         select: "position userId",
-        populate: { path: "userId", select: "fullName email" }
+        populate: { path: "userId", select: "fullName email" },
       })
       .populate({
         path: "registrationId",
         select: "facilityId bloodGroupId",
-        populate: { 
-          path: "facilityId", 
-          select: "name" 
+        populate: {
+          path: "facilityId",
+          select: "name",
         },
-        populate: { 
-          path: "bloodGroupId", 
-          select: "name" }
+        populate: {
+          path: "bloodGroupId",
+          select: "name",
+        },
       })
       .lean();
 
@@ -641,7 +671,7 @@ class HealthCheckService {
           "createdAt",
           "updatedAt",
           "status",
-          "code"
+          "code",
         ],
         object: healthCheck,
       }),
@@ -649,25 +679,35 @@ class HealthCheckService {
   };
 
   // Lấy chi tiết kiểm tra sức khỏe theo registration ID
-  getHealthCheckByRegistrationId = async (registrationId, userId, role, staffId) => {
+  getHealthCheckByRegistrationId = async (
+    registrationId,
+    userId,
+    role,
+    staffId
+  ) => {
     // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(registrationId)) {
       throw new BadRequestError("Registration ID không hợp lệ");
     }
 
     // Lấy thông tin registration trước
-    const registration = await BloodDonationRegistration.findById(registrationId)
+    const registration = await BloodDonationRegistration.findById(
+      registrationId
+    )
       .populate("userId", "fullName email phone avatar sex yob bloodId")
       .populate({
         path: "userId",
-        populate: { path: "bloodId", select: "type name" }
+        populate: { path: "bloodId", select: "type name" },
       })
-      .populate("facilityId", "name street city address contactPhone contactEmail")
+      .populate(
+        "facilityId",
+        "name street city address contactPhone contactEmail"
+      )
       .populate("bloodGroupId", "name type")
       .populate({
         path: "staffId",
         select: "userId position",
-        populate: { path: "userId", select: "fullName email phone" }
+        populate: { path: "userId", select: "fullName email phone" },
       })
       .lean();
 
@@ -676,7 +716,10 @@ class HealthCheckService {
     }
 
     // Kiểm tra quyền truy cập
-    if (role === USER_ROLE.MEMBER && registration.userId._id.toString() !== userId) {
+    if (
+      role === USER_ROLE.MEMBER &&
+      registration.userId._id.toString() !== userId
+    ) {
       throw new BadRequestError("Bạn không có quyền truy cập đăng ký này");
     }
 
@@ -685,9 +728,11 @@ class HealthCheckService {
       if (!staff) {
         throw new BadRequestError("Không tìm thấy thông tin nhân viên");
       }
-      
+
       // Staff chỉ được xem đăng ký thuộc facility của mình
-      if (registration.facilityId._id.toString() !== staff.facilityId.toString()) {
+      if (
+        registration.facilityId._id.toString() !== staff.facilityId.toString()
+      ) {
         throw new BadRequestError("Bạn không có quyền truy cập đăng ký này");
       }
     }
@@ -695,16 +740,17 @@ class HealthCheckService {
     // Tìm health check tương ứng (nếu có)
     let healthCheck = null;
     try {
-      healthCheck = await healthCheckModel.findOne({ registrationId })
+      healthCheck = await healthCheckModel
+        .findOne({ registrationId })
         .populate({
           path: "staffId",
           select: "userId position",
-          populate: { path: "userId", select: "fullName email phone" }
+          populate: { path: "userId", select: "fullName email phone" },
         })
         .populate({
-          path: "doctorId", 
+          path: "doctorId",
           select: "userId position",
-          populate: { path: "userId", select: "fullName email phone" }
+          populate: { path: "userId", select: "fullName email phone" },
         })
         .lean();
     } catch (error) {
@@ -736,31 +782,33 @@ class HealthCheckService {
         ],
         object: registration,
       }),
-      healthCheck: healthCheck ? getInfoData({
-        fields: [
-          "_id",
-          "registrationId",
-          "userId",
-          "doctorId",
-          "staffId",
-          "facilityId",
-          "checkDate",
-          "isEligible",
-          "bloodPressure",
-          "hemoglobin",
-          "weight",
-          "pulse",
-          "temperature",
-          "generalCondition",
-          "deferralReason",
-          "notes",
-          "createdAt",
-          "updatedAt",
-          "code",
-          "status"
-        ],
-        object: healthCheck,
-      }) : null
+      healthCheck: healthCheck
+        ? getInfoData({
+            fields: [
+              "_id",
+              "registrationId",
+              "userId",
+              "doctorId",
+              "staffId",
+              "facilityId",
+              "checkDate",
+              "isEligible",
+              "bloodPressure",
+              "hemoglobin",
+              "weight",
+              "pulse",
+              "temperature",
+              "generalCondition",
+              "deferralReason",
+              "notes",
+              "createdAt",
+              "updatedAt",
+              "code",
+              "status",
+            ],
+            object: healthCheck,
+          })
+        : null,
     };
   };
 }

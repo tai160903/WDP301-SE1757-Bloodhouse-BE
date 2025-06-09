@@ -59,6 +59,7 @@ const userSchema = new mongoose.Schema(
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
     isAvailable: { type: Boolean, default: true },
+    donationCount: { type: Number, default: 0 },
   },
   {
     timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" },

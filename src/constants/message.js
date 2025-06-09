@@ -218,6 +218,7 @@ const DONATION_PROCESS_LOG_MESSAGE = {
   STATUS_REQUIRED_OR_INVALID: "Trạng thái không hợp lệ",
   CHANGED_BY_REQUIRED_OR_INVALID: "Mã nhân viên không hợp lệ",
   NOTES_REQUIRED_OR_INVALID: "Ghi chú không hợp lệ",
+  REGISTRATION_NOT_FOUND: "Đăng ký hiến máu không tồn tại",
 };
 
 const BLOOD_DONATION_PROCESS_MESSAGE = {
@@ -342,6 +343,11 @@ const BLOOD_DELIVERY_MESSAGE = {
   GET_FAILED: "Lấy thông tin vận chuyển thất bại",
 };
 
+const USER_BADGE_MESSAGE = {
+  GET_SUCCESS: "Lấy badge thành công",
+  GET_FAILED: "Lấy badge thất bại",
+};
+
 module.exports = {
   ACCESS_MESSAGE,
   BLOOD_COMPATIBILITY_MESSAGE,
@@ -366,4 +372,5 @@ module.exports = {
   BLOOD_REQUEST_SUPPORT_MESSAGE,
   GIFT_MESSAGE,
   BLOOD_DELIVERY_MESSAGE,
+  USER_BADGE_MESSAGE,
 };

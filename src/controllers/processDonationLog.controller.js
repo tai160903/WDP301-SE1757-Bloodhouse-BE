@@ -6,6 +6,16 @@ const processDonationLogService = require("../services/processDonationLog.servic
 const { DONATION_PROCESS_LOG_MESSAGE } = require("../constants/message");
 
 class ProcessDonationLogController {
+  // Lấy logs theo registration ID
+  getLogsDonationForMember = asyncHandler(async (req, res) => {
+    const { registrationId } = req.params;
+    const result = await processDonationLogService.getLogsDonationForMember(registrationId);
+    
+    new OK({
+      message: DONATION_PROCESS_LOG_MESSAGE.GET_SUCCESS,
+      data: result,
+    }).send(res);
+  });
   // Tạo process donation log
   createProcessDonationLog = asyncHandler(async (req, res) => {
     const result = await processDonationLogService.createProcessDonationLog({
