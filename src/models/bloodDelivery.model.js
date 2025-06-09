@@ -95,6 +95,7 @@ bloodDeliverySchema.pre("save", async function (next) {
 bloodDeliverySchema.index({ currentLocation: "2dsphere" });
 
 bloodDeliverySchema.index({ code: 1 });
+
 bloodDeliverySchema.index({ bloodRequestId: 1 });
 bloodDeliverySchema.index({ facilityId: 1 });
 bloodDeliverySchema.index({ status: 1 });

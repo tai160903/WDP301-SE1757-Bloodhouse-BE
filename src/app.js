@@ -9,7 +9,7 @@ const compression = require("compression");
 const cors = require("cors");
 const os = require("os");
 const router = require("./routes/index");
-const { swaggerUi, swaggerSetup } = require("./configs/swagger.config");
+const { swaggerUi, swaggerSetup, giftSwaggerSetup } = require("./configs/swagger.config");
 const initSocket = require("./socket/socket");
 const {
   initJobScheduler,
@@ -59,10 +59,16 @@ require("./dbs/init.mongodb");
 // init routes
 app.use("/api/v1", router);
 
-// swagger
+// swagger - Main API documentation
 app.use("/api-docs", swaggerUi.serve);
 app.get("/api-docs", (req, res) => {
   res.send(swaggerSetup(req, res));
+});
+
+// swagger - Gift API documentation
+app.use("/gift", swaggerUi.serve);
+app.get("/gift", (req, res) => {
+  res.send(giftSwaggerSetup(req, res));
 });
 
 // handling errors

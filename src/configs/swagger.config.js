@@ -2,17 +2,21 @@ const swaggerUi = require("swagger-ui-express");
 const YAML = require("yamljs");
 const path = require("path");
 
-// const swaggerDocument = YAML.load(path.join(__dirname, '../../docs/swagger.yaml'));
-const swaggerDocument = YAML.load(
+// Load different API documents
+const mainSwaggerDocument = YAML.load(
   path.join(__dirname, "../../docs/openapi.yaml")
 );
 
-const addServers = (req) => {
-  const doc = { ...swaggerDocument };
+const giftApiDocument = YAML.load(
+  path.join(__dirname, "../../docs/gift-api.yaml")
+);
+
+const addServers = (req, doc) => {
+  const modifiedDoc = { ...doc };
   const protocol = req.protocol;
   const host = req.get("host");
 
-  doc.servers = [
+  modifiedDoc.servers = [
     {
       url: `${protocol}://${host}/api/v1`,
       description:
@@ -22,13 +26,50 @@ const addServers = (req) => {
     },
   ];
 
-  return doc;
+  return modifiedDoc;
+};
+
+// Main API documentation setup
+const mainSwaggerSetup = (req, res) => {
+  const doc = addServers(req, mainSwaggerDocument);
+  return swaggerUi.generateHTML(doc);
+};
+
+// Gift API documentation setup
+const giftSwaggerSetup = (req, res) => {
+  const doc = addServers(req, giftApiDocument);
+  return swaggerUi.generateHTML(doc);
+};
+
+// Generic function to get API document
+const getApiDocument = (apiType = 'main') => {
+  switch (apiType) {
+    case 'gift':
+      return giftApiDocument;
+    case 'main':
+    default:
+      return mainSwaggerDocument;
+  }
+};
+
+// Generic setup function
+const createSwaggerSetup = (apiType) => {
+  return (req, res) => {
+    const doc = addServers(req, getApiDocument(apiType));
+    return swaggerUi.generateHTML(doc);
+  };
 };
 
 module.exports = {
   swaggerUi,
-  swaggerSetup: (req, res) => {
-    const doc = addServers(req);
-    return swaggerUi.generateHTML(doc);
-  },
+  // Legacy support - main API
+  swaggerSetup: mainSwaggerSetup,
+  
+  // New individual setups
+  mainSwaggerSetup,
+  giftSwaggerSetup,
+  
+  // Generic functions
+  createSwaggerSetup,
+  getApiDocument,
 };
