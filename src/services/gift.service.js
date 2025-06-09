@@ -1,6 +1,5 @@
 "use strict";
 
-const { BadRequestError, NotFoundError } = require("../configs/error.response");
 const { getInfoData } = require("../utils");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
 const GiftInventory = require("../models/giftInventory.model");
@@ -11,7 +10,8 @@ const GiftBudget = require("../models/giftBudget.model");
 const GiftLog = require("../models/giftLog.model");
 const Notification = require("../models/notification.model");
 const BloodDonation = require("../models/bloodDonation.model");
-const { USER_ROLE } = require("../constants/enum");
+const { USER_ROLE, GIFT_ACTION, NOTIFICATION_TYPE } = require("../constants/enum");
+const { BadRequestError, NotFoundError } = require("../configs/error.response");
 
 class GiftService {
   // ===== GIFT ITEMS MANAGEMENT =====
@@ -117,11 +117,16 @@ class GiftService {
   // ===== GIFT PACKAGES MANAGEMENT =====
 
   async createGiftPackage(packageData) {
-    const { name, description, items, minAge, maxAge, image, priority, createdBy, facilityId } = packageData;
+    const { name, description, items, image, priority, quantity, createdBy, facilityId } = packageData;
 
     // Validate facility-specific createdBy
     if (!facilityId) {
       throw new BadRequestError("Facility ID is required for package creation");
+    }
+
+    // Validate quantity
+    if (quantity === undefined || quantity < 0) {
+      throw new BadRequestError("Package quantity is required and must be non-negative");
     }
 
     // Check if package name exists in the same facility
@@ -145,7 +150,7 @@ class GiftService {
       throw new BadRequestError("Some gift items in package do not exist or are inactive");
     }
 
-    // Validate that all items have sufficient inventory at this facility
+    // Validate that facility has sufficient inventory to fulfill the requested package quantity
     const inventoryChecks = await Promise.all(
       items.map(async (item) => {
         const inventory = await GiftInventory.findOne({
@@ -153,11 +158,16 @@ class GiftService {
           giftItemId: item.giftItemId,
           isActive: true
         });
+        
+        const requiredTotal = item.quantity * quantity; // Total items needed for all packages
+        const available = inventory ? inventory.availableQuantity : 0;
+        
         return {
           giftItemId: item.giftItemId,
-          requiredQuantity: item.quantity,
-          availableQuantity: inventory ? inventory.availableQuantity : 0,
-          hasEnough: inventory && inventory.availableQuantity >= item.quantity
+          requiredPerPackage: item.quantity,
+          totalRequired: requiredTotal,
+          availableQuantity: available,
+          hasEnough: inventory && available >= requiredTotal
         };
       })
     );
@@ -165,8 +175,8 @@ class GiftService {
     const insufficientItems = inventoryChecks.filter(check => !check.hasEnough);
     if (insufficientItems.length > 0) {
       throw new BadRequestError(
-        `Insufficient inventory for items: ${insufficientItems.map(item => 
-          `${item.giftItemId} (need: ${item.requiredQuantity}, available: ${item.availableQuantity})`
+        `Insufficient inventory for creating ${quantity} packages. Missing items: ${insufficientItems.map(item => 
+          `${item.giftItemId} (need: ${item.totalRequired}, available: ${item.availableQuantity})`
         ).join(', ')}`
       );
     }
@@ -176,8 +186,7 @@ class GiftService {
       description,
       facilityId,
       items,
-      minAge,
-      maxAge,
+      quantity,
       image,
       priority,
       createdBy,
@@ -189,17 +198,18 @@ class GiftService {
     await new GiftLog({
       facilityId,
       packageId: giftPackage._id,
-      action: "CREATE_PACKAGE",
+      action: GIFT_ACTION.CREATE_PACKAGE,
       userId: createdBy,
       details: { 
         name: giftPackage.name,
+        quantity: quantity,
         itemCount: items.length,
         items: items.map(item => ({ giftItemId: item.giftItemId, quantity: item.quantity }))
       },
     }).save();
 
     return getInfoData({
-      fields: ["_id", "name", "description", "facilityId", "items", "minAge", "maxAge", "image", "priority", "isActive", "createdAt"],
+      fields: ["_id", "name", "description", "facilityId", "items", "quantity", "availableQuantity", "image", "priority", "isActive", "createdAt"],
       object: giftPackage,
     });
   }
@@ -219,7 +229,7 @@ class GiftService {
       query,
       page,
       limit,
-      select: "_id name description facilityId items minAge maxAge image priority isActive createdAt",
+      select: "_id name description facilityId items quantity availableQuantity image priority isActive createdAt",
       populate: [
         { 
           path: "items.giftItemId", 
@@ -255,7 +265,7 @@ class GiftService {
     }
     
     return getInfoData({
-      fields: ["_id", "name", "description", "facilityId", "items", "minAge", "maxAge", "image", "priority", "isActive", "createdAt"],
+      fields: ["_id", "name", "description", "facilityId", "items", "quantity", "availableQuantity", "image", "priority", "isActive", "createdAt"],
       object: giftPackage,
     });
   }
@@ -285,6 +295,18 @@ class GiftService {
       }
     }
 
+    // Validate quantity if being updated
+    if (updateData.quantity !== undefined) {
+      if (updateData.quantity < 0) {
+        throw new BadRequestError("Package quantity must be non-negative");
+      }
+      
+      // Cannot reduce quantity below reserved quantity
+      if (updateData.quantity < giftPackage.reservedQuantity) {
+        throw new BadRequestError(`Cannot reduce quantity below reserved amount (${giftPackage.reservedQuantity})`);
+      }
+    }
+
     // Validate gift items if items are being updated
     if (updateData.items) {
       const giftItemIds = updateData.items.map(item => item.giftItemId);
@@ -297,6 +319,9 @@ class GiftService {
         throw new BadRequestError("Some gift items in package do not exist or are inactive");
       }
 
+      // Use current or updated quantity for inventory validation
+      const packageQuantity = updateData.quantity !== undefined ? updateData.quantity : giftPackage.quantity;
+      
       // Validate inventory availability for updated items
       const inventoryChecks = await Promise.all(
         updateData.items.map(async (item) => {
@@ -305,11 +330,16 @@ class GiftService {
             giftItemId: item.giftItemId,
             isActive: true
           });
+          
+          const requiredTotal = item.quantity * packageQuantity;
+          const available = inventory ? inventory.availableQuantity : 0;
+          
           return {
             giftItemId: item.giftItemId,
-            requiredQuantity: item.quantity,
-            availableQuantity: inventory ? inventory.availableQuantity : 0,
-            hasEnough: inventory && inventory.availableQuantity >= item.quantity
+            requiredPerPackage: item.quantity,
+            totalRequired: requiredTotal,
+            availableQuantity: available,
+            hasEnough: inventory && available >= requiredTotal
           };
         })
       );
@@ -317,8 +347,42 @@ class GiftService {
       const insufficientItems = inventoryChecks.filter(check => !check.hasEnough);
       if (insufficientItems.length > 0) {
         throw new BadRequestError(
-          `Insufficient inventory for items: ${insufficientItems.map(item => 
-            `${item.giftItemId} (need: ${item.requiredQuantity}, available: ${item.availableQuantity})`
+          `Insufficient inventory for updated package configuration. Missing items: ${insufficientItems.map(item => 
+            `${item.giftItemId} (need: ${item.totalRequired}, available: ${item.availableQuantity})`
+          ).join(', ')}`
+        );
+      }
+    }
+
+    // If only quantity is being updated and items remain the same, validate inventory
+    if (updateData.quantity !== undefined && !updateData.items && updateData.quantity > giftPackage.quantity) {
+      const quantityIncrease = updateData.quantity - giftPackage.quantity;
+      
+      const inventoryChecks = await Promise.all(
+        giftPackage.items.map(async (item) => {
+          const inventory = await GiftInventory.findOne({
+            facilityId,
+            giftItemId: item.giftItemId,
+            isActive: true
+          });
+          
+          const additionalRequired = item.quantity * quantityIncrease;
+          const available = inventory ? inventory.availableQuantity : 0;
+          
+          return {
+            giftItemId: item.giftItemId,
+            additionalRequired,
+            availableQuantity: available,
+            hasEnough: inventory && available >= additionalRequired
+          };
+        })
+      );
+
+      const insufficientItems = inventoryChecks.filter(check => !check.hasEnough);
+      if (insufficientItems.length > 0) {
+        throw new BadRequestError(
+          `Insufficient inventory for quantity increase. Missing items: ${insufficientItems.map(item => 
+            `${item.giftItemId} (need additional: ${item.additionalRequired}, available: ${item.availableQuantity})`
           ).join(', ')}`
         );
       }
@@ -331,7 +395,7 @@ class GiftService {
     await new GiftLog({
       facilityId,
       packageId: giftPackage._id,
-      action: "UPDATE_PACKAGE",
+      action: GIFT_ACTION.UPDATE_PACKAGE,
       userId: updatedBy.staffId,
       details: { 
         name: giftPackage.name,
@@ -340,7 +404,7 @@ class GiftService {
     }).save();
 
     return getInfoData({
-      fields: ["_id", "name", "description", "facilityId", "items", "minAge", "maxAge", "image", "priority", "isActive", "updatedAt"],
+      fields: ["_id", "name", "description", "facilityId", "items", "quantity", "availableQuantity", "image", "priority", "isActive", "updatedAt"],
       object: giftPackage,
     });
   }
@@ -368,7 +432,7 @@ class GiftService {
       await new GiftLog({
         facilityId,
         packageId: giftPackage._id,
-        action: "DELETE_PACKAGE",
+        action: GIFT_ACTION.DELETE_PACKAGE,
         userId: deletedBy.staffId,
         details: { 
           name: giftPackage.name,
@@ -386,7 +450,7 @@ class GiftService {
       await new GiftLog({
         facilityId,
         packageId: packageId,
-        action: "DELETE_PACKAGE",
+        action: GIFT_ACTION.DELETE_PACKAGE,
         userId: deletedBy.staffId,
         details: { 
           name: giftPackage.name,
@@ -462,7 +526,7 @@ class GiftService {
     await new GiftLog({
       facilityId,
       giftItemId,
-      action: "STOCK_IN",
+      action: GIFT_ACTION.STOCK_IN,
       userId: managerId,
       details: { name: giftItem.name, quantity, costPerUnit, totalCost },
     }).save();
@@ -505,16 +569,16 @@ class GiftService {
     const newCost = costPerUnit !== undefined ? costPerUnit : oldCost;
 
     if (costPerUnit !== undefined) {
-      const budget = await GiftBudget.findOne({
-        facilityId,
-        startDate: { $lte: new Date() },
-        endDate: { $gte: new Date() },
-      });
+    const budget = await GiftBudget.findOne({
+      facilityId,
+      startDate: { $lte: new Date() },
+      endDate: { $gte: new Date() },
+    });
       if (!budget) throw new NotFoundError("No active budget found");
 
-      const costDiff = newQuantity * newCost - oldQuantity * oldCost;
-      if (budget.spent + costDiff > budget.budget) {
-        throw new BadRequestError("Insufficient budget for this update");
+    const costDiff = newQuantity * newCost - oldQuantity * oldCost;
+    if (budget.spent + costDiff > budget.budget) {
+      throw new BadRequestError("Insufficient budget for this update");
       }
 
       // Cập nhật ngân sách
@@ -531,7 +595,7 @@ class GiftService {
 
     // Ghi log
     const action = quantity !== undefined && quantity !== oldQuantity ? 
-      (quantity > oldQuantity ? "STOCK_IN" : "STOCK_OUT") : "UPDATE";
+      (quantity > oldQuantity ? GIFT_ACTION.STOCK_IN : GIFT_ACTION.STOCK_OUT) : GIFT_ACTION.UPDATE;
     
     await new GiftLog({
       facilityId,
@@ -579,7 +643,7 @@ class GiftService {
     await new GiftLog({
       facilityId,
       giftItemId: inventory.giftItemId._id,
-      action: "DELETE_INVENTORY",
+      action: GIFT_ACTION.DELETE_INVENTORY,
       userId: managerId,
       details: { name: inventory.giftItemId.name },
     }).save();
@@ -647,16 +711,20 @@ class GiftService {
     }
 
     // Check if already distributed for this donation
-    const existingDistribution = await GiftDistribution.findOne({ donationId });
-    if (existingDistribution) {
-      throw new BadRequestError("Gifts already distributed for this donation");
+    if (donation.giftPackageId) {
+      throw new BadRequestError("Gift package already distributed for this donation");
     }
 
     // Get package details
-    const giftPackage = await GiftPackage.findOne({ _id: packageId, isActive: true })
+    const giftPackage = await GiftPackage.findOne({ _id: packageId, facilityId, isActive: true })
       .populate('items.giftItemId');
     if (!giftPackage) {
       throw new NotFoundError("Gift package not found or inactive");
+    }
+
+    // Check package availability
+    if (giftPackage.availableQuantity <= 0) {
+      throw new BadRequestError(`Gift package "${giftPackage.name}" is out of stock (available: ${giftPackage.availableQuantity})`);
     }
 
     // Check inventory availability for all items
@@ -714,6 +782,14 @@ class GiftService {
       await inventory.save();
     }
 
+    // Update package quantity (decrease by 1)
+    giftPackage.quantity -= 1;
+    await giftPackage.save();
+
+    // Update blood donation with gift package ID
+    donation.giftPackageId = packageId;
+    await donation.save();
+
     // Update budget
     const budget = await GiftBudget.findOne({
       facilityId,
@@ -729,13 +805,14 @@ class GiftService {
     await new GiftLog({
       facilityId,
       packageId,
-      action: "DISTRIBUTE_PACKAGE",
+      action: GIFT_ACTION.DISTRIBUTE_PACKAGE,
       userId: distributedBy,
       donationId,
       details: {
         packageName: giftPackage.name,
         recipientName: donation.userId.fullName,
         totalCost,
+        remainingPackages: giftPackage.quantity,
         items: giftPackage.items.map(item => ({
           name: item.giftItemId.name,
           quantity: item.quantity,
@@ -749,12 +826,13 @@ class GiftService {
     await new Notification({
       userId: donation.userId._id,
       message: `Bạn đã nhận được gói quà tặng "${giftPackage.name}" bao gồm: ${itemNames}`,
-      type: "GIFT",
+      type: NOTIFICATION_TYPE.GIFT,
     }).save();
 
     return {
       packageName: giftPackage.name,
       totalCost,
+      remainingPackages: giftPackage.quantity,
       items: distributionItems.map(item => getInfoData({
         fields: ["_id", "giftItemId", "quantity", "costPerUnit", "distributedAt"],
         object: item,
@@ -837,7 +915,7 @@ class GiftService {
     await new GiftLog({
       facilityId,
       giftItemId,
-      action: "DISTRIBUTE",
+      action: GIFT_ACTION.DISTRIBUTE,
       userId: distributedBy,
       donationId,
       details: {
@@ -853,7 +931,7 @@ class GiftService {
     await new Notification({
       userId: donation.userId._id,
       message: `Bạn đã nhận được quà tặng ${giftItem.name} (${quantity} ${giftItem.unit}) từ việc hiến máu`,
-      type: "GIFT",
+      type: NOTIFICATION_TYPE.GIFT,
     }).save();
 
     return getInfoData({
@@ -873,13 +951,16 @@ class GiftService {
     }
 
     // Check if already distributed
-    const existingDistribution = await GiftDistribution.findOne({ donationId });
-    if (existingDistribution) {
+    if (donation.giftPackageId) {
       throw new BadRequestError("Gifts already distributed for this donation");
     }
 
-    // Get available packages
-    const packages = await GiftPackage.find({ isActive: true })
+    // Get available packages (must have quantity > 0)
+    const packages = await GiftPackage.find({ 
+      facilityId, 
+      isActive: true,
+      quantity: { $gt: 0 }  // Only packages with available quantity
+    })
       .populate('items.giftItemId', 'name unit category costPerUnit')
       .sort({ priority: -1, createdAt: -1 });
 
@@ -888,6 +969,11 @@ class GiftService {
     for (const pkg of packages) {
       let canDistribute = true;
       const packageItems = [];
+      
+      // Check if package is available
+      if (pkg.availableQuantity <= 0) {
+        continue; // Skip packages with no available quantity
+      }
       
       for (const item of pkg.items) {
         const inventory = await GiftInventory.findOne({
@@ -912,7 +998,8 @@ class GiftService {
         availablePackages.push({
           package: pkg,
           items: packageItems,
-          totalCost: packageItems.reduce((sum, item) => sum + (item.quantity * item.giftItem.costPerUnit), 0)
+          totalCost: packageItems.reduce((sum, item) => sum + (item.quantity * item.giftItem.costPerUnit), 0),
+          availablePackageQuantity: pkg.availableQuantity
         });
       }
     }
@@ -986,7 +1073,7 @@ class GiftService {
     await new GiftLog({
       facilityId,
       giftItemId: null,
-      action: "UPDATE_BUDGET",
+      action: GIFT_ACTION.UPDATE_BUDGET,
       userId: managerId,
       details: { budget, startDate, endDate },
     }).save();

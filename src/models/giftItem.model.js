@@ -44,14 +44,6 @@ const giftItemSchema = new mongoose.Schema({
   }
 }, { timestamps: true, collection: COLLECTION_NAME });
 
-// Validation for age range
-giftItemSchema.pre('save', function(next) {
-  if (this.minAge > this.maxAge) {
-    next(new Error('Minimum age cannot be greater than maximum age'));
-  }
-  next();
-});
-
 // Index
 giftItemSchema.index({ category: 1, isActive: 1 });
 

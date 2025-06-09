@@ -199,6 +199,18 @@ class BloodDonationRegistrationController {
       data: result,
     }).send(res);
   });
+
+  // Nurse QR scan for gift distribution after completed donations
+  processNurseGiftScan = asyncHandler(async (req, res) => {
+    const result = await bloodDonationService.processNurseGiftScan({
+      qrData: req.body.qrData,
+      nurseId: req.user.staffId,
+    });
+    new OK({
+      message: "Gift scan thành công",
+      data: result,
+    }).send(res);
+  });
 }
 
 module.exports = new BloodDonationRegistrationController();

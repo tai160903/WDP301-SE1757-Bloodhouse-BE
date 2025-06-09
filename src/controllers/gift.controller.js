@@ -5,6 +5,7 @@ const { GIFT_MESSAGE } = require("../constants/message");
 const asyncHandler = require("../helpers/asyncHandler");
 const giftService = require("../services/gift.service");
 const { USER_ROLE } = require("../constants/enum");
+const { BadRequestError } = require("../configs/error.response");
 
 class GiftManagerController {
   // ===== GIFT ITEMS MANAGEMENT =====
@@ -52,8 +53,20 @@ class GiftManagerController {
   // ===== GIFT PACKAGES MANAGEMENT =====
 
   createGiftPackage = asyncHandler(async (req, res) => {
+    const { name, description, items, image, priority, quantity } = req.body;
+    
+    // Validate required fields
+    if (!name || !items || quantity === undefined) {
+      throw new BadRequestError("Name, items, and quantity are required");
+    }
+    
     const result = await giftService.createGiftPackage({
-      ...req.body,
+      name,
+      description,
+      items,
+      image,
+      priority,
+      quantity,
       createdBy: req.user.staffId,
       facilityId: req.user.facilityId,
     });
@@ -102,6 +115,27 @@ class GiftManagerController {
     );
     new OK({
       message: GIFT_MESSAGE.GIFT_PACKAGE_UPDATE_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  updateGiftPackageQuantity = asyncHandler(async (req, res) => {
+    const { quantity } = req.body;
+    
+    if (quantity === undefined || quantity < 0) {
+      throw new BadRequestError("Valid quantity is required");
+    }
+    
+    const result = await giftService.updateGiftPackage(
+      req.params.packageId,
+      { quantity },
+      { 
+        staffId: req.user.staffId,
+        facilityId: req.user.facilityId 
+      }
+    );
+    new OK({
+      message: "Package quantity updated successfully",
       data: result,
     }).send(res);
   });

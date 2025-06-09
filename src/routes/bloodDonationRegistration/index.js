@@ -60,6 +60,13 @@ router.post(
   bloodDonationRegistrationController.processNurseSmartScan
 );
 
+// Nurse QR scan for gift distribution after completed donations
+router.post(
+  "/nurse/gift-scan",
+  checkStaff([STAFF_POSITION.NURSE]),
+  bloodDonationRegistrationController.processNurseGiftScan
+);
+
 // Manager-only routes
 router.get(
   "/facility/all",

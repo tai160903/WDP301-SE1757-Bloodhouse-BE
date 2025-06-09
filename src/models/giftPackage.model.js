@@ -37,6 +37,18 @@ const giftPackageSchema = new mongoose.Schema({
     index: true,
   },
   items: [giftPackageItemSchema], // Danh sách các quà tặng trong package
+  quantity: {
+    type: Number,
+    required: true,
+    min: 0,
+    default: 0,
+    index: true,
+  }, // Số lượng gói hiện có
+  reservedQuantity: {
+    type: Number,
+    default: 0,
+    min: 0,
+  }, // Số lượng đang được reserve (cho future use)
   isActive: {
     type: Boolean,
     default: true,
@@ -46,17 +58,6 @@ const giftPackageSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "FacilityStaff",
     required: true,
-  },
-  // Điều kiện áp dụng package
-  minAge: {
-    type: Number,
-    min: 0,
-    default: 0,
-  },
-  maxAge: {
-    type: Number,
-    min: 0,
-    default: 100,
   },
   // Thông tin display
   image: {
@@ -68,13 +69,22 @@ const giftPackageSchema = new mongoose.Schema({
   }
 }, { timestamps: true, collection: COLLECTION_NAME });
 
+// Virtual for available quantity
+giftPackageSchema.virtual('availableQuantity').get(function() {
+  return this.quantity - this.reservedQuantity;
+});
+
+// Ensure virtual fields are serialized
+giftPackageSchema.set('toJSON', { virtuals: true });
+giftPackageSchema.set('toObject', { virtuals: true });
+
 // Validation
 giftPackageSchema.pre('save', function(next) {
-  if (this.minAge > this.maxAge) {
-    next(new Error('Minimum age cannot be greater than maximum age'));
-  }
   if (this.items.length === 0) {
     next(new Error('Package must contain at least one item'));
+  }
+  if (this.reservedQuantity > this.quantity) {
+    next(new Error('Reserved quantity cannot exceed total quantity'));
   }
   next();
 });

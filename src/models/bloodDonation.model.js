@@ -30,6 +30,7 @@ const bloodDonationSchema = new mongoose.Schema(
     isDivided: { type: Boolean, default: false },
     doctorId: { type: mongoose.Schema.Types.ObjectId, ref: "FacilityStaff" },
     healthCheckId: { type: mongoose.Schema.Types.ObjectId, ref: "HealthCheck" },
+    giftPackageId: { type: mongoose.Schema.Types.ObjectId, ref: "GiftPackage" , default: null},
   },
   { timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" }, collection: COLLECTION_NAME }
 );

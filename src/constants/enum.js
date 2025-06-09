@@ -175,6 +175,8 @@ const GIFT_ACTION = {
   CREATE_PACKAGE: "create_package",
   UPDATE_PACKAGE: "update_package",
   DELETE_PACKAGE: "delete_package",
+  UPDATE: "update",
+  DELETE_INVENTORY: "delete_inventory",
 };
 
 module.exports = {

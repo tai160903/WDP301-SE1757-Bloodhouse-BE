@@ -122,6 +122,7 @@ components:
         - name
         - facilityId
         - items
+        - quantity
         - createdBy
       properties:
         _id:
@@ -154,23 +155,27 @@ components:
               quantity:
                 type: integer
                 minimum: 1
-                example: 1
+        quantity:
+          type: integer
+          minimum: 0
+          description: Number of packages available
+          example: 50
+        reservedQuantity:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Number of packages currently reserved
+          example: 5
+        availableQuantity:
+          type: integer
+          description: quantity - reservedQuantity (virtual field)
+          example: 45
         isActive:
           type: boolean
           example: true
         createdBy:
           type: string
           description: Staff ID who created the package
-        minAge:
-          type: integer
-          minimum: 0
-          default: 0
-          example: 18
-        maxAge:
-          type: integer
-          minimum: 0
-          default: 100
-          example: 65
         image:
           type: string
           format: uri
@@ -322,6 +327,9 @@ components:
                       type: integer
               totalCost:
                 type: number
+              availablePackageQuantity:
+                type: integer
+                description: Number of packages available for distribution
         individualGifts:
           type: array
           items:
@@ -699,7 +707,6 @@ paths:
         - All items in package must exist and be active
         - Must have sufficient inventory at facility for all items
         - Package name must be unique within the facility
-        - minAge ≤ maxAge
         
       requestBody:
         required: true
@@ -710,6 +717,7 @@ paths:
               required:
                 - name
                 - items
+                - quantity
               properties:
                 name:
                   type: string
@@ -732,14 +740,11 @@ paths:
                       quantity:
                         type: integer
                         minimum: 1
-                minAge:
+                quantity:
                   type: integer
                   minimum: 0
-                  default: 0
-                maxAge:
-                  type: integer
-                  minimum: 0
-                  default: 100
+                  example: 50
+                  description: "Number of packages to create"
                 image:
                   type: string
                   format: uri
@@ -891,6 +896,10 @@ paths:
                       quantity:
                         type: integer
                         minimum: 1
+                quantity:
+                  type: integer
+                  minimum: 0
+                  description: "Number of packages available (cannot be less than reserved quantity)"
                 isActive:
                   type: boolean
                 priority:
@@ -926,6 +935,57 @@ paths:
           description: Gift package deleted successfully
         400:
           description: Cannot delete - validation error
+        404:
+          description: Package not found or access denied
+
+  /gift/gift-packages/{packageId}/quantity:
+    patch:
+      tags:
+        - Manager - Gift Packages
+      summary: Update gift package quantity
+      description: |
+        [Manager Only] - Update only the quantity of a gift package from manager's facility.
+        
+        Business Rules:
+        - Can only update packages from own facility
+        - Cannot reduce quantity below reserved quantity
+        - Validates inventory availability if increasing quantity
+        - Creates audit log for quantity changes
+        
+      parameters:
+        - name: packageId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - quantity
+              properties:
+                quantity:
+                  type: integer
+                  minimum: 0
+                  example: 75
+                  description: "New quantity for the package"
+      responses:
+        200:
+          description: Package quantity updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/GiftPackage'
+        400:
+          description: Invalid quantity or insufficient inventory
         404:
           description: Package not found or access denied
 
