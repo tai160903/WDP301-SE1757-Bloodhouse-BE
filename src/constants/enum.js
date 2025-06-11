@@ -186,6 +186,14 @@ const BLOOD_DELIVERY_STATUS = {
   CANCELLED: "cancelled",
 };
 
+const EVENT_STATUS = {
+  DRAFT: "draft",
+  SCHEDULED: "scheduled",
+  IN_PROGRESS: "in_progress",
+  CANCELLED: "cancelled",
+  COMPLETED: "completed",
+};
+
 module.exports = {
   USER_ROLE,
   STAFF_POSITION,
@@ -211,4 +219,5 @@ module.exports = {
   GIFT_ITEM_UNIT,
   GIFT_ACTION,
   BLOOD_DELIVERY_STATUS,
+  EVENT_STATUS,
 };
