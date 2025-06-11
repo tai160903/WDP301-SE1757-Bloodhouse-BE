@@ -516,13 +516,14 @@ class BloodDonationService {
       page,
       limit,
       select:
-        "_id userId bloodGroupId quantity donationDate status bloodDonationRegistrationId createdAt",
+        "_id userId bloodGroupId quantity donationDate status bloodDonationRegistrationId giftPackageId createdAt",
       populate: [
         { path: "userId", select: "fullName email phone avatar" },
         { path: "bloodGroupId", select: "name" },
         {path: "createdBy", select: "userId position",
           populate: { path: "userId", select: "fullName" }
         },
+        { path: "giftPackageId", select: "name description" },
         {
           path: "bloodDonationRegistrationId",
           select: "facilityId preferredDate",
@@ -561,6 +562,7 @@ class BloodDonationService {
         select: "userId position",
         populate: { path: "userId", select: "fullName" },
       })
+      .populate("giftPackageId", "name description items")
       .populate({
         path: "bloodDonationRegistrationId",
         select: "preferredDate facilityId code",
@@ -585,6 +587,7 @@ class BloodDonationService {
         "updatedAt",
         "notes",
         "isDivided",
+        "giftPackageId"
       ],
       object: donation,
     });
@@ -855,7 +858,7 @@ class BloodDonationService {
     // Find and validate registration
     const registration = await bloodDonationRegistrationModel.findById(
       registrationId
-    );
+    ).populate("facilityId", "name");
     if (!registration) {
       throw new NotFoundError("Không tìm thấy đăng ký hiến máu");
     }
@@ -1065,7 +1068,7 @@ class BloodDonationService {
   transitionToResting = async ({ registrationId, staffId, notes }) => {
     const registration = await bloodDonationRegistrationModel.findById(
       registrationId
-    );
+    ).populate("facilityId", "name");
     if (!registration) {
       throw new NotFoundError("Không tìm thấy đăng ký hiến máu");
     }
@@ -1391,6 +1394,131 @@ class BloodDonationService {
       code: registration.code,
       data,
       actionData
+    };
+  };
+
+  // Nurse QR scan for gift distribution after completed donations
+  processNurseGiftScan = async ({ qrData, nurseId }) => {
+    let parsedData;
+    try {
+      parsedData = typeof qrData === 'string' ? JSON.parse(qrData) : qrData;
+    } catch (error) {
+      throw new BadRequestError("QR code data không hợp lệ");
+    }
+    
+    const { registrationId, userId, bloodGroupId } = parsedData;
+    if (!registrationId) {
+      throw new BadRequestError("QR code không chứa thông tin registration ID");
+    }
+    if (!userId) {
+      throw new BadRequestError("QR code không chứa thông tin user ID");
+    }
+
+    // Get nurse staff info to validate facility
+    const nurseStaff = await facilityStaffModel.findById(nurseId);
+    if (!nurseStaff) {
+      throw new BadRequestError("Không tìm thấy thông tin y tá");
+    }
+
+    // Find registration and validate
+    const registration = await bloodDonationRegistrationModel.findById(registrationId)
+      .populate("userId", "fullName email phone avatar sex yob bloodId")
+      .populate("facilityId", "name street city")
+      .populate("bloodGroupId", "name type")
+      .lean();
+
+    if (!registration) {
+      throw new NotFoundError("Không tìm thấy đăng ký hiến máu");
+    }
+
+    // Validate userId matches registration
+    if (registration.userId._id.toString() !== userId) {
+      throw new BadRequestError("Thông tin người dùng không khớp với đăng ký");
+    }
+
+    // Validate bloodGroupId if provided in QR
+    if (bloodGroupId && registration.bloodGroupId._id.toString() !== bloodGroupId) {
+      throw new BadRequestError("Thông tin nhóm máu không khớp với đăng ký");
+    }
+
+    // Validate facility access
+    if (registration.facilityId._id.toString() !== nurseStaff.facilityId.toString()) {
+      throw new BadRequestError("Đăng ký này không thuộc cơ sở của bạn");
+    }
+
+    // Check if registration status is eligible for gift distribution
+    const eligibleStatuses = [
+      BLOOD_DONATION_REGISTRATION_STATUS.DONATED,
+      BLOOD_DONATION_REGISTRATION_STATUS.RESTING,
+      BLOOD_DONATION_REGISTRATION_STATUS.POST_REST_CHECK,
+      BLOOD_DONATION_REGISTRATION_STATUS.COMPLETED
+    ];
+
+    if (!eligibleStatuses.includes(registration.status)) {
+      throw new BadRequestError(`Đăng ký với trạng thái "${registration.status}" không đủ điều kiện nhận quà. Cần có trạng thái: ${eligibleStatuses.join(', ')}`);
+    }
+
+    // Find blood donation with this registration ID and completed status
+    const bloodDonation = await bloodDonationModel.findOne({
+      bloodDonationRegistrationId: registrationId,
+      status: BLOOD_DONATION_STATUS.COMPLETED
+    })
+      .populate("userId", "fullName email phone avatar sex yob")
+      .populate("bloodGroupId", "name type")
+      .populate({
+        path: "staffId",
+        select: "userId position",
+        populate: { path: "userId", select: "fullName email phone" }
+      })
+      .lean();
+
+    if (!bloodDonation) {
+      throw new NotFoundError("Không tìm thấy bản ghi hiến máu đã hoàn thành cho đăng ký này");
+    }
+
+    // Return blood donation info for gift distribution
+    return {
+      canDistributeGift: true,
+      bloodDonationId: bloodDonation._id,
+      registration: {
+        id: registration._id,
+        code: registration.code,
+        status: registration.status,
+        facilityId: registration.facilityId._id,
+        facility: {
+          id: registration.facilityId._id,
+          name: registration.facilityId.name,
+          address: `${registration.facilityId.street}, ${registration.facilityId.city}`
+        }
+      },
+      bloodDonation: {
+        id: bloodDonation._id,
+        code: bloodDonation.code,
+        status: bloodDonation.status,
+        quantity: bloodDonation.quantity,
+        donationDate: bloodDonation.donationDate,
+        bloodGroup: {
+          id: bloodDonation.bloodGroupId._id,
+          name: bloodDonation.bloodGroupId.name,
+          type: bloodDonation.bloodGroupId.type
+        }
+      },
+      donor: {
+        id: registration.userId._id,
+        name: registration.userId.fullName,
+        email: registration.userId.email,
+        phone: registration.userId.phone,
+        avatar: registration.userId.avatar,
+        gender: registration.userId.sex,
+        yob: registration.userId.yob
+      },
+      actionData: {
+        message: "Đủ điều kiện nhận quà sau hiến máu",
+        nextAction: "GET_AVAILABLE_GIFTS",
+        nextEndpoint: `/gift/available?facilityId=${registration.facilityId._id}&donationId=${bloodDonation._id}`,
+        buttonText: "Xem quà có sẵn",
+        navigateTo: "GiftSelection"
+      }
     };
   };
 

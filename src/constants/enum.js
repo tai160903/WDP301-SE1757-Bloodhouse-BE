@@ -152,6 +152,33 @@ const TEST_BLOOD_UNIT_RESULT = {
   PENDING: "pending",
 };
 
+const GIFT_ITEM_CATEGORY = {
+  FOOD: "food",
+  BEVERAGE: "beverage",
+  MERCHANDISE: "merchandise",
+  HEALTH: "health",
+  OTHER: "other",
+};
+
+const GIFT_ITEM_UNIT = {
+  ITEM: "item",
+  BOX: "box",
+  BAG: "bag",
+  PACK: "pack",
+};
+
+const GIFT_ACTION = {
+  STOCK_IN: "stock_in",
+  STOCK_OUT: "stock_out",
+  DISTRIBUTE: "distribute",
+  DISTRIBUTE_PACKAGE: "distribute_package",
+  UPDATE_BUDGET: "update_budget",
+  CREATE_PACKAGE: "create_package",
+  UPDATE_PACKAGE: "update_package",
+  DELETE_PACKAGE: "delete_package",
+  UPDATE: "update",
+  DELETE_INVENTORY: "delete_inventory",
+};
 const BLOOD_DELIVERY_STATUS = {
   PENDING: "pending",
   IN_TRANSIT: "in_transit",
@@ -180,5 +207,8 @@ module.exports = {
   HEALTH_CHECK_STATUS,
   BLOOD_UNIT_STATUS,
   TEST_BLOOD_UNIT_RESULT,
+  GIFT_ITEM_CATEGORY,
+  GIFT_ITEM_UNIT,
+  GIFT_ACTION,
   BLOOD_DELIVERY_STATUS,
 };

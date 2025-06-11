@@ -8,6 +8,7 @@ const { BLOOD_DONATION_REGISTRATION_MESSAGE } = require("../constants/message");
 class BloodDonationRegistrationController {
   // Đăng ký hiến máu
   createBloodDonationRegistration = asyncHandler(async (req, res) => {
+    console.log(req.body);
     const result = await bloodDonationService.createBloodDonationRegistration({
       userId: req.user.userId,
       ...req.body,
@@ -196,6 +197,18 @@ class BloodDonationRegistrationController {
     });
     new OK({
       message: "Smart scan thành công",
+      data: result,
+    }).send(res);
+  });
+
+  // Nurse QR scan for gift distribution after completed donations
+  processNurseGiftScan = asyncHandler(async (req, res) => {
+    const result = await bloodDonationService.processNurseGiftScan({
+      qrData: req.body.qrData,
+      nurseId: req.user.staffId,
+    });
+    new OK({
+      message: "Gift scan thành công",
       data: result,
     }).send(res);
   });
