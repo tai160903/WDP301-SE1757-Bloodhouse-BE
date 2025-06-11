@@ -348,6 +348,18 @@ const USER_BADGE_MESSAGE = {
   GET_FAILED: "Lấy badge thất bại",
 };
 
+const EVENT_MESSAGE = {
+  GET_SUCCESS: "Lấy sự kiện thành công",
+  GET_FAILED: "Lấy sự kiện thất bại",
+  CREATE_SUCCESS: "Tạo sự kiện thành công",
+  CREATE_FAILED: "Tạo sự kiện thất bại",
+  UPDATE_SUCCESS: "Cập nhật sự kiện thành công",
+  UPDATE_FAILED: "Cập nhật sự kiện thất bại",
+  DELETE_SUCCESS: "Xóa sự kiện thành công",
+  DELETE_FAILED: "Xóa sự kiện thất bại",
+  EVENT_NOT_FOUND: "Sự kiện không tồn tại",
+};
+
 module.exports = {
   ACCESS_MESSAGE,
   BLOOD_COMPATIBILITY_MESSAGE,
@@ -373,4 +385,5 @@ module.exports = {
   GIFT_MESSAGE,
   BLOOD_DELIVERY_MESSAGE,
   USER_BADGE_MESSAGE,
+  EVENT_MESSAGE,
 };
