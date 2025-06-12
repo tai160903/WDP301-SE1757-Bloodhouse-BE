@@ -71,7 +71,7 @@ class FacilityStaffService {
     }
     const result = await facilityStaffModel
       .findById(id)
-      .populate("userId", "fullName email phone avatar")
+      .populate("userId", "fullName email phone avatar yob sex")
       .populate("facilityId", "name address");
     if (!result) {
       throw new BadRequestError(
