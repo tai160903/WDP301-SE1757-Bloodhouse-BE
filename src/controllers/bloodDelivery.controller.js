@@ -85,6 +85,17 @@ class BloodDeliveryController {
       data: result,
     }).send(res);
   });
+
+  getDeliveryStatsForTransporter = asyncHandler(async (req, res, next) => {
+    const { userId } = req.params;
+    const result = await bloodDeliveryService.getDeliveryStatsForTransporter(
+      userId
+    );
+    new OK({
+      message: BLOOD_DELIVERY_MESSAGE.GET_SUCCESS,
+      data: result,
+    }).send(res);
+  });
 }
 
 module.exports = new BloodDeliveryController();
