@@ -27,6 +27,18 @@ const bloodDeliverySchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    currentLocation: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number],
+        default: [0, 0],
+      },
+      updatedAt: Date,
+    },
     bloodUnits: [{
       unitId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -79,6 +91,10 @@ bloodDeliverySchema.pre("save", async function (next) {
   }
   next();
 });
+
+bloodDeliverySchema.index({ currentLocation: "2dsphere" });
+
+bloodDeliverySchema.index({ code: 1 });
 
 bloodDeliverySchema.index({ bloodRequestId: 1 });
 bloodDeliverySchema.index({ facilityId: 1 });

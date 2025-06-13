@@ -4,20 +4,22 @@ const donorStatusLogModel = require("../models/donorStatusLog.model");
 const bloodDonationModel = require("../models/bloodDonation.model");
 const { BadRequestError, NotFoundError } = require("../configs/error.response");
 const { getInfoData } = require("../utils");
-const { DONOR_STATUS, BLOOD_DONATION_REGISTRATION_STATUS } = require("../constants/enum");
+const {
+  DONOR_STATUS,
+  BLOOD_DONATION_REGISTRATION_STATUS,
+} = require("../constants/enum");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
 const processDonationLogService = require("./processDonationLog.service");
 const userModel = require("../models/user.model");
 const bloodDonationRegistrationModel = require("../models/bloodDonationRegistration.model");
 const notificationService = require("./notification.service");
+const badgeService = require("./badge.service");
+const badgeModel = require("../models/badge.model");
+const userBadgeModel = require("../models/userBadge.model");
 
 class DonorStatusLogService {
   // Tạo bản ghi trạng thái người hiến
-  createDonorStatusLog = async ({
-    donationId,
-    userId,
-    staffId,
-  }) => {
+  createDonorStatusLog = async ({ donationId, userId, staffId }) => {
     // Kiểm tra donation có tồn tại không
     const donation = await bloodDonationModel.findById(donationId);
     if (!donation) {
@@ -31,14 +33,16 @@ class DonorStatusLogService {
     }
 
     // Cập nhật trạng thái đăng ký hiến máu
-    const registration = await bloodDonationRegistrationModel.findById(donation.bloodDonationRegistrationId);
+    const registration = await bloodDonationRegistrationModel.findById(
+      donation.bloodDonationRegistrationId
+    );
     if (!registration) {
       throw new NotFoundError("Đăng ký hiến máu không tồn tại");
     }
-    
+
     registration.status = BLOOD_DONATION_REGISTRATION_STATUS.RESTING;
     await registration.save();
-     
+
     // Tạo log process donation
     await processDonationLogService.createProcessDonationLog({
       registrationId: registration._id,
@@ -48,7 +52,6 @@ class DonorStatusLogService {
       notes: "Đang trong giao đoạn nghỉ ngơi",
     });
 
-
     const statusLog = await donorStatusLogModel.create({
       donationId,
       userId,
@@ -56,13 +59,7 @@ class DonorStatusLogService {
     });
 
     return getInfoData({
-      fields: [
-        "_id",
-        "donationId",
-        "userId",
-        "staffId",
-        "createdAt"
-      ],
+      fields: ["_id", "donationId", "userId", "staffId", "createdAt"],
       object: statusLog,
     });
   };
@@ -70,7 +67,9 @@ class DonorStatusLogService {
   // Cập nhật trạng thái người hiến
   updateDonorStatusLog = async (logId, { status, phase, notes }) => {
     // Kiểm tra log có tồn tại không
-    const statusLog = await donorStatusLogModel.findById(logId).populate("donationId", "bloodDonationRegistrationId");
+    const statusLog = await donorStatusLogModel
+      .findById(logId)
+      .populate("donationId", "bloodDonationRegistrationId");
     if (!statusLog) {
       throw new NotFoundError("Không tìm thấy bản ghi trạng thái");
     }
@@ -80,12 +79,19 @@ class DonorStatusLogService {
     }
 
     // Kiểm tra giai đoạn có hợp lệ không
-    if(!Object.values([BLOOD_DONATION_REGISTRATION_STATUS.RESTING, BLOOD_DONATION_REGISTRATION_STATUS.POST_REST_CHECK]).includes(phase)) {
+    if (
+      !Object.values([
+        BLOOD_DONATION_REGISTRATION_STATUS.RESTING,
+        BLOOD_DONATION_REGISTRATION_STATUS.POST_REST_CHECK,
+      ]).includes(phase)
+    ) {
       throw new BadRequestError("Giai đoạn không hợp lệ");
     }
 
     // Kiểm tra trạng phiếu đăng ký hiến máu
-    const registration = await bloodDonationRegistrationModel.findById(statusLog.donationId.bloodDonationRegistrationId).populate("facilityId", "name");
+    const registration = await bloodDonationRegistrationModel
+      .findById(statusLog.donationId.bloodDonationRegistrationId)
+      .populate("facilityId", "name");
     if (!registration) {
       throw new NotFoundError("Đăng ký hiến máu không tồn tại");
     }
@@ -93,10 +99,10 @@ class DonorStatusLogService {
     registration.status = BLOOD_DONATION_REGISTRATION_STATUS.COMPLETED;
     await registration.save();
 
-    if(!notes) {
+    if (!notes) {
       throw new BadRequestError("Ghi chú không được để trống");
     }
-    
+
     // Cập nhật trạng thái người hiến
     statusLog.status = status;
     statusLog.phase = phase;
@@ -122,7 +128,19 @@ class DonorStatusLogService {
       notes: "Quy trình hiến máu hoàn tất",
     });
 
+    // Cập nhật số lần hiến máu của user
+    const user = await userModel.findByIdAndUpdate(
+      statusLog.userId,
+      {
+        $inc: { donationCount: 1 },
+      },
+      { new: true }
+    );
 
+    await badgeService.checkAndAssignBadges(
+      user._id,
+      user.donationCount
+    );
 
     // Gửi thông báo đến user
     await notificationService.sendBloodDonationRegistrationStatusNotification(
@@ -140,31 +158,35 @@ class DonorStatusLogService {
         "staffId",
         "status",
         "phase",
-        "notes",  
+        "notes",
         "recordedAt",
         "createdAt",
-        "updatedAt"
+        "updatedAt",
       ],
       object: statusLog,
     });
   };
 
   // Lấy danh sách status logs theo donation
-  getDonorStatusLogsByDonation = async (donationId, { page = 1, limit = 10 }) => {
+  getDonorStatusLogsByDonation = async (
+    donationId,
+    { page = 1, limit = 10 }
+  ) => {
     const result = await getPaginatedData({
       model: donorStatusLogModel,
       query: { donationId },
       page,
       limit,
-      select: "_id donationId userId staffId status phase notes recordedAt createdAt",
+      select:
+        "_id donationId userId staffId status phase notes recordedAt createdAt",
       populate: [
         { path: "userId", select: "fullName email phone" },
-        { 
-          path: "staffId", 
+        {
+          path: "staffId",
           select: "userId position",
-          populate: { path: "userId", select: "fullName email" }
+          populate: { path: "userId", select: "fullName email" },
         },
-        { path: "donationId", select: "quantity donationDate status" }
+        { path: "donationId", select: "quantity donationDate status" },
       ],
       sort: { recordedAt: -1 },
     });
@@ -179,14 +201,15 @@ class DonorStatusLogService {
       query: { userId },
       page,
       limit,
-      select: "_id donationId userId staffId status phase notes recordedAt createdAt",
+      select:
+        "_id donationId userId staffId status phase notes recordedAt createdAt",
       populate: [
-        { 
-          path: "staffId", 
+        {
+          path: "staffId",
           select: "userId position",
-          populate: { path: "userId", select: "fullName email" }
+          populate: { path: "userId", select: "fullName email" },
         },
-        { path: "donationId", select: "quantity donationDate status" }
+        { path: "donationId", select: "quantity donationDate status" },
       ],
       sort: { recordedAt: -1 },
     });
@@ -202,7 +225,7 @@ class DonorStatusLogService {
       .populate({
         path: "staffId",
         select: "userId position",
-        populate: { path: "userId", select: "fullName email" }
+        populate: { path: "userId", select: "fullName email" },
       })
       .populate("donationId", "quantity donationDate status")
       .lean();
@@ -222,11 +245,11 @@ class DonorStatusLogService {
         "notes",
         "recordedAt",
         "createdAt",
-        "updatedAt"
+        "updatedAt",
       ],
       object: statusLog,
     });
   };
 }
 
-module.exports = new DonorStatusLogService(); 
+module.exports = new DonorStatusLogService();

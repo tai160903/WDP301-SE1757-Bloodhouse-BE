@@ -8,6 +8,7 @@ const { BLOOD_DONATION_REGISTRATION_MESSAGE } = require("../constants/message");
 class BloodDonationRegistrationController {
   // Đăng ký hiến máu
   createBloodDonationRegistration = asyncHandler(async (req, res) => {
+    console.log(req.body);
     const result = await bloodDonationService.createBloodDonationRegistration({
       userId: req.user.userId,
       ...req.body,

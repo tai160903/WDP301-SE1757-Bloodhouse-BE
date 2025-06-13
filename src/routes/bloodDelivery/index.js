@@ -39,4 +39,9 @@ router.put(
   bloodDeliveryController.completeDelivery
 );
 
+router.get(
+  "/stats/transporter/:userId",
+  bloodDeliveryController.getDeliveryStatsForTransporter
+);
+
 module.exports = router;

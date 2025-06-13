@@ -209,15 +209,18 @@ class BloodDeliveryService {
       // Step 1: Cập nhật deliveredQuantity cho mỗi blood unit
       await Promise.all(
         bloodDelivery.bloodUnits.map(async (deliveryItem) => {
-          const unit = await bloodUnitModel.findById(deliveryItem.unitId).session(session);
+          const unit = await bloodUnitModel
+            .findById(deliveryItem.unitId)
+            .session(session);
           if (!unit) return;
-  
-          unit.deliveredQuantity = (unit.deliveredQuantity || 0) + deliveryItem.quantity;
-  
+
+          unit.deliveredQuantity =
+            (unit.deliveredQuantity || 0) + deliveryItem.quantity;
+
           if (unit.deliveredQuantity >= unit.quantity) {
             unit.status = BLOOD_UNIT_STATUS.USED;
           }
-  
+
           await unit.save({ session });
         })
       );
@@ -228,10 +231,12 @@ class BloodDeliveryService {
       await bloodDelivery.save({ session });
 
       // Step 3: Cập nhật trạng thái của yêu cầu máu
-      const bloodRequest = await bloodRequestModel.findOneAndUpdate(
-        { _id: requestId },
-        { status: BLOOD_REQUEST_STATUS.COMPLETED }
-      ).session(session);
+      const bloodRequest = await bloodRequestModel
+        .findOneAndUpdate(
+          { _id: requestId },
+          { status: BLOOD_REQUEST_STATUS.COMPLETED }
+        )
+        .session(session);
 
       if (!bloodRequest) {
         throw new Error("Yêu cầu máu không tồn tại");
@@ -245,6 +250,39 @@ class BloodDeliveryService {
     } finally {
       session.endSession();
     }
+  };
+
+  getDeliveryStatsForTransporter = async (userId) => {
+    const transporterStaff = await userStaffModel.findOne({
+      userId,
+    });
+
+    const stats = await bloodDeliveryModel.aggregate([
+      {
+        $match: {
+          transporterId: transporterStaff._id,
+        },
+      },
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    // Chuyển kết quả thành object với key là status
+
+    const result = stats.reduce(
+      (acc, curr) => {
+        acc[curr._id] = curr.count;
+        acc.total += curr.count;
+        return acc;
+      },
+      { total: 0, pending: 0, in_transit: 0, delivered: 0, cancelled: 0 }
+    );
+
+    return result;
   };
 }
 
