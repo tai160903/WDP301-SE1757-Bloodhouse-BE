@@ -26,6 +26,14 @@ class GiftManagerController {
     }).send(res);
   });
 
+  getGiftItemsStats = asyncHandler(async (req, res) => {
+    const result = await giftService.getGiftItemsStats();
+    new OK({
+      message: "Gift items statistics retrieved successfully",
+      data: result,
+    }).send(res);
+  });
+
   getGiftItemById = asyncHandler(async (req, res) => {
     const result = await giftService.getGiftItemById(req.params.giftItemId);
     new OK({
