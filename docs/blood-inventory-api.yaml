@@ -1,0 +1,744 @@
+openapi: 3.0.3
+info:
+  title: Blood Inventory Management System API
+  description: |
+    Hệ thống quản lý kho máu toàn diện cho các cơ sở y tế.
+    
+    ## Phân quyền truy cập
+    - Manager: Quản lý toàn bộ kho máu cơ sở, thống kê, reserve units
+    - Doctor: Xem kho máu và thông tin chi tiết
+    - Nurse: Xem kho máu có sẵn và thông tin cơ bản
+    - Admin: Truy cập toàn hệ thống (kế thừa từ các role khác)
+    
+    ## Quy trình quản lý kho máu
+    1. **Tạo Inventory**: Tự động tạo khi có blood unit được approve
+    2. **Theo dõi tồn kho**: Cập nhật real-time khi có blood unit mới
+    3. **Quản lý hết hạn**: Tự động đánh dấu và cập nhật units hết hạn
+    4. **Reserve Units**: Đặt trước máu cho blood request
+    5. **Thống kê**: Báo cáo chi tiết về tình trạng kho máu
+    
+    ## Tính năng nâng cao
+    - Theo dõi units sắp hết hạn với cảnh báo tự động
+    - Thống kê phân bố theo nhóm máu và thành phần
+    - Reserve system cho blood request
+    - Cập nhật batch units hết hạn
+    - Pagination và filtering cho tất cả endpoints
+    
+    ## Xác thực
+    Tất cả endpoints yêu cầu xác thực qua Bearer token trong Authorization header.
+    
+  version: 1.0.0
+  contact:
+    name: Blood Inventory Management System
+    email: admin@bloodhouse.com
+
+servers:
+  - url: http://localhost:3052/api/v1
+    description: Development server
+  - url: https://api.bloodhouse.com/api/v1
+    description: Production server
+
+tags:
+  - name: Staff - Basic Access
+    description: Truy cập cơ bản cho tất cả staff (Manager/Doctor/Nurse)
+  - name: Manager - Full Management
+    description: Quản lý toàn bộ kho máu (Manager only)
+  - name: Shared - Inventory View
+    description: Xem thông tin kho máu cho nhiều roles
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login
+  
+  schemas:
+    BloodInventory:
+      type: object
+      required:
+        - facilityId
+        - componentId
+        - groupId
+        - totalQuantity
+      properties:
+        _id:
+          type: string
+          description: Unique identifier
+        code:
+          type: string
+          description: Mã inventory tự động (BINV-XXXXXX)
+          example: "BINV-001234"
+        facilityId:
+          type: string
+          description: Reference to Facility
+        componentId:
+          type: string
+          description: Reference to BloodComponent
+        groupId:
+          type: string
+          description: Reference to BloodGroup
+        totalQuantity:
+          type: integer
+          minimum: 0
+          description: Tổng số lượng máu trong kho (ml)
+          example: 1500
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BloodInventoryWithStats:
+      allOf:
+        - $ref: '#/components/schemas/BloodInventory'
+        - type: object
+          properties:
+            unitStats:
+              type: array
+              items:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    enum: ["available", "reserved", "used", "expired", "testing", "rejected"]
+                    description: Trạng thái blood unit
+                  count:
+                    type: integer
+                    description: Số lượng units
+                  totalQuantity:
+                    type: integer
+                    description: Tổng ml theo trạng thái
+
+    BloodInventoryDetail:
+      allOf:
+        - $ref: '#/components/schemas/BloodInventoryWithStats'
+        - type: object
+          properties:
+            expiringUnits:
+              type: array
+              items:
+                type: object
+                properties:
+                  quantity:
+                    type: integer
+                  expiresAt:
+                    type: string
+                    format: date-time
+              description: Danh sách units sắp hết hạn (7 ngày)
+
+    BloodInventoryCreateRequest:
+      type: object
+      required:
+        - facilityId
+        - componentId
+        - groupId
+        - totalQuantity
+      properties:
+        facilityId:
+          type: string
+          description: ID cơ sở y tế
+        componentId:
+          type: string
+          description: ID thành phần máu
+        groupId:
+          type: string
+          description: ID nhóm máu
+        totalQuantity:
+          type: integer
+          minimum: 0
+          description: Số lượng ban đầu
+
+    InventoryStatistics:
+      type: object
+      properties:
+        overallInventory:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                description: Tên thành phần máu
+              bloodTypes:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      description: Nhóm máu
+                    quantity:
+                      type: integer
+                      description: Số lượng
+              totalQuantity:
+                type: integer
+                description: Tổng số lượng theo thành phần
+        unitStatusDistribution:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                enum: ["available", "reserved", "used", "expired", "testing", "rejected"]
+              count:
+                type: integer
+              totalQuantity:
+                type: integer
+        expiringUnits:
+          type: integer
+          description: Số units sắp hết hạn
+        expiredUnits:
+          type: integer
+          description: Số units đã hết hạn
+        summary:
+          type: object
+          properties:
+            totalUnits:
+              type: integer
+            availableUnits:
+              type: integer
+            reservedUnits:
+              type: integer
+            usedUnits:
+              type: integer
+
+    ExpiringUnit:
+      type: object
+      properties:
+        _id:
+          type: string
+        donationId:
+          type: object
+          properties:
+            userId:
+              type: object
+              properties:
+                fullName:
+                  type: string
+        bloodGroupId:
+          type: object
+          properties:
+            name:
+              type: string
+            type:
+              type: string
+        component:
+          type: string
+          description: Tên thành phần máu
+        quantity:
+          type: integer
+        collectedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+
+    ReserveUnitsRequest:
+      type: object
+      required:
+        - component
+        - bloodGroupId
+        - quantity
+        - requestId
+      properties:
+        component:
+          type: string
+          description: Tên thành phần máu
+          example: "Máu toàn phần"
+        bloodGroupId:
+          type: string
+          description: ID nhóm máu
+        quantity:
+          type: integer
+          minimum: 1
+          description: Số lượng cần reserve (ml)
+          example: 350
+        requestId:
+          type: string
+          description: ID blood request
+
+    ReserveUnitsResponse:
+      type: object
+      properties:
+        reservedUnits:
+          type: array
+          items:
+            type: object
+            description: Danh sách units đã reserve
+        reservedQuantity:
+          type: integer
+          description: Số lượng thực tế đã reserve
+        requestedQuantity:
+          type: integer
+          description: Số lượng yêu cầu
+        fulfilled:
+          type: boolean
+          description: Có đủ máu để reserve không
+
+    UpdateExpiredUnitsResponse:
+      type: object
+      properties:
+        expiredUnitsCount:
+          type: integer
+          description: Số units đã được đánh dấu hết hạn
+        message:
+          type: string
+          example: "Đã cập nhật 5 units hết hạn"
+
+    Error:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "error"
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: "Validation error"
+
+    Success:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "success"
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+        data:
+          type: object
+
+    PaginatedResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BloodInventoryWithStats'
+        totalItems:
+          type: integer
+        totalPages:
+          type: integer
+        currentPage:
+          type: integer
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ===== STAFF - BASIC ACCESS =====
+  /blood-inventory:
+    post:
+      tags:
+        - Manager - Full Management
+      summary: Tạo blood inventory record
+      description: |
+        [Manager Only] - Tạo bản ghi inventory mới cho cơ sở.
+        
+        Quy tắc nghiệp vụ:
+        - Chỉ Manager mới có thể tạo inventory
+        - Tự động generate mã BINV-XXXXXX
+        - Validate facility, component, và blood group tồn tại
+        - Không cho phép duplicate (facility + component + group)
+        
+        Lưu ý: Thông thường inventory được tạo tự động khi có blood unit mới.
+        
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BloodInventoryCreateRequest'
+      responses:
+        201:
+          description: Tạo inventory thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodInventory'
+        400:
+          description: Lỗi validation hoặc duplicate
+        403:
+          description: Không đủ quyền (Manager only)
+
+    get:
+      tags:
+        - Staff - Basic Access
+      summary: Lấy danh sách tất cả inventory
+      description: |
+        [Staff] - Lấy danh sách inventory từ tất cả cơ sở.
+        
+        Tính năng:
+        - Hiển thị inventory từ tất cả facilities
+        - Bao gồm thông tin facility, component, blood group
+        - Dành cho overview toàn hệ thống
+        - Chỉ staff mới có quyền truy cập
+        
+      responses:
+        200:
+          description: Lấy danh sách inventory thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/BloodInventory'
+
+  /blood-inventory/facility/{facilityId}/available:
+    get:
+      tags:
+        - Staff - Basic Access
+      summary: Kiểm tra inventory có sẵn
+      description: |
+        [Staff] - Kiểm tra inventory có sẵn cho component và blood group cụ thể.
+        
+        Tính năng:
+        - Kiểm tra tồn kho cho component hoặc blood group
+        - Chỉ hiển thị inventory có totalQuantity > 0
+        - Dùng để validate trước khi tạo blood request
+        - Hỗ trợ filtering linh hoạt
+        
+      parameters:
+        - name: facilityId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID cơ sở y tế
+        - name: componentId
+          in: query
+          schema:
+            type: string
+          description: ID thành phần máu (bắt buộc nếu không có groupId)
+        - name: groupId
+          in: query
+          schema:
+            type: string
+          description: ID nhóm máu (bắt buộc nếu không có componentId)
+      responses:
+        200:
+          description: Thông tin inventory có sẵn
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodInventory'
+        400:
+          description: Thiếu thông tin componentId hoặc groupId
+        404:
+          description: Không tìm thấy inventory phù hợp
+
+  # ===== MANAGER - FULL MANAGEMENT =====
+  /blood-inventory/facility/{facilityId}:
+    get:
+      tags:
+        - Manager - Full Management
+      summary: Lấy inventory theo facility với thống kê
+      description: |
+        [Manager/Doctor/Nurse] - Lấy danh sách inventory của cơ sở với thống kê chi tiết.
+        
+        Tính năng:
+        - Pagination và filtering theo component, blood group
+        - Thống kê units theo trạng thái cho mỗi inventory
+        - Sắp xếp theo thời gian cập nhật mới nhất
+        - Thông tin chi tiết về distribution units
+        
+      parameters:
+        - name: facilityId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID cơ sở y tế
+        - name: componentId
+          in: query
+          schema:
+            type: string
+          description: Filter theo thành phần máu
+        - name: groupId
+          in: query
+          schema:
+            type: string
+          description: Filter theo nhóm máu
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: Danh sách inventory với thống kê
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedResponse'
+
+  /blood-inventory/detail/{id}:
+    get:
+      tags:
+        - Staff - Basic Access
+      summary: Lấy chi tiết inventory
+      description: |
+        [Staff] - Lấy thông tin chi tiết về một inventory record.
+        
+        Tính năng:
+        - Thông tin đầy đủ về inventory
+        - Thống kê units theo trạng thái
+        - Danh sách units sắp hết hạn (7 ngày)
+        - Populated references (facility, component, blood group)
+        
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID inventory record
+      responses:
+        200:
+          description: Chi tiết inventory
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodInventoryDetail'
+        404:
+          description: Không tìm thấy inventory
+
+  /blood-inventory/facility/{facilityId}/statistics:
+    get:
+      tags:
+        - Manager - Full Management
+      summary: Thống kê inventory toàn diện
+      description: |
+        [Manager Only] - Lấy báo cáo thống kê chi tiết về inventory của cơ sở.
+        
+        Tính năng:
+        - Thống kê tổng quan theo component và blood type
+        - Phân bố units theo trạng thái
+        - Cảnh báo units sắp hết hạn và đã hết hạn
+        - Filter theo khoảng thời gian
+        - Summary metrics tổng hợp
+        
+      parameters:
+        - name: facilityId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID cơ sở y tế
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Ngày bắt đầu filter (cho unit statistics)
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Ngày kết thúc filter
+      responses:
+        200:
+          description: Báo cáo thống kê inventory
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/InventoryStatistics'
+        403:
+          description: Không đủ quyền (Manager only)
+
+  /blood-inventory/facility/{facilityId}/expiring:
+    get:
+      tags:
+        - Manager - Full Management
+      summary: Lấy danh sách units sắp hết hạn
+      description: |
+        [Manager Only] - Lấy danh sách blood units sắp hết hạn của cơ sở.
+        
+        Tính năng:
+        - Configurable số ngày cảnh báo (default: 7 ngày)
+        - Pagination support
+        - Sắp xếp theo ngày hết hạn (gần nhất trước)
+        - Thông tin donor và blood group
+        - Dùng để lập kế hoạch sử dụng máu
+        
+      parameters:
+        - name: facilityId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID cơ sở y tế
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 7
+          description: Số ngày cảnh báo trước khi hết hạn
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: Danh sách units sắp hết hạn
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/ExpiringUnit'
+                          totalItems:
+                            type: integer
+                          totalPages:
+                            type: integer
+                          currentPage:
+                            type: integer
+        403:
+          description: Không đủ quyền (Manager only)
+
+  /blood-inventory/facility/{facilityId}/update-expired:
+    patch:
+      tags:
+        - Manager - Full Management
+      summary: Cập nhật units hết hạn
+      description: |
+        [Manager Only] - Batch update tất cả units đã hết hạn thành trạng thái 'expired'.
+        
+        Quy trình:
+        1. Tìm tất cả units có status 'available' và expiresAt < hiện tại
+        2. Cập nhật status thành 'expired'
+        3. Cập nhật lại totalQuantity trong inventory tương ứng
+        4. Trả về số lượng units đã được cập nhật
+        
+        Lưu ý: Thao tác này nên chạy định kỳ hoặc khi cần cleanup.
+        
+      parameters:
+        - name: facilityId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID cơ sở y tế
+      responses:
+        200:
+          description: Cập nhật units hết hạn thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UpdateExpiredUnitsResponse'
+        403:
+          description: Không đủ quyền (Manager only)
+
+  /blood-inventory/facility/{facilityId}/reserve:
+    post:
+      tags:
+        - Manager - Full Management
+      summary: Reserve blood units cho request
+      description: |
+        [Manager Only] - Đặt trước blood units cho blood request.
+        
+        Quy trình:
+        1. Tìm available units phù hợp (component + blood group)
+        2. Ưu tiên units sắp hết hạn trước (FIFO)
+        3. Cập nhật status thành 'reserved'
+        4. Link units với blood request
+        5. Trả về thông tin units đã reserve
+        
+        Quy tắc nghiệp vụ:
+        - Chỉ reserve units có status 'available'
+        - Tự động optimize để tránh waste
+        - Atomic operation - reserve thành công hoặc thất bại hoàn toàn
+        
+      parameters:
+        - name: facilityId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID cơ sở y tế
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReserveUnitsRequest'
+      responses:
+        200:
+          description: Reserve units thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ReserveUnitsResponse'
+        400:
+          description: Thiếu thông tin hoặc không đủ máu để reserve
+        403:
+          description: Không đủ quyền (Manager only) 

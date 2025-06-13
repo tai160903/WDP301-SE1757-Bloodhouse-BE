@@ -1,7 +1,87 @@
 openapi: 3.0.3
 info:
   title: BloodHouse API
-  description: API for BloodHouse - Blood Donation Management System
+  description: |
+    API for BloodHouse - Blood Donation Management System
+    
+    ## 📚 Specialized API Documentation
+    
+    This is the main API documentation. Click the buttons below to navigate to specialized modules:
+    
+    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0;">
+      <button onclick="window.open('/gift-docs', '_blank')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+        🎁 Gift Management
+      </button>
+      <button onclick="window.open('/blood-donation-registration-docs', '_blank')" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+        🩸 Registration
+      </button>
+      <button onclick="window.open('/blood-donation-docs', '_blank')" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+        💉 Donations
+      </button>
+      <button onclick="window.open('/blood-request-docs', '_blank')" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+        🆘 Requests
+      </button>
+      <button onclick="window.open('/blood-inventory-docs', '_blank')" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); color: #333; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+        📦 Inventory
+      </button>
+      <button onclick="window.open('/facility-staff-docs', '_blank')" style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); color: #333; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+        👥 Staff
+      </button>
+      <button onclick="window.open('/blood-unit-docs', '_blank')" style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); color: #333; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+        🧪 Blood Units
+      </button>
+      <button onclick="window.open('/blood-delivery-docs', '_blank')" style="background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%); color: #333; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+        🚚 Delivery
+      </button>
+    </div>
+    
+    ## 📋 Module Descriptions
+    
+    ### 🎁 Gift Management System
+    Complete gift management system including items, packages, inventory, budgets, and distributions for blood donors.
+    
+    ### 🩸 Blood Donation Registration
+    Blood donation registration workflow and management system for scheduling and tracking donor appointments.
+    
+    ### 💉 Blood Donation Management
+    Blood donation process management and tracking from registration to completion.
+    
+    ### 🆘 Blood Request System
+    Blood request management for hospitals and patients requiring blood transfusions.
+    
+    ### 📦 Blood Inventory Management
+    Blood inventory tracking and management system for monitoring stock levels and expiration dates.
+    
+    ### 👥 Facility Staff Management
+    Staff management and role-based access control for healthcare facilities.
+    
+    ### 🧪 Blood Unit Management
+    Blood unit processing, testing, and approval workflow with quality control measures.
+    
+    ### 🚚 Blood Delivery System
+    Blood delivery and transportation management for efficient distribution to healthcare facilities.
+    
+    ## 🏥 System Overview
+    
+    BloodHouse is a comprehensive blood donation management system that handles:
+    - User registration and authentication
+    - Blood donation scheduling and management
+    - Blood inventory and distribution
+    - Gift management for donors
+    - Staff and facility management
+    - Blood delivery and transportation
+    
+    ## 🔗 Direct Links (if buttons don't work)
+    
+    - Main API: [/api-docs](/api-docs)
+    - Gift System: [/gift-docs](/gift-docs)
+    - Registration: [/blood-donation-registration-docs](/blood-donation-registration-docs)
+    - Donations: [/blood-donation-docs](/blood-donation-docs)
+    - Requests: [/blood-request-docs](/blood-request-docs)
+    - Inventory: [/blood-inventory-docs](/blood-inventory-docs)
+    - Staff: [/facility-staff-docs](/facility-staff-docs)
+    - Blood Units: [/blood-unit-docs](/blood-unit-docs)
+    - Delivery: [/blood-delivery-docs](/blood-delivery-docs)
   version: 1.0.0
 
 servers:

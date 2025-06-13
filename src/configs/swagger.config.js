@@ -11,6 +11,34 @@ const giftApiDocument = YAML.load(
   path.join(__dirname, "../../docs/gift-api.yaml")
 );
 
+const bloodDonationRegistrationApiDocument = YAML.load(
+  path.join(__dirname, "../../docs/blood-donation-registration-api.yaml")
+);
+
+const bloodDonationApiDocument = YAML.load(
+  path.join(__dirname, "../../docs/blood-donation-api.yaml")
+);
+
+const bloodRequestApiDocument = YAML.load(
+  path.join(__dirname, "../../docs/blood-request-api.yaml")
+);
+
+const bloodInventoryApiDocument = YAML.load(
+  path.join(__dirname, "../../docs/blood-inventory-api.yaml")
+);
+
+const facilityStaffApiDocument = YAML.load(
+  path.join(__dirname, "../../docs/facility-staff-api.yaml")
+);
+
+const bloodUnitApiDocument = YAML.load(
+  path.join(__dirname, "../../docs/blood-unit-api.yaml")
+);
+
+const bloodDeliveryApiDocument = YAML.load(
+  path.join(__dirname, "../../docs/blood-delivery-api.yaml")
+);
+
 const addServers = (req, doc) => {
   const modifiedDoc = { ...doc };
   const protocol = req.protocol;
@@ -41,11 +69,67 @@ const giftSwaggerSetup = (req, res) => {
   return swaggerUi.generateHTML(doc);
 };
 
+// Blood Donation Registration API documentation setup
+const bloodDonationRegistrationSwaggerSetup = (req, res) => {
+  const doc = addServers(req, bloodDonationRegistrationApiDocument);
+  return swaggerUi.generateHTML(doc);
+};
+
+// Blood Donation API documentation setup
+const bloodDonationSwaggerSetup = (req, res) => {
+  const doc = addServers(req, bloodDonationApiDocument);
+  return swaggerUi.generateHTML(doc);
+};
+
+// Blood Request API documentation setup
+const bloodRequestSwaggerSetup = (req, res) => {
+  const doc = addServers(req, bloodRequestApiDocument);
+  return swaggerUi.generateHTML(doc);
+};
+
+// Blood Inventory API documentation setup
+const bloodInventorySwaggerSetup = (req, res) => {
+  const doc = addServers(req, bloodInventoryApiDocument);
+  return swaggerUi.generateHTML(doc);
+};
+
+// Facility Staff API documentation setup
+const facilityStaffSwaggerSetup = (req, res) => {
+  const doc = addServers(req, facilityStaffApiDocument);
+  return swaggerUi.generateHTML(doc);
+};
+
+// Blood Unit API documentation setup
+const bloodUnitSwaggerSetup = (req, res) => {
+  const doc = addServers(req, bloodUnitApiDocument);
+  return swaggerUi.generateHTML(doc);
+};
+
+// Blood Delivery API documentation setup
+const bloodDeliverySwaggerSetup = (req, res) => {
+  const doc = addServers(req, bloodDeliveryApiDocument);
+  return swaggerUi.generateHTML(doc);
+};
+
 // Generic function to get API document
 const getApiDocument = (apiType = 'main') => {
   switch (apiType) {
     case 'gift':
       return giftApiDocument;
+    case 'blood-donation-registration':
+      return bloodDonationRegistrationApiDocument;
+    case 'blood-donation':
+      return bloodDonationApiDocument;
+    case 'blood-request':
+      return bloodRequestApiDocument;
+    case 'blood-inventory':
+      return bloodInventoryApiDocument;
+    case 'facility-staff':
+      return facilityStaffApiDocument;
+    case 'blood-unit':
+      return bloodUnitApiDocument;
+    case 'blood-delivery':
+      return bloodDeliveryApiDocument;
     case 'main':
     default:
       return mainSwaggerDocument;
@@ -60,16 +144,86 @@ const createSwaggerSetup = (apiType) => {
   };
 };
 
+// Setup all Swagger routes function
+const setupSwaggerRoutes = (app) => {
+  
+  // Main API documentation
+  app.use("/api-docs", swaggerUi.serve);
+  app.get("/api-docs", (req, res) => {
+    res.send(mainSwaggerSetup(req, res));
+  });
+
+  // Gift API documentation
+  app.use("/gift-docs", swaggerUi.serve);
+  app.get("/gift-docs", (req, res) => {
+    res.send(giftSwaggerSetup(req, res));
+  });
+
+  // Blood Donation Registration API documentation
+  app.use("/blood-donation-registration-docs", swaggerUi.serve);
+  app.get("/blood-donation-registration-docs", (req, res) => {
+    res.send(bloodDonationRegistrationSwaggerSetup(req, res));
+  });
+
+  // Blood Donation API documentation
+  app.use("/blood-donation-docs", swaggerUi.serve);
+  app.get("/blood-donation-docs", (req, res) => {
+    res.send(bloodDonationSwaggerSetup(req, res));
+  });
+
+  // Blood Request API documentation
+  app.use("/blood-request-docs", swaggerUi.serve);
+  app.get("/blood-request-docs", (req, res) => {
+    res.send(bloodRequestSwaggerSetup(req, res));
+  });
+
+  // Blood Inventory API documentation
+  app.use("/blood-inventory-docs", swaggerUi.serve);
+  app.get("/blood-inventory-docs", (req, res) => {
+    res.send(bloodInventorySwaggerSetup(req, res));
+  });
+
+  // Facility Staff API documentation
+  app.use("/facility-staff-docs", swaggerUi.serve);
+  app.get("/facility-staff-docs", (req, res) => {
+    res.send(facilityStaffSwaggerSetup(req, res));
+  });
+
+  // Blood Unit API documentation
+  app.use("/blood-unit-docs", swaggerUi.serve);
+  app.get("/blood-unit-docs", (req, res) => {
+    res.send(bloodUnitSwaggerSetup(req, res));
+  });
+
+  // Blood Delivery API documentation
+  app.use("/blood-delivery-docs", swaggerUi.serve);
+  app.get("/blood-delivery-docs", (req, res) => {
+    res.send(bloodDeliverySwaggerSetup(req, res));
+  });
+  
+  // Log all documentation routes
+};
+
 module.exports = {
   swaggerUi,
   // Legacy support - main API
   swaggerSetup: mainSwaggerSetup,
   
-  // New individual setups
+  // Individual setups
   mainSwaggerSetup,
   giftSwaggerSetup,
+  bloodDonationRegistrationSwaggerSetup,
+  bloodDonationSwaggerSetup,
+  bloodRequestSwaggerSetup,
+  bloodInventorySwaggerSetup,
+  facilityStaffSwaggerSetup,
+  bloodUnitSwaggerSetup,
+  bloodDeliverySwaggerSetup,
   
   // Generic functions
   createSwaggerSetup,
   getApiDocument,
+  
+  // New: Setup all routes function
+  setupSwaggerRoutes,
 };

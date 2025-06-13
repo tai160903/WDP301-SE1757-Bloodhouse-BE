@@ -1,0 +1,832 @@
+openapi: 3.0.3
+info:
+  title: Blood Unit Management System API
+  description: |
+    Hệ thống quản lý đơn vị máu toàn diện cho các cơ sở y tế.
+    
+    ## Phân quyền truy cập
+    - Doctor: Tạo và xử lý blood units, cập nhật kết quả test
+    - Manager: Xem blood units theo cơ sở, thống kê và báo cáo
+    - Nurse: Xem thông tin blood units cơ bản
+    
+    ## Quy trình quản lý Blood Unit
+    1. **Tạo Blood Units**: Doctor tạo từ blood donation đã hoàn thành
+    2. **Xử lý và Test**: Doctor cập nhật kết quả test (HIV, Hepatitis B/C, Syphilis)
+    3. **Phê duyệt**: Doctor approve blood unit sau khi test âm tính
+    4. **Quản lý Inventory**: Tự động cập nhật kho máu khi approve
+    5. **Theo dõi hết hạn**: Tự động đánh dấu units hết hạn
+    
+    ## Trạng thái Blood Unit
+    - TESTING: Đang test (mặc định khi tạo)
+    - AVAILABLE: Có sẵn để sử dụng (sau khi test âm tính)
+    - RESERVED: Đã được đặt trước cho blood request
+    - USED: Đã sử dụng/giao
+    - EXPIRED: Hết hạn
+    - REJECTED: Bị từ chối (test dương tính)
+    
+    ## Thành phần máu
+    - Máu toàn phần: 35 ngày
+    - Hồng cầu: 42 ngày  
+    - Huyết tương: 365 ngày
+    - Tiểu cầu: 5 ngày
+    
+    ## Xác thực
+    Tất cả endpoints yêu cầu xác thực qua Bearer token trong Authorization header.
+    
+  version: 1.0.0
+  contact:
+    name: Blood Unit Management System
+    email: admin@bloodhouse.com
+
+servers:
+  - url: http://localhost:3052/api/v1
+    description: Development server
+  - url: https://api.bloodhouse.com/api/v1
+    description: Production server
+
+tags:
+  - name: Doctor - Blood Unit Processing
+    description: Tạo và xử lý blood units (Doctor only)
+  - name: Manager - Blood Unit Management
+    description: Quản lý và thống kê blood units (Manager only)
+  - name: Staff - Blood Unit Information
+    description: Xem thông tin blood units (All staff)
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login
+  
+  schemas:
+    BloodUnit:
+      type: object
+      required:
+        - donationId
+        - facilityId
+        - bloodGroupId
+        - componentId
+        - quantity
+        - collectedAt
+        - expiresAt
+      properties:
+        _id:
+          type: string
+          description: Unique identifier
+        code:
+          type: string
+          description: Mã đơn vị máu duy nhất (auto-generated)
+          example: "BUNT240001"
+        donationId:
+          type: string
+          description: Reference to BloodDonation
+        facilityId:
+          type: string
+          description: Reference to Facility
+        bloodGroupId:
+          type: string
+          description: Reference to BloodGroup
+        componentId:
+          type: string
+          description: Reference to BloodComponent
+        quantity:
+          type: number
+          minimum: 0
+          description: Khối lượng máu (ml)
+          example: 450
+        remainingQuantity:
+          type: number
+          minimum: 0
+          description: Khối lượng còn lại (ml)
+          example: 450
+        deliveredQuantity:
+          type: number
+          minimum: 0
+          default: 0
+          description: Khối lượng đã giao (ml)
+          example: 0
+        collectedAt:
+          type: string
+          format: date-time
+          description: Thời gian thu thập máu
+        expiresAt:
+          type: string
+          format: date-time
+          description: Thời gian hết hạn
+        status:
+          type: string
+          enum: ["testing", "available", "reserved", "used", "expired", "rejected"]
+          description: Trạng thái đơn vị máu
+          example: "testing"
+        testResults:
+          type: object
+          properties:
+            hiv:
+              type: string
+              enum: ["positive", "negative", "pending"]
+              default: "pending"
+              description: Kết quả test HIV
+            hepatitisB:
+              type: string
+              enum: ["positive", "negative", "pending"]
+              default: "pending"
+              description: Kết quả test Viêm gan B
+            hepatitisC:
+              type: string
+              enum: ["positive", "negative", "pending"]
+              default: "pending"
+              description: Kết quả test Viêm gan C
+            syphilis:
+              type: string
+              enum: ["positive", "negative", "pending"]
+              default: "pending"
+              description: Kết quả test Giang mai
+            notes:
+              type: string
+              description: Ghi chú thêm
+              example: "Tất cả test âm tính"
+        processedBy:
+          type: string
+          description: ID bác sĩ xử lý
+        processedAt:
+          type: string
+          format: date-time
+          description: Thời gian xử lý
+        approvedBy:
+          type: string
+          nullable: true
+          description: ID bác sĩ phê duyệt
+        approvedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Thời gian phê duyệt
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BloodUnitWithDetails:
+      allOf:
+        - $ref: '#/components/schemas/BloodUnit'
+        - type: object
+          properties:
+            facilityId:
+              type: object
+              properties:
+                _id:
+                  type: string
+                name:
+                  type: string
+                  example: "Bệnh viện Đa khoa Thành phố"
+                code:
+                  type: string
+                  example: "BV001"
+            bloodGroupId:
+              type: object
+              properties:
+                _id:
+                  type: string
+                name:
+                  type: string
+                  example: "A+"
+                type:
+                  type: string
+                  example: "A_POSITIVE"
+            componentId:
+              type: object
+              properties:
+                _id:
+                  type: string
+                name:
+                  type: string
+                  example: "Máu toàn phần"
+            donationId:
+              type: object
+              properties:
+                _id:
+                  type: string
+                userId:
+                  type: object
+                  properties:
+                    _id:
+                      type: string
+                    fullName:
+                      type: string
+                      example: "Nguyễn Văn A"
+                    email:
+                      type: string
+                      example: "donor@example.com"
+                    phone:
+                      type: string
+                      example: "0901234567"
+                donationDate:
+                  type: string
+                  format: date-time
+                quantity:
+                  type: number
+                  example: 450
+            processedBy:
+              type: object
+              nullable: true
+              properties:
+                _id:
+                  type: string
+                userId:
+                  type: object
+                  properties:
+                    _id:
+                      type: string
+                    fullName:
+                      type: string
+                      example: "BS. Trần Thị B"
+                position:
+                  type: string
+                  example: "DOCTOR"
+            approvedBy:
+              type: object
+              nullable: true
+              properties:
+                _id:
+                  type: string
+                userId:
+                  type: object
+                  properties:
+                    _id:
+                      type: string
+                    fullName:
+                      type: string
+                      example: "BS. Lê Văn C"
+                position:
+                  type: string
+                  example: "DOCTOR"
+
+    CreateBloodUnitsRequest:
+      type: object
+      required:
+        - donationId
+        - units
+      properties:
+        donationId:
+          type: string
+          description: ID của blood donation (phải đã hoàn thành)
+        units:
+          type: array
+          minItems: 1
+          description: Danh sách các đơn vị máu cần tạo
+          items:
+            type: object
+            required:
+              - componentId
+              - quantity
+            properties:
+              componentId:
+                type: string
+                description: ID thành phần máu
+              quantity:
+                type: number
+                minimum: 1
+                description: Khối lượng (ml)
+                example: 450
+
+    UpdateBloodUnitRequest:
+      type: object
+      properties:
+        testResults:
+          type: object
+          description: Cập nhật kết quả test
+          properties:
+            hiv:
+              type: string
+              enum: ["positive", "negative", "pending"]
+            hepatitisB:
+              type: string
+              enum: ["positive", "negative", "pending"]
+            hepatitisC:
+              type: string
+              enum: ["positive", "negative", "pending"]
+            syphilis:
+              type: string
+              enum: ["positive", "negative", "pending"]
+            notes:
+              type: string
+              description: Ghi chú
+        status:
+          type: string
+          enum: ["testing", "available", "reserved", "used", "expired", "rejected"]
+          description: Cập nhật trạng thái
+        notes:
+          type: string
+          description: Ghi chú thêm
+        quantity:
+          type: number
+          minimum: 0
+          description: Cập nhật khối lượng
+        expiresAt:
+          type: string
+          format: date-time
+          description: Cập nhật ngày hết hạn
+
+    BloodUnitsStatistics:
+      type: object
+      properties:
+        statusDistribution:
+          type: array
+          description: Phân bố theo trạng thái
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                description: Trạng thái
+              count:
+                type: integer
+                description: Số lượng units
+              totalQuantity:
+                type: number
+                description: Tổng khối lượng (ml)
+        componentDistribution:
+          type: array
+          description: Phân bố theo thành phần máu
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                description: Component ID
+              count:
+                type: integer
+                description: Số lượng units
+              totalQuantity:
+                type: number
+                description: Tổng khối lượng (ml)
+        expiringUnits:
+          type: integer
+          description: Số units sắp hết hạn (trong 7 ngày)
+        summary:
+          type: object
+          properties:
+            total:
+              type: integer
+              description: Tổng số units
+            available:
+              type: integer
+              description: Số units có sẵn
+            testing:
+              type: integer
+              description: Số units đang test
+            rejected:
+              type: integer
+              description: Số units bị từ chối
+
+    Error:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "error"
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: "Validation error"
+
+    Success:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "success"
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+        data:
+          type: object
+
+    PaginatedResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BloodUnitWithDetails'
+        totalItems:
+          type: integer
+        totalPages:
+          type: integer
+        currentPage:
+          type: integer
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ===== DOCTOR - BLOOD UNIT PROCESSING =====
+  /blood-unit:
+    post:
+      tags:
+        - Doctor - Blood Unit Processing
+      summary: Tạo blood units từ donation
+      description: |
+        [Doctor Only] - Tạo các đơn vị máu từ blood donation đã hoàn thành.
+        
+        Quy trình:
+        1. Kiểm tra donation đã hoàn thành
+        2. Tạo blood units với các thành phần khác nhau
+        3. Tính toán ngày hết hạn dựa trên thành phần
+        4. Đặt trạng thái mặc định là "testing"
+        5. Gán doctor hiện tại làm processedBy
+        
+        Quy tắc nghiệp vụ:
+        - Donation phải có status = "completed"
+        - Mỗi unit có thành phần và khối lượng riêng
+        - Ngày hết hạn tự động tính theo loại thành phần
+        - Tất cả units được tạo với trạng thái "testing"
+        
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBloodUnitsRequest'
+      responses:
+        201:
+          description: Tạo blood units thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/BloodUnit'
+        400:
+          description: Lỗi validation hoặc donation chưa hoàn thành
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                  - type: object
+                    properties:
+                      message:
+                        example: "Chỉ có thể tạo blood units từ donation đã hoàn thành"
+        404:
+          description: Không tìm thấy donation hoặc component
+        403:
+          description: Không có quyền truy cập (Doctor only)
+
+  /blood-unit/{id}:
+    get:
+      tags:
+        - Staff - Blood Unit Information
+      summary: Lấy chi tiết blood unit
+      description: |
+        [All Staff] - Lấy thông tin chi tiết của một blood unit.
+        
+        Thông tin bao gồm:
+        - Thông tin cơ bản của blood unit
+        - Thông tin donor và donation
+        - Thông tin facility và blood group
+        - Kết quả test chi tiết
+        - Thông tin doctor xử lý và phê duyệt
+        
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID của blood unit
+      responses:
+        200:
+          description: Lấy chi tiết blood unit thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodUnitWithDetails'
+        404:
+          description: Không tìm thấy blood unit
+        403:
+          description: Không có quyền truy cập
+
+    patch:
+      tags:
+        - Doctor - Blood Unit Processing
+      summary: Cập nhật blood unit
+      description: |
+        [Doctor Only] - Cập nhật thông tin và kết quả test của blood unit.
+        
+        Tính năng:
+        - Cập nhật kết quả test (HIV, Hepatitis B/C, Syphilis)
+        - Thay đổi trạng thái blood unit
+        - Thêm ghi chú
+        - Điều chỉnh khối lượng và ngày hết hạn
+        
+        Quy trình phê duyệt:
+        - Khi status = "available": Tự động set approvedBy và approvedAt
+        - Cập nhật inventory khi approve
+        - Ghi log hoạt động
+        
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID của blood unit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBloodUnitRequest'
+      responses:
+        200:
+          description: Cập nhật blood unit thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodUnitWithDetails'
+        400:
+          description: Lỗi validation
+        404:
+          description: Không tìm thấy blood unit
+        403:
+          description: Không có quyền truy cập (Doctor only)
+
+  /blood-unit/donation/{donationId}:
+    get:
+      tags:
+        - Staff - Blood Unit Information
+      summary: Lấy blood units theo donation
+      description: |
+        [All Staff] - Lấy danh sách blood units được tạo từ một donation.
+        
+        Tính năng:
+        - Hiển thị tất cả units từ donation
+        - Thông tin chi tiết về facility, blood group
+        - Thông tin doctor xử lý
+        - Pagination support
+        - Sắp xếp theo thời gian tạo mới nhất
+        
+      parameters:
+        - name: donationId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID của blood donation
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Số trang
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Số records per page
+      responses:
+        200:
+          description: Lấy blood units theo donation thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedResponse'
+        404:
+          description: Không tìm thấy donation
+        403:
+          description: Không có quyền truy cập
+
+  /blood-unit/processed-by/me:
+    get:
+      tags:
+        - Doctor - Blood Unit Processing
+      summary: Lấy blood units do doctor hiện tại xử lý
+      description: |
+        [Doctor Only] - Lấy danh sách blood units được xử lý bởi doctor hiện tại.
+        
+        Tính năng:
+        - Chỉ hiển thị units do doctor hiện tại xử lý
+        - Filter theo status, component
+        - Search theo code, tên donor
+        - Filter theo khoảng thời gian
+        - Pagination và sorting
+        - Thông tin chi tiết về donor và donation
+        
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: ["testing", "available", "reserved", "used", "expired", "rejected"]
+          description: Filter theo trạng thái
+        - name: component
+          in: query
+          schema:
+            type: string
+          description: Filter theo thành phần máu
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Tìm kiếm theo code, tên donor, email, phone
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Ngày bắt đầu filter
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Ngày kết thúc filter
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: Lấy blood units do doctor xử lý thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedResponse'
+        403:
+          description: Không có quyền truy cập (Doctor only)
+
+  # ===== MANAGER - BLOOD UNIT MANAGEMENT =====
+  /blood-unit/facility/{facilityId}:
+    get:
+      tags:
+        - Manager - Blood Unit Management
+      summary: Lấy blood units theo cơ sở
+      description: |
+        [Manager Only] - Lấy danh sách blood units của một cơ sở cụ thể.
+        
+        Tính năng:
+        - Hiển thị tất cả units của cơ sở
+        - Filter theo status, component, blood group
+        - Search và filter theo khoảng thời gian
+        - Pagination với sorting
+        - Thông tin chi tiết về donor, doctor xử lý
+        - Hiển thị remainingQuantity và deliveredQuantity
+        
+      parameters:
+        - name: facilityId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID cơ sở y tế
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: ["testing", "available", "reserved", "used", "expired", "rejected"]
+          description: Filter theo trạng thái
+        - name: componentId
+          in: query
+          schema:
+            type: string
+          description: Filter theo thành phần máu
+        - name: bloodGroupId
+          in: query
+          schema:
+            type: string
+          description: Filter theo nhóm máu
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Tìm kiếm theo code, tên donor
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Ngày bắt đầu filter (collectedAt)
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Ngày kết thúc filter (collectedAt)
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: Lấy blood units theo cơ sở thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedResponse'
+        404:
+          description: Không tìm thấy cơ sở
+        403:
+          description: Không có quyền truy cập (Manager only)
+
+  /blood-unit/facility/{facilityId}/statistics:
+    get:
+      tags:
+        - Manager - Blood Unit Management
+      summary: Thống kê blood units theo cơ sở
+      description: |
+        [Manager Only] - Lấy thống kê chi tiết về blood units của cơ sở.
+        
+        Thống kê bao gồm:
+        - Phân bố theo trạng thái (testing, available, used, etc.)
+        - Phân bố theo thành phần máu
+        - Số units sắp hết hạn (trong 7 ngày)
+        - Tổng quan: tổng số, available, testing, rejected
+        - Filter theo khoảng thời gian
+        
+      parameters:
+        - name: facilityId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID cơ sở y tế
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Ngày bắt đầu thống kê
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Ngày kết thúc thống kê
+      responses:
+        200:
+          description: Lấy thống kê blood units thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodUnitsStatistics'
+        404:
+          description: Không tìm thấy cơ sở
+        403:
+          description: Không có quyền truy cập (Manager only) 

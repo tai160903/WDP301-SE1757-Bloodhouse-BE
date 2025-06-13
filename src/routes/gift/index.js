@@ -22,6 +22,10 @@ router.get("/admin/gift-items",
   checkRole([USER_ROLE.ADMIN]), 
   giftManagerController.getGiftItems
 );
+router.get("/admin/gift-items/stats", 
+  checkRole([USER_ROLE.ADMIN]), 
+  giftManagerController.getGiftItemsStats
+);
 router.get("/admin/gift-items/:giftItemId", 
   checkRole([USER_ROLE.ADMIN]), 
   giftManagerController.getGiftItemById

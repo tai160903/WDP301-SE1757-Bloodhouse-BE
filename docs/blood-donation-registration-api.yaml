@@ -1,0 +1,1111 @@
+openapi: 3.0.3
+info:
+  title: Blood Donation Registration System API
+  description: |
+    Comprehensive API documentation for Blood Donation Registration Management System.
+    
+    ## Role-Based Access Control
+    - Admin: System-wide access and management
+    - Manager: Facility-specific registration management and statistics
+    - Doctor: Health check operations and QR scanning
+    - Nurse: Registration processing, smart scanning, and gift distribution
+    - Member: Personal registration management
+    
+    ## Registration Workflow
+    1. **Member Registration**: User creates blood donation registration
+    2. **Manager Approval**: Manager approves/rejects registration
+    3. **Check-in Process**: Staff performs check-in via QR code
+    4. **Health Consultation**: Doctor performs health check
+    5. **Blood Donation**: Nurse manages donation process
+    6. **Post-Donation**: Gift distribution and completion
+    
+    ## QR Code System
+    - **Doctor QR Scan**: Access health check details
+    - **Nurse Smart Scan**: Comprehensive workflow analysis
+    - **Nurse Gift Scan**: Gift distribution eligibility check
+    - **Check-in QR**: Registration check-in process
+    
+    ## Authentication
+    All endpoints require authentication via Bearer token in Authorization header.
+    
+  version: 1.0.0
+  contact:
+    name: Blood Donation Registration System
+    email: admin@bloodhouse.com
+
+servers:
+  - url: http://localhost:3052/api/v1
+    description: Development server
+  - url: https://api.bloodhouse.com/api/v1
+    description: Production server
+
+tags:
+  - name: Member - Registration
+    description: Blood donation registration operations for members
+  - name: Staff - Management
+    description: Registration management for staff (Manager/Nurse)
+  - name: Doctor - Health Check
+    description: Doctor-specific operations and QR scanning
+  - name: Nurse - Operations
+    description: Nurse-specific operations and smart scanning
+  - name: Manager - Analytics
+    description: Manager analytics and facility statistics
+  - name: QR Operations
+    description: QR code scanning and processing
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login
+  
+  schemas:
+    BloodDonationRegistration:
+      type: object
+      required:
+        - userId
+        - facilityId
+        - bloodGroupId
+        - preferredDate
+      properties:
+        _id:
+          type: string
+          description: Unique identifier
+        code:
+          type: string
+          description: Auto-generated unique code (BDRG-XXXXXX)
+          example: "BDRG-001234"
+        userId:
+          type: string
+          description: Reference to User
+        facilityId:
+          type: string
+          description: Reference to Facility
+        bloodGroupId:
+          type: string
+          description: Reference to BloodGroup
+        staffId:
+          type: string
+          nullable: true
+          description: Assigned staff member
+        preferredDate:
+          type: string
+          format: date-time
+          description: Preferred donation date
+        status:
+          type: string
+          enum: 
+            - pending_approval
+            - rejected_registration
+            - registered
+            - checked_in
+            - in_consult
+            - rejected
+            - waiting_donation
+            - donating
+            - donated
+            - resting
+            - post_rest_check
+            - completed
+            - cancelled
+          description: Current registration status
+          example: "pending_approval"
+        source:
+          type: string
+          enum: ["Tự nguyện", "Yêu cầu"]
+          description: Registration source
+          example: "Tự nguyện"
+        expectedQuantity:
+          type: number
+          description: Expected donation quantity in ml
+          example: 350
+        notes:
+          type: string
+          description: Additional notes
+        location:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: ["Point"]
+              default: "Point"
+            coordinates:
+              type: array
+              items:
+                type: number
+              description: "[longitude, latitude]"
+              example: [106.6297, 10.8231]
+        qrCodeUrl:
+          type: string
+          nullable: true
+          description: Generated QR code for check-in
+        checkInAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Check-in timestamp
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Completion timestamp
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BloodDonation:
+      type: object
+      properties:
+        _id:
+          type: string
+        code:
+          type: string
+          description: Auto-generated donation code
+        userId:
+          type: string
+          description: Reference to User (donor)
+        staffId:
+          type: string
+          description: Reference to FacilityStaff (nurse)
+        doctorId:
+          type: string
+          description: Reference to FacilityStaff (doctor)
+        bloodGroupId:
+          type: string
+          description: Reference to BloodGroup
+        bloodDonationRegistrationId:
+          type: string
+          description: Reference to BloodDonationRegistration
+        healthCheckId:
+          type: string
+          description: Reference to HealthCheck
+        quantity:
+          type: number
+          description: Actual donated quantity in ml
+          example: 350
+        donationDate:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: ["donating", "cancelled", "completed"]
+          description: Donation status
+        notes:
+          type: string
+          description: Donation notes
+        isDivided:
+          type: boolean
+          default: false
+          description: Whether blood has been divided into components
+        giftPackageId:
+          type: string
+          nullable: true
+          description: Distributed gift package ID
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    HealthCheck:
+      type: object
+      properties:
+        _id:
+          type: string
+        code:
+          type: string
+          description: Auto-generated health check code
+        registrationId:
+          type: string
+          description: Reference to BloodDonationRegistration
+        userId:
+          type: string
+          description: Reference to User
+        doctorId:
+          type: string
+          description: Reference to FacilityStaff (doctor)
+        staffId:
+          type: string
+          description: Reference to FacilityStaff (nurse)
+        facilityId:
+          type: string
+          description: Reference to Facility
+        checkDate:
+          type: string
+          format: date-time
+        isEligible:
+          type: boolean
+          description: Whether donor is eligible for donation
+        bloodPressure:
+          type: string
+          description: Blood pressure reading
+          example: "120/80"
+        hemoglobin:
+          type: number
+          description: Hemoglobin level
+          example: 13.5
+        weight:
+          type: number
+          description: Weight in kg
+          example: 65
+        pulse:
+          type: number
+          description: Pulse rate
+          example: 72
+        temperature:
+          type: number
+          description: Body temperature in Celsius
+          example: 36.5
+        generalCondition:
+          type: string
+          description: General health condition assessment
+        deferralReason:
+          type: string
+          nullable: true
+          description: Reason for deferral if not eligible
+        notes:
+          type: string
+          description: Additional health check notes
+        status:
+          type: string
+          enum: ["pending", "completed", "cancelled", "donated"]
+          description: Health check status
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    QRScanData:
+      type: object
+      required:
+        - registrationId
+        - userId
+        - bloodGroupId
+      properties:
+        registrationId:
+          type: string
+          description: Blood donation registration ID
+        userId:
+          type: string
+          description: User ID
+        bloodGroupId:
+          type: string
+          description: Blood group ID
+
+    NurseSmartScanResponse:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: 
+            - check_in
+            - view_registration
+            - start_donation
+            - manage_donation
+            - view_rejection
+            - view_completed
+            - view_cancelled
+            - unknown_status
+          description: Recommended nurse action
+        status:
+          type: string
+          description: Current registration status
+        code:
+          type: string
+          description: Registration code
+        data:
+          type: object
+          description: Detailed registration and related data
+        actionData:
+          type: object
+          properties:
+            message:
+              type: string
+              description: Action guidance message
+            buttonText:
+              type: string
+              description: Suggested button text
+            endpoint:
+              type: string
+              description: Next API endpoint
+            navigateTo:
+              type: string
+              description: Frontend navigation target
+            canCreateHealthCheck:
+              type: boolean
+            canStartDonation:
+              type: boolean
+            canUpdateDonation:
+              type: boolean
+
+    GiftScanResponse:
+      type: object
+      properties:
+        canDistributeGift:
+          type: boolean
+          description: Whether gift can be distributed
+        bloodDonationId:
+          type: string
+          description: Blood donation ID
+        registration:
+          type: object
+          description: Registration details
+        bloodDonation:
+          type: object
+          description: Blood donation details
+        donor:
+          type: object
+          description: Donor information
+        actionData:
+          type: object
+          properties:
+            message:
+              type: string
+            nextAction:
+              type: string
+            nextEndpoint:
+              type: string
+            buttonText:
+              type: string
+            navigateTo:
+              type: string
+
+    RegistrationStatistics:
+      type: object
+      properties:
+        statusDistribution:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                description: Status name
+              count:
+                type: integer
+                description: Number of registrations
+        bloodTypeDistribution:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                description: Blood type
+              count:
+                type: integer
+        timeSeries:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                description: Time period or status
+              count:
+                type: integer
+              totalExpectedQuantity:
+                type: number
+        summary:
+          type: object
+          properties:
+            total:
+              type: integer
+            pending:
+              type: integer
+            registered:
+              type: integer
+            completed:
+              type: integer
+
+    Error:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "error"
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: "Validation error"
+
+    Success:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "success"
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+        data:
+          type: object
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ===== MEMBER - REGISTRATION =====
+  /blood-donation-registration:
+    post:
+      tags:
+        - Member - Registration
+      summary: Create blood donation registration
+      description: |
+        [Member Only] - Create a new blood donation registration.
+        
+        Business Rules:
+        - User must not have pending registrations
+        - Must wait required months since last donation (3 months for male, 4 for female)
+        - Validates user, facility, and blood group existence
+        - Auto-generates unique registration code
+        - Creates process donation log entry
+        
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - facilityId
+                - bloodGroupId
+                - preferredDate
+              properties:
+                facilityId:
+                  type: string
+                  description: Target facility for donation
+                bloodGroupId:
+                  type: string
+                  description: Blood group for donation
+                preferredDate:
+                  type: string
+                  format: date-time
+                  description: Preferred donation date
+                expectedQuantity:
+                  type: number
+                  description: Expected donation quantity in ml
+                  example: 350
+                source:
+                  type: string
+                  enum: ["Tự nguyện", "Yêu cầu"]
+                  default: "Tự nguyện"
+                notes:
+                  type: string
+                  description: Additional notes
+      responses:
+        201:
+          description: Registration created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodDonationRegistration'
+        400:
+          description: Validation error or business rule violation
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                  - type: object
+                    properties:
+                      message:
+                        example: "Bạn cần đợi đủ 3 tháng kể từ lần hiến máu trước"
+
+    get:
+      tags:
+        - Member - Registration
+      summary: Get all registrations (public view)
+      description: |
+        Get paginated list of blood donation registrations.
+        Available to all authenticated users for general viewing.
+        
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: 
+              - pending_approval
+              - rejected_registration
+              - registered
+              - checked_in
+              - in_consult
+              - rejected
+              - waiting_donation
+              - donating
+              - donated
+              - resting
+              - post_rest_check
+              - completed
+              - cancelled
+        - name: facilityId
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: Registrations retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/BloodDonationRegistration'
+                          totalItems:
+                            type: integer
+                          totalPages:
+                            type: integer
+                          currentPage:
+                            type: integer
+
+  /blood-donation-registration/user:
+    get:
+      tags:
+        - Member - Registration
+      summary: Get user's registrations
+      description: |
+        [Member] - Get all registrations for the authenticated user.
+        
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: User registrations retrieved successfully
+
+  /blood-donation-registration/{id}:
+    get:
+      tags:
+        - Member - Registration
+      summary: Get registration details
+      description: |
+        Get detailed information about a specific registration.
+        
+        Access Control:
+        - Members: Can only view their own registrations
+        - Staff: Can view registrations from their facility
+        - Nurses: Can view assigned or unassigned registrations
+        
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Registration ID
+      responses:
+        200:
+          description: Registration details retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodDonationRegistration'
+        404:
+          description: Registration not found or access denied
+
+    put:
+      tags:
+        - Staff - Management
+      summary: Update registration status
+      description: |
+        [Manager/Nurse Only] - Update registration status and assign staff.
+        
+        Business Rules:
+        - Generates QR code when status changes to 'registered'
+        - Updates check-in timestamp for 'checked_in' status
+        - Sends notifications to user on status changes
+        - Creates process donation log entries
+        - Staff assignment for workflow management
+        
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: 
+                    - pending_approval
+                    - rejected_registration
+                    - registered
+                    - checked_in
+                    - in_consult
+                    - rejected
+                    - waiting_donation
+                    - donating
+                    - donated
+                    - resting
+                    - post_rest_check
+                    - completed
+                    - cancelled
+                staffId:
+                  type: string
+                  description: Staff member to assign (optional)
+                notes:
+                  type: string
+                  description: Status change notes
+      responses:
+        200:
+          description: Registration updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodDonationRegistration'
+        400:
+          description: Invalid status or validation error
+
+  # ===== STAFF - MANAGEMENT =====
+  /blood-donation-registration/staff/assigned:
+    get:
+      tags:
+        - Staff - Management
+      summary: Get staff assigned registrations
+      description: |
+        [Staff Only] - Get registrations assigned to the authenticated staff member.
+        Primarily used by nurses to view their assigned registrations.
+        
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search in notes
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: bloodGroupId
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: Assigned registrations retrieved successfully
+
+  /blood-donation-registration/facility/all:
+    get:
+      tags:
+        - Staff - Management
+      summary: Get facility registrations
+      description: |
+        [Manager/Nurse Only] - Get all registrations for the staff member's facility.
+        
+        Features:
+        - Facility-specific data isolation
+        - Advanced filtering and search
+        - Optional statistics inclusion
+        - Staff assignment filtering
+        
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: bloodGroupId
+          in: query
+          schema:
+            type: string
+        - name: staffId
+          in: query
+          schema:
+            type: string
+          description: Filter by assigned staff
+        - name: includeStats
+          in: query
+          schema:
+            type: boolean
+          description: Include facility statistics
+      responses:
+        200:
+          description: Facility registrations retrieved successfully
+
+  # ===== QR OPERATIONS =====
+  /blood-donation-registration/check-in:
+    post:
+      tags:
+        - QR Operations
+      summary: Process check-in via QR code
+      description: |
+        [Nurse/Manager Only] - Process registration check-in using QR code data.
+        
+        Business Process:
+        1. Parse and validate QR code data
+        2. Find and validate registration
+        3. Verify user and blood group match
+        4. Check current status allows check-in
+        5. Update status to 'checked_in'
+        6. Assign staff member
+        7. Send notification to user
+        8. Create process log entry
+        
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - qrData
+              properties:
+                qrData:
+                  oneOf:
+                    - type: string
+                      description: JSON string of QR data
+                    - $ref: '#/components/schemas/QRScanData'
+                  description: QR code data (string or object)
+      responses:
+        200:
+          description: Check-in processed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                          userId:
+                            type: object
+                          facilityId:
+                            type: object
+                          bloodGroupId:
+                            type: object
+                          status:
+                            type: string
+                          checkInAt:
+                            type: string
+                            format: date-time
+                          preferredDate:
+                            type: string
+                            format: date-time
+                          expectedQuantity:
+                            type: number
+        400:
+          description: Invalid QR data or check-in not allowed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                  - type: object
+                    properties:
+                      message:
+                        example: "Đăng ký này đã được check-in hoặc không ở trạng thái cho phép check-in"
+
+  /blood-donation-registration/doctor/qr-scan:
+    post:
+      tags:
+        - Doctor - Health Check
+      summary: Doctor QR scan for health check
+      description: |
+        [Doctor Only] - Scan QR code to access health check details.
+        
+        Business Process:
+        1. Parse and validate QR code data
+        2. Find and validate registration
+        3. Verify doctor has access to health check
+        4. Return health check details with populated references
+        5. Validate facility access permissions
+        
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - qrData
+              properties:
+                qrData:
+                  oneOf:
+                    - type: string
+                    - $ref: '#/components/schemas/QRScanData'
+      responses:
+        200:
+          description: Health check details retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/HealthCheck'
+        400:
+          description: Invalid QR data or access denied
+        404:
+          description: Health check not found
+
+  /blood-donation-registration/nurse/smart-scan:
+    post:
+      tags:
+        - Nurse - Operations
+      summary: Nurse smart scan - comprehensive workflow analysis
+      description: |
+        [Nurse Only] - Comprehensive QR analysis for nurse workflow optimization.
+        
+        Smart Analysis Features:
+        - Determines optimal nurse action based on registration status
+        - Provides contextual data for each workflow stage
+        - Returns navigation guidance for frontend
+        - Includes related health check and donation data
+        - Facility access validation
+        
+        Supported Actions:
+        - check_in: Registration ready for check-in
+        - view_registration: View registration details
+        - start_donation: Ready to begin donation
+        - manage_donation: Ongoing donation management
+        - view_rejection: View rejection details
+        - view_completed: View completed donation
+        - view_cancelled: View cancelled registration
+        
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - qrData
+              properties:
+                qrData:
+                  oneOf:
+                    - type: string
+                    - $ref: '#/components/schemas/QRScanData'
+      responses:
+        200:
+          description: Smart scan analysis completed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/NurseSmartScanResponse'
+        400:
+          description: Invalid QR data or access denied
+
+  /blood-donation-registration/nurse/gift-scan:
+    post:
+      tags:
+        - Nurse - Operations
+      summary: Nurse gift scan for distribution eligibility
+      description: |
+        [Nurse Only] - Scan QR code to check gift distribution eligibility.
+        
+        Business Process:
+        1. Validate QR code and registration
+        2. Check if donation is completed
+        3. Verify gift distribution eligibility
+        4. Return donation and donor details
+        5. Provide gift distribution guidance
+        
+        Eligibility Requirements:
+        - Registration status: donated, resting, post_rest_check, or completed
+        - Blood donation status: completed
+        - No existing gift distribution
+        
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - qrData
+              properties:
+                qrData:
+                  oneOf:
+                    - type: string
+                    - $ref: '#/components/schemas/QRScanData'
+      responses:
+        200:
+          description: Gift scan completed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/GiftScanResponse'
+        400:
+          description: Not eligible for gift distribution
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                  - type: object
+                    properties:
+                      message:
+                        example: "Đăng ký với trạng thái 'pending_approval' không đủ điều kiện nhận quà"
+
+  # ===== MANAGER - ANALYTICS =====
+  /blood-donation-registration/facility/statistics:
+    get:
+      tags:
+        - Manager - Analytics
+      summary: Get facility registration statistics
+      description: |
+        [Manager Only] - Get comprehensive statistics for the manager's facility.
+        
+        Statistics Include:
+        - Status distribution (pending, registered, completed, etc.)
+        - Blood type distribution
+        - Time series data (daily, weekly, monthly)
+        - Summary totals and key metrics
+        
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Statistics start date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Statistics end date
+        - name: groupBy
+          in: query
+          schema:
+            type: string
+            enum: ["day", "week", "month", "status"]
+            default: "day"
+          description: Data grouping method
+      responses:
+        200:
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/RegistrationStatistics' 

@@ -1,0 +1,604 @@
+openapi: 3.0.3
+info:
+  title: Blood Delivery Management System API
+  description: |
+    Hệ thống quản lý vận chuyển máu toàn diện cho các cơ sở y tế.
+    
+    ## Phân quyền truy cập
+    - User/Member: Xem thông tin vận chuyển của yêu cầu máu của mình
+    - Transporter: Quản lý và thực hiện vận chuyển máu
+    - Manager: Tạo và phân công vận chuyển (thông qua blood request)
+    
+    ## Quy trình vận chuyển máu
+    1. **Tạo Delivery**: Tự động tạo khi blood request được assign blood units
+    2. **Phân công Transporter**: Manager phân công nhân viên vận chuyển
+    3. **Bắt đầu vận chuyển**: Transporter bắt đầu giao hàng
+    4. **Hoàn thành giao hàng**: Xác nhận giao hàng và cập nhật blood units
+    5. **Cập nhật trạng thái**: Tự động cập nhật blood request thành completed
+    
+    ## Trạng thái Blood Delivery
+    - PENDING: Chờ vận chuyển (mặc định khi tạo)
+    - IN_TRANSIT: Đang vận chuyển
+    - DELIVERED: Đã giao thành công
+    - CANCELLED: Đã hủy
+    
+    ## Quy trình giao hàng
+    1. Transporter nhận delivery assignment
+    2. Bắt đầu vận chuyển (status: IN_TRANSIT)
+    3. Giao hàng cho người nhận
+    4. Xác nhận hoàn thành (status: DELIVERED)
+    5. Cập nhật blood units thành USED
+    6. Cập nhật blood request thành COMPLETED
+    
+    ## Xác thực
+    Tất cả endpoints yêu cầu xác thực qua Bearer token trong Authorization header.
+    
+  version: 1.0.0
+  contact:
+    name: Blood Delivery Management System
+    email: admin@bloodhouse.com
+
+servers:
+  - url: http://localhost:3052/api/v1
+    description: Development server
+  - url: https://api.bloodhouse.com/api/v1
+    description: Production server
+
+tags:
+  - name: User - Delivery Tracking
+    description: Theo dõi vận chuyển máu (User/Member)
+  - name: Transporter - Delivery Management
+    description: Quản lý và thực hiện vận chuyển (Transporter only)
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login
+  
+  schemas:
+    BloodDelivery:
+      type: object
+      required:
+        - bloodRequestId
+        - facilityId
+        - facilityToAddress
+        - bloodUnits
+        - transporterId
+        - assignedBy
+      properties:
+        _id:
+          type: string
+          description: Unique identifier
+        code:
+          type: string
+          description: Mã vận chuyển duy nhất (auto-generated)
+          example: "DELI240001"
+        bloodRequestId:
+          type: string
+          description: Reference to BloodRequest
+        facilityId:
+          type: string
+          description: Reference to Facility (cơ sở xuất phát)
+        facilityToAddress:
+          type: string
+          description: Địa chỉ giao hàng
+          example: "123 Đường ABC, Quận 1, TP.HCM"
+        bloodUnits:
+          type: array
+          description: Danh sách blood units cần giao
+          items:
+            type: object
+            required:
+              - unitId
+              - quantity
+            properties:
+              unitId:
+                type: string
+                description: Reference to BloodUnit
+              quantity:
+                type: number
+                minimum: 1
+                description: Khối lượng cần giao (ml)
+                example: 450
+        transporterId:
+          type: string
+          description: Reference to FacilityStaff (Transporter)
+        status:
+          type: string
+          enum: ["pending", "in_transit", "delivered", "cancelled"]
+          description: Trạng thái vận chuyển
+          example: "pending"
+        assignedBy:
+          type: string
+          description: Reference to FacilityStaff (Manager phân công)
+        note:
+          type: string
+          nullable: true
+          description: Ghi chú vận chuyển
+          example: "Giao hàng trong giờ hành chính"
+        startDeliveryAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Thời gian bắt đầu vận chuyển
+        deliveredAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Thời gian hoàn thành giao hàng
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BloodDeliveryWithDetails:
+      allOf:
+        - $ref: '#/components/schemas/BloodDelivery'
+        - type: object
+          properties:
+            facilityId:
+              type: object
+              properties:
+                _id:
+                  type: string
+                name:
+                  type: string
+                  example: "Bệnh viện Đa khoa Thành phố"
+                address:
+                  type: string
+                  example: "456 Đường XYZ, Quận 2, TP.HCM"
+            bloodRequestId:
+              type: object
+              properties:
+                _id:
+                  type: string
+                code:
+                  type: string
+                  example: "BREQ240001"
+                location:
+                  type: string
+                  example: "123 Đường ABC, Quận 1, TP.HCM"
+                scheduledDeliveryDate:
+                  type: string
+                  format: date-time
+                  description: Ngày giao hàng dự kiến
+                patientName:
+                  type: string
+                  example: "Nguyễn Văn B"
+                patientPhone:
+                  type: string
+                  example: "0901234568"
+                userId:
+                  type: object
+                  properties:
+                    _id:
+                      type: string
+                    fullName:
+                      type: string
+                      example: "Trần Thị C"
+                    phone:
+                      type: string
+                      example: "0901234567"
+                    email:
+                      type: string
+                      example: "user@example.com"
+            bloodUnits:
+              type: array
+              items:
+                type: object
+                properties:
+                  unitId:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                      code:
+                        type: string
+                        example: "BUNT240001"
+                      expiresAt:
+                        type: string
+                        format: date-time
+                      bloodGroupId:
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                          name:
+                            type: string
+                            example: "A+"
+                      componentId:
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                          name:
+                            type: string
+                            example: "Máu toàn phần"
+                  quantity:
+                    type: number
+                    example: 450
+            transporterId:
+              type: object
+              properties:
+                _id:
+                  type: string
+                userId:
+                  type: object
+                  properties:
+                    _id:
+                      type: string
+                    fullName:
+                      type: string
+                      example: "Lê Văn D"
+                    avatar:
+                      type: string
+                      nullable: true
+                      example: "https://example.com/avatar.jpg"
+
+    CompleteDeliveryRequest:
+      type: object
+      required:
+        - facilityId
+        - recipientId
+        - requestId
+        - type
+      properties:
+        facilityId:
+          type: string
+          description: ID cơ sở thực hiện giao hàng
+        recipientId:
+          type: string
+          description: ID người nhận (phải khớp với userId của blood request)
+        requestId:
+          type: string
+          description: ID blood request
+        type:
+          type: string
+          enum: ["blood_delivery"]
+          description: Loại giao hàng (phải là "blood_delivery")
+          example: "blood_delivery"
+
+    Error:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "error"
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: "Validation error"
+
+    Success:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "success"
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+        data:
+          type: object
+
+    PaginatedResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BloodDeliveryWithDetails'
+        totalItems:
+          type: integer
+        totalPages:
+          type: integer
+        currentPage:
+          type: integer
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ===== USER - DELIVERY TRACKING =====
+  /blood-delivery/request/{requestId}:
+    get:
+      tags:
+        - User - Delivery Tracking
+      summary: Lấy thông tin vận chuyển theo blood request
+      description: |
+        [User/Member] - Lấy thông tin vận chuyển máu cho blood request của user.
+        
+        Tính năng:
+        - Hiển thị thông tin delivery của blood request
+        - Thông tin transporter và facility
+        - Trạng thái vận chuyển real-time
+        - Thông tin blood units được giao
+        - Chỉ user tạo request mới có thể xem
+        
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID của blood request
+      responses:
+        200:
+          description: Lấy thông tin vận chuyển thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodDeliveryWithDetails'
+        404:
+          description: Không tìm thấy delivery hoặc request
+        403:
+          description: Không có quyền truy cập
+
+  /blood-delivery/{deliveryId}:
+    get:
+      tags:
+        - User - Delivery Tracking
+      summary: Lấy thông tin vận chuyển theo ID
+      description: |
+        [User/Member] - Lấy thông tin chi tiết của một delivery.
+        
+        Tính năng:
+        - Thông tin đầy đủ về delivery
+        - Thông tin transporter với avatar
+        - Chi tiết blood units và blood request
+        - Lịch sử trạng thái vận chuyển
+        
+      parameters:
+        - name: deliveryId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID của blood delivery
+      responses:
+        200:
+          description: Lấy thông tin delivery thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodDeliveryWithDetails'
+        404:
+          description: Không tìm thấy delivery
+        403:
+          description: Không có quyền truy cập
+
+  # ===== TRANSPORTER - DELIVERY MANAGEMENT =====
+  /blood-delivery/all/transporter/facility/{facilityId}:
+    get:
+      tags:
+        - Transporter - Delivery Management
+      summary: Lấy danh sách delivery của transporter
+      description: |
+        [Transporter Only] - Lấy danh sách delivery được phân công cho transporter hiện tại.
+        
+        Tính năng:
+        - Chỉ hiển thị delivery của transporter hiện tại
+        - Filter theo status (pending, in_transit, delivered, cancelled)
+        - Pagination với sorting
+        - Thông tin blood request và người nhận
+        - Thông tin blood units cần giao
+        - Sắp xếp theo thời gian tạo mới nhất
+        
+      parameters:
+        - name: facilityId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID cơ sở của transporter
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: ["pending", "in_transit", "delivered", "cancelled"]
+          description: Filter theo trạng thái delivery
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Số trang
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Số records per page
+      responses:
+        200:
+          description: Lấy danh sách delivery thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedResponse'
+        403:
+          description: Không có quyền truy cập (Transporter only)
+
+  /blood-delivery/{deliveryId}/facility/{facilityId}:
+    get:
+      tags:
+        - Transporter - Delivery Management
+      summary: Lấy chi tiết delivery theo facility
+      description: |
+        [Transporter Only] - Lấy thông tin chi tiết delivery của facility cụ thể.
+        
+        Tính năng:
+        - Thông tin đầy đủ về delivery
+        - Chi tiết blood units với thông tin hết hạn
+        - Thông tin người nhận và địa chỉ giao hàng
+        - Thông tin transporter
+        - Chỉ transporter của facility mới có thể xem
+        
+      parameters:
+        - name: deliveryId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID của blood delivery
+        - name: facilityId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID cơ sở
+      responses:
+        200:
+          description: Lấy chi tiết delivery thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodDeliveryWithDetails'
+        404:
+          description: Không tìm thấy delivery
+        403:
+          description: Không có quyền truy cập
+
+  /blood-delivery/{deliveryId}/start/facility/{facilityId}:
+    put:
+      tags:
+        - Transporter - Delivery Management
+      summary: Bắt đầu vận chuyển
+      description: |
+        [Transporter Only] - Bắt đầu quá trình vận chuyển máu.
+        
+        Quy trình:
+        1. Kiểm tra delivery thuộc về facility và transporter
+        2. Cập nhật status thành "in_transit"
+        3. Set startDeliveryAt = current time
+        4. Ghi log hoạt động
+        
+        Quy tắc nghiệp vụ:
+        - Chỉ delivery có status "pending" mới có thể start
+        - Chỉ transporter được phân công mới có thể thực hiện
+        - Tự động cập nhật thời gian bắt đầu
+        
+      parameters:
+        - name: deliveryId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID của blood delivery
+        - name: facilityId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID cơ sở
+      responses:
+        200:
+          description: Bắt đầu vận chuyển thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodDelivery'
+        400:
+          description: Không thể bắt đầu vận chuyển (status không hợp lệ)
+        404:
+          description: Không tìm thấy delivery
+        403:
+          description: Không có quyền truy cập
+
+  /blood-delivery/{deliveryId}/complete:
+    put:
+      tags:
+        - Transporter - Delivery Management
+      summary: Hoàn thành giao hàng
+      description: |
+        [Transporter Only] - Hoàn thành quá trình giao hàng máu.
+        
+        Quy trình (Transaction):
+        1. Kiểm tra delivery đang ở trạng thái "in_transit"
+        2. Xác thực người nhận (recipientId phải khớp với userId của blood request)
+        3. Cập nhật deliveredQuantity cho từng blood unit
+        4. Cập nhật status blood units thành "used" nếu đã giao hết
+        5. Cập nhật delivery status thành "delivered"
+        6. Set deliveredAt = current time
+        7. Cập nhật blood request status thành "completed"
+        
+        Quy tắc nghiệp vụ:
+        - Chỉ delivery có status "in_transit" mới có thể complete
+        - Người nhận phải khớp với user tạo blood request
+        - Type phải là "blood_delivery"
+        - Tất cả thao tác trong transaction để đảm bảo tính nhất quán
+        
+      parameters:
+        - name: deliveryId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID của blood delivery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteDeliveryRequest'
+      responses:
+        200:
+          description: Hoàn thành giao hàng thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodDelivery'
+        400:
+          description: Lỗi validation hoặc trạng thái không hợp lệ
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                  - type: object
+                    properties:
+                      message:
+                        example: "Đơn giao hàng không ở trạng thái đang giao"
+        404:
+          description: Không tìm thấy delivery hoặc blood request
+        403:
+          description: Không có quyền truy cập hoặc không phải người nhận 
