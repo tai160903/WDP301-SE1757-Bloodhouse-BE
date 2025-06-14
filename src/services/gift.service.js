@@ -114,6 +114,65 @@ class GiftService {
     }
   }
 
+  async getGiftItemsStats() {
+    // Get all active gift items
+    const giftItems = await GiftItem.find({ isActive: true });
+    
+    // Calculate total items
+    const totalItems = giftItems.length;
+    
+    // Calculate category breakdown and most popular category
+    const categoryBreakdown = {};
+    giftItems.forEach(item => {
+      const category = item.category || 'other';
+      categoryBreakdown[category] = (categoryBreakdown[category] || 0) + 1;
+    });
+    
+    // Calculate total categories
+    const totalCategories = Object.keys(categoryBreakdown).length;
+    
+    // Find most popular category
+    let mostPopularCategory = {
+      category: 'other',
+      count: 0
+    };
+    
+    Object.entries(categoryBreakdown).forEach(([category, count]) => {
+      if (count > mostPopularCategory.count) {
+        mostPopularCategory = {
+          category,
+          count
+        };
+      }
+    });
+    
+    // Calculate low stock items across all facilities
+    const lowStockInventories = await GiftInventory.aggregate([
+      {
+        $match: {
+          isActive: true,
+          $expr: { $lte: ["$quantity", "$minStockLevel"] }
+        }
+      },
+      {
+        $group: {
+          _id: "$giftItemId",
+          facilityCount: { $sum: 1 }
+        }
+      }
+    ]);
+    
+    const lowStockItems = lowStockInventories.length;
+    
+    return {
+      totalItems,
+      totalCategories,
+      mostPopularCategory,
+      lowStockItems,
+      categoryBreakdown
+    };
+  }
+
   // ===== GIFT PACKAGES MANAGEMENT =====
 
   async createGiftPackage(packageData) {

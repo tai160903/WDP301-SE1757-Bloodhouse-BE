@@ -1,0 +1,748 @@
+openapi: 3.0.3
+info:
+  title: Blood Donation Management System API
+  description: |
+    Comprehensive API documentation for Blood Donation Management System.
+    
+    ## Role-Based Access Control
+    - Admin: System-wide access and management
+    - Manager: Facility-specific donation management and analytics
+    - Doctor: Blood donation review, division management, and QR scanning
+    - Nurse: Donation creation, updates, QR scanning, and workflow management
+    - Member: Personal donation history access
+    
+    ## Blood Donation Workflow
+    1. **Registration**: User creates blood donation registration
+    2. **Health Check**: Doctor performs health assessment
+    3. **Donation Creation**: Nurse creates blood donation record
+    4. **Donation Process**: Nurse manages donation workflow (donating → completed/cancelled)
+    5. **Post-Donation**: Transition to resting phase
+    6. **Blood Processing**: Doctor marks blood as divided for component separation
+    
+    ## QR Code Integration
+    - **Nurse QR Scan**: Access donation details and workflow management
+    - **Doctor Access**: Review donations assigned to them
+    - **Facility Isolation**: Staff can only access donations from their facility
+    
+    ## Authentication
+    All endpoints require authentication via Bearer token in Authorization header.
+    
+  version: 1.0.0
+  contact:
+    name: Blood Donation Management System
+    email: admin@bloodhouse.com
+
+servers:
+  - url: http://localhost:3052/api/v1
+    description: Development server
+  - url: https://api.bloodhouse.com/api/v1
+    description: Production server
+
+tags:
+  - name: Member - History
+    description: Blood donation history for members
+  - name: Staff - Management
+    description: Blood donation management for staff (Manager/Nurse/Doctor)
+  - name: Nurse - Operations
+    description: Nurse-specific donation operations and QR scanning
+  - name: Doctor - Review
+    description: Doctor-specific donation review and blood processing
+  - name: Shared - Access
+    description: Shared access endpoints for multiple roles
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login
+  
+  schemas:
+    BloodDonation:
+      type: object
+      required:
+        - userId
+        - staffId
+        - bloodGroupId
+        - bloodDonationRegistrationId
+        - healthCheckId
+      properties:
+        _id:
+          type: string
+          description: Unique identifier
+        code:
+          type: string
+          description: Auto-generated donation code
+          example: "BD-001234"
+        userId:
+          type: string
+          description: Reference to User (donor)
+        staffId:
+          type: string
+          description: Reference to FacilityStaff (nurse who created)
+        doctorId:
+          type: string
+          description: Reference to FacilityStaff (doctor from health check)
+        bloodGroupId:
+          type: string
+          description: Reference to BloodGroup
+        bloodDonationRegistrationId:
+          type: string
+          description: Reference to BloodDonationRegistration
+        healthCheckId:
+          type: string
+          description: Reference to HealthCheck
+        quantity:
+          type: number
+          nullable: true
+          description: Actual donated quantity in ml
+          example: 350
+        donationDate:
+          type: string
+          format: date-time
+          description: When donation was started
+        status:
+          type: string
+          enum: ["donating", "cancelled", "completed"]
+          description: Current donation status
+          example: "donating"
+        notes:
+          type: string
+          nullable: true
+          description: Donation notes
+        isDivided:
+          type: boolean
+          default: false
+          description: Whether blood has been divided into components
+        giftPackageId:
+          type: string
+          nullable: true
+          description: Distributed gift package ID
+        createdBy:
+          type: string
+          description: Staff ID who created the donation
+        updatedBy:
+          type: string
+          nullable: true
+          description: Staff ID who last updated
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BloodDonationCreateRequest:
+      type: object
+      required:
+        - userId
+        - bloodGroupId
+        - bloodDonationRegistrationId
+        - healthCheckId
+      properties:
+        userId:
+          type: string
+          description: Donor user ID
+        bloodGroupId:
+          type: string
+          description: Blood group ID
+        bloodDonationRegistrationId:
+          type: string
+          description: Registration ID
+        healthCheckId:
+          type: string
+          description: Health check ID
+
+    BloodDonationUpdateRequest:
+      type: object
+      properties:
+        quantity:
+          type: number
+          minimum: 0
+          description: Donated quantity in ml (required for completion)
+          example: 350
+        status:
+          type: string
+          enum: ["donating", "cancelled", "completed"]
+          description: New donation status
+        notes:
+          type: string
+          description: Update notes (required for cancellation)
+
+    TransitionToRestingRequest:
+      type: object
+      properties:
+        notes:
+          type: string
+          description: Transition notes
+          example: "Chuyển sang giai đoạn nghỉ ngơi"
+
+    NurseQRScanRequest:
+      type: object
+      required:
+        - qrData
+      properties:
+        qrData:
+          oneOf:
+            - type: string
+              description: JSON string of QR data
+            - type: object
+              properties:
+                registrationId:
+                  type: string
+                userId:
+                  type: string
+                bloodGroupId:
+                  type: string
+          description: QR code data (string or object)
+
+    Error:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "error"
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: "Validation error"
+
+    Success:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "success"
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+        data:
+          type: object
+
+    PaginatedResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BloodDonation'
+        totalItems:
+          type: integer
+        totalPages:
+          type: integer
+        currentPage:
+          type: integer
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ===== MEMBER - HISTORY =====
+  /blood-donation/user:
+    get:
+      tags:
+        - Member - History
+      summary: Get user's donation history
+      description: |
+        [Member Only] - Get blood donation history for the authenticated user.
+        
+        Features:
+        - Paginated results with donation details
+        - Includes related registration and facility information
+        - Shows donation status and quantities
+        - Personal donation timeline
+        
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Items per page
+      responses:
+        200:
+          description: User donation history retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedResponse'
+        401:
+          description: Unauthorized - invalid or missing token
+
+  # ===== STAFF - MANAGEMENT =====
+  /blood-donation:
+    post:
+      tags:
+        - Nurse - Operations
+      summary: Create blood donation record
+      description: |
+        [Nurse Only] - Create a new blood donation record to start the donation process.
+        
+        Business Rules:
+        - Only nurses can create donation records
+        - All referenced entities (user, registration, health check) must exist
+        - Health check must be completed and eligible
+        - Registration status will be updated to 'donating'
+        - Automatic assignment of doctor from health check
+        - Creates process donation log entry
+        
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BloodDonationCreateRequest'
+      responses:
+        201:
+          description: Blood donation created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodDonation'
+        400:
+          description: Validation error or business rule violation
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                  - type: object
+                    properties:
+                      message:
+                        example: "Health check not found or not eligible"
+        403:
+          description: Insufficient permissions (Nurse only)
+
+    get:
+      tags:
+        - Staff - Management
+      summary: Get blood donations
+      description: |
+        [Staff Only] - Get blood donations for the staff member's facility.
+        
+        Access Control:
+        - Manager/Nurse/Doctor: Can view donations from their facility
+        - Automatic facility filtering based on staff assignment
+        - Includes donor, staff, and facility information
+        
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: ["donating", "cancelled", "completed"]
+          description: Filter by donation status
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: Blood donations retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedResponse'
+
+  /blood-donation/{id}:
+    get:
+      tags:
+        - Shared - Access
+      summary: Get blood donation details
+      description: |
+        Get detailed information about a specific blood donation.
+        
+        Access Control:
+        - Members: Can only view their own donations
+        - Staff: Can view donations from their facility
+        - Includes complete donation information with populated references
+        
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Blood donation ID
+      responses:
+        200:
+          description: Blood donation details retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodDonation'
+        404:
+          description: Blood donation not found or access denied
+
+    patch:
+      tags:
+        - Nurse - Operations
+      summary: Update blood donation
+      description: |
+        [Nurse Only] - Update blood donation status and details.
+        
+        Business Rules:
+        - Only nurses can update donations
+        - Status transitions: donating → completed/cancelled
+        - Quantity required for completion
+        - Notes required for cancellation
+        - Updates related registration status
+        - Creates donor status log on completion
+        - Sends notifications to donor
+        
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BloodDonationUpdateRequest'
+      responses:
+        200:
+          description: Blood donation updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodDonation'
+        400:
+          description: Validation error or invalid status transition
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                  - type: object
+                    properties:
+                      message:
+                        example: "Vui lòng nhập số lượng hiến máu"
+        403:
+          description: Insufficient permissions (Nurse only)
+
+  /blood-donation/transition-to-resting/{registrationId}:
+    patch:
+      tags:
+        - Staff - Management
+      summary: Transition donation to resting phase
+      description: |
+        [Staff Only] - Transition a completed donation to resting phase.
+        
+        Business Rules:
+        - Registration must be in 'donated' status
+        - Updates registration status to 'resting'
+        - Creates process donation log entry
+        - Sends notification to donor
+        - Part of post-donation workflow
+        
+      parameters:
+        - name: registrationId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Blood donation registration ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransitionToRestingRequest'
+      responses:
+        200:
+          description: Successfully transitioned to resting
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                          status:
+                            type: string
+                            example: "resting"
+                          updatedAt:
+                            type: string
+                            format: date-time
+        400:
+          description: Invalid registration status for transition
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                  - type: object
+                    properties:
+                      message:
+                        example: "Chỉ có thể chuyển sang nghỉ ngơi từ trạng thái đã hiến máu"
+
+  # ===== DOCTOR - REVIEW =====
+  /blood-donation/doctor:
+    get:
+      tags:
+        - Doctor - Review
+      summary: Get doctor's assigned donations
+      description: |
+        [Doctor Only] - Get blood donations assigned to the authenticated doctor.
+        
+        Features:
+        - Shows donations where doctor performed health check
+        - Filter by donation status and division status
+        - Includes donor and donation details
+        - Used for blood processing workflow
+        
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: ["donating", "cancelled", "completed"]
+          description: Filter by donation status
+        - name: isDivided
+          in: query
+          schema:
+            type: boolean
+          description: Filter by blood division status
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: Doctor's donations retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedResponse'
+        403:
+          description: Insufficient permissions (Doctor only)
+
+  /blood-donation/doctor/{id}/mark-divided:
+    patch:
+      tags:
+        - Doctor - Review
+      summary: Mark blood donation as divided
+      description: |
+        [Doctor Only] - Mark a completed blood donation as divided for component separation.
+        
+        Business Rules:
+        - Only doctors can mark donations as divided
+        - Donation must be completed
+        - Doctor must be assigned to this donation
+        - Used for blood component processing workflow
+        - Updates isDivided flag to true
+        
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Blood donation ID
+      responses:
+        200:
+          description: Blood donation marked as divided successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodDonation'
+        400:
+          description: Invalid donation status or access denied
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                  - type: object
+                    properties:
+                      message:
+                        example: "Chỉ có thể đánh dấu đã phân chia cho donation đã hoàn thành"
+        403:
+          description: Insufficient permissions (Doctor only)
+        404:
+          description: Blood donation not found or not assigned to doctor
+
+  # ===== NURSE - QR OPERATIONS =====
+  /blood-donation/nurse/qr-scan:
+    post:
+      tags:
+        - Nurse - Operations
+      summary: Nurse QR scan for donation workflow
+      description: |
+        [Nurse Only] - Scan QR code to access donation details and workflow management.
+        
+        Business Process:
+        1. Parse and validate QR code data
+        2. Find related blood donation registration
+        3. Locate corresponding blood donation record
+        4. Validate nurse facility access
+        5. Return donation details with workflow context
+        
+        Use Cases:
+        - Quick access to donation details during workflow
+        - Verify donation information via QR scanning
+        - Mobile-friendly donation management
+        
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NurseQRScanRequest'
+      responses:
+        200:
+          description: QR scan successful - donation details retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          donation:
+                            $ref: '#/components/schemas/BloodDonation'
+                          registration:
+                            type: object
+                            description: Related registration details
+                          donor:
+                            type: object
+                            description: Donor information
+                          actionData:
+                            type: object
+                            properties:
+                              message:
+                                type: string
+                                example: "Donation workflow accessible"
+                              nextAction:
+                                type: string
+                              navigateTo:
+                                type: string
+        400:
+          description: Invalid QR data or access denied
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                  - type: object
+                    properties:
+                      message:
+                        example: "QR code data không hợp lệ"
+        403:
+          description: Insufficient permissions (Nurse only)
+        404:
+          description: Donation not found or not accessible
+
+  # ===== HEALTH CHECK INTEGRATION =====
+  /blood-donation/health-check/{healthCheckId}:
+    get:
+      tags:
+        - Staff - Management
+      summary: Get blood donation by health check ID
+      description: |
+        [Staff Only] - Get blood donation associated with a specific health check.
+        
+        Features:
+        - Links health check to corresponding donation
+        - Used in health check workflow integration
+        - Provides donation context during health assessment
+        - Access control based on staff facility
+        
+      parameters:
+        - name: healthCheckId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Health check ID
+      responses:
+        200:
+          description: Blood donation found for health check
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodDonation'
+        404:
+          description: No donation found for this health check
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                  - type: object
+                    properties:
+                      message:
+                        example: "Không tìm thấy blood donation cho health check này" 

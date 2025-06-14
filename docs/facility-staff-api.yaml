@@ -1,0 +1,534 @@
+openapi: 3.0.3
+info:
+  title: Facility Staff Management System API
+  description: |
+    Hệ thống quản lý nhân viên cơ sở y tế toàn diện.
+    
+    ## Phân quyền truy cập
+    - Admin: Quản lý toàn bộ nhân viên hệ thống
+    - Manager: Xem nhân viên cơ sở của mình
+    - Staff: Xem thông tin cơ bản
+    
+    ## Quy trình quản lý nhân viên
+    1. **Tạo nhân viên**: Gán user vào cơ sở với vị trí cụ thể
+    2. **Phân công cơ sở**: Gán nhân viên vào facility hoặc để unassigned
+    3. **Cập nhật thông tin**: Thay đổi vị trí, cơ sở làm việc
+    4. **Xóa nhân viên**: Soft delete và reset role về MEMBER
+    
+    ## Vị trí nhân viên
+    - MANAGER: Quản lý cơ sở
+    - DOCTOR: Bác sĩ
+    - NURSE: Y tá/Điều dưỡng
+    - TRANSPORTER: Nhân viên vận chuyển
+    
+    ## Tính năng nâng cao
+    - Lọc nhân viên theo vị trí và cơ sở
+    - Danh sách nhân viên chưa được phân công
+    - Pagination và search cho tất cả endpoints
+    - Soft delete với audit trail
+    
+    ## Xác thực
+    Tất cả endpoints yêu cầu xác thực qua Bearer token trong Authorization header.
+    
+  version: 1.0.0
+  contact:
+    name: Facility Staff Management System
+    email: admin@bloodhouse.com
+
+servers:
+  - url: http://localhost:3052/api/v1
+    description: Development server
+  - url: https://api.bloodhouse.com/api/v1
+    description: Production server
+
+tags:
+  - name: Admin - Staff Management
+    description: Quản lý toàn bộ nhân viên hệ thống (Admin)
+  - name: Staff - Information
+    description: Xem thông tin nhân viên (All authenticated users)
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login
+  
+  schemas:
+    FacilityStaff:
+      type: object
+      required:
+        - userId
+        - position
+      properties:
+        _id:
+          type: string
+          description: Unique identifier
+        userId:
+          type: string
+          description: Reference to User
+        facilityId:
+          type: string
+          nullable: true
+          description: Reference to Facility (null if unassigned)
+        position:
+          type: string
+          enum: ["MANAGER", "DOCTOR", "NURSE", "TRANSPORTER"]
+          description: Vị trí công việc
+          example: "NURSE"
+        assignedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Thời gian được phân công
+        isDeleted:
+          type: boolean
+          default: false
+          description: Trạng thái xóa (soft delete)
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    FacilityStaffWithDetails:
+      allOf:
+        - $ref: '#/components/schemas/FacilityStaff'
+        - type: object
+          properties:
+            userId:
+              type: object
+              properties:
+                _id:
+                  type: string
+                fullName:
+                  type: string
+                  example: "Nguyễn Văn A"
+                email:
+                  type: string
+                  example: "nurse@example.com"
+                phone:
+                  type: string
+                  example: "0901234567"
+                avatar:
+                  type: string
+                  nullable: true
+                  example: "https://example.com/avatar.jpg"
+            facilityId:
+              type: object
+              nullable: true
+              properties:
+                _id:
+                  type: string
+                name:
+                  type: string
+                  example: "Bệnh viện Đa khoa Thành phố"
+                address:
+                  type: string
+                  example: "123 Đường ABC, Quận 1, TP.HCM"
+
+    FacilityStaffCreateRequest:
+      type: object
+      required:
+        - userId
+        - position
+      properties:
+        userId:
+          type: string
+          description: ID của user cần gán làm nhân viên
+        facilityId:
+          type: string
+          nullable: true
+          description: ID cơ sở (có thể null để tạo unassigned staff)
+        position:
+          type: string
+          enum: ["MANAGER", "DOCTOR", "NURSE", "TRANSPORTER"]
+          description: Vị trí công việc
+        assignedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Thời gian phân công (auto-set nếu có facilityId)
+
+    FacilityStaffUpdateRequest:
+      type: object
+      properties:
+        facilityId:
+          type: string
+          nullable: true
+          description: ID cơ sở mới (null để unassign)
+        position:
+          type: string
+          enum: ["MANAGER", "DOCTOR", "NURSE", "TRANSPORTER"]
+          description: Vị trí công việc mới
+        assignedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Thời gian phân công mới
+
+    FacilityStaffSummary:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Tổng số nhân viên
+        result:
+          type: array
+          items:
+            $ref: '#/components/schemas/FacilityStaffWithDetails'
+
+    Error:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "error"
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: "Validation error"
+
+    Success:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "success"
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+        data:
+          type: object
+
+    PaginatedResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/FacilityStaffWithDetails'
+        totalItems:
+          type: integer
+        totalPages:
+          type: integer
+        currentPage:
+          type: integer
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ===== ADMIN - STAFF MANAGEMENT =====
+  /facility-staff:
+    get:
+      tags:
+        - Admin - Staff Management
+      summary: Lấy danh sách tất cả nhân viên
+      description: |
+        [Authenticated Users] - Lấy danh sách nhân viên với filtering và pagination.
+        
+        Tính năng:
+        - Filter theo vị trí (position) và cơ sở (facilityId)
+        - Pagination với limit và page
+        - Populated user và facility information
+        - Sắp xếp theo thời gian tạo mới nhất
+        - Chỉ hiển thị nhân viên chưa bị xóa
+        
+      parameters:
+        - name: position
+          in: query
+          schema:
+            type: string
+            enum: ["MANAGER", "DOCTOR", "NURSE", "TRANSPORTER"]
+          description: Filter theo vị trí công việc
+        - name: facilityId
+          in: query
+          schema:
+            type: string
+          description: Filter theo cơ sở y tế
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Số lượng records per page
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Số trang
+      responses:
+        200:
+          description: Lấy danh sách nhân viên thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedResponse'
+
+    post:
+      tags:
+        - Admin - Staff Management
+      summary: Tạo nhân viên mới
+      description: |
+        [Admin/Manager] - Tạo nhân viên mới cho hệ thống.
+        
+        Quy tắc nghiệp vụ:
+        - User phải tồn tại và chưa là nhân viên
+        - Position phải hợp lệ (MANAGER, DOCTOR, NURSE, TRANSPORTER)
+        - Có thể tạo unassigned staff (không có facilityId)
+        - Tự động set assignedAt nếu có facilityId
+        - Cập nhật role của user tương ứng với position
+        
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FacilityStaffCreateRequest'
+      responses:
+        201:
+          description: Tạo nhân viên thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/FacilityStaff'
+        400:
+          description: Lỗi validation hoặc user đã là nhân viên
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                  - type: object
+                    properties:
+                      message:
+                        example: "Nhân viên cơ sở đã tồn tại"
+
+  /facility-staff/not-assigned:
+    get:
+      tags:
+        - Admin - Staff Management
+      summary: Lấy danh sách nhân viên chưa được phân công
+      description: |
+        [Admin/Manager] - Lấy danh sách nhân viên chưa được gán vào cơ sở nào.
+        
+        Tính năng:
+        - Chỉ hiển thị staff có facilityId = null hoặc không tồn tại
+        - Filter theo position nếu cần
+        - Dùng để phân công nhân viên vào cơ sở mới
+        - Populated user information
+        - Không có pagination (thường ít records)
+        
+      parameters:
+        - name: position
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              enum: ["MANAGER", "DOCTOR", "NURSE", "TRANSPORTER"]
+          style: form
+          explode: true
+          description: Filter theo một hoặc nhiều vị trí
+      responses:
+        200:
+          description: Danh sách nhân viên chưa phân công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/FacilityStaffWithDetails'
+
+  /facility-staff/facility/{id}:
+    get:
+      tags:
+        - Staff - Information
+      summary: Lấy nhân viên theo cơ sở
+      description: |
+        [Authenticated Users] - Lấy danh sách nhân viên của một cơ sở cụ thể.
+        
+        Tính năng:
+        - Hiển thị tất cả nhân viên của cơ sở
+        - Filter theo position nếu cần
+        - Populated user và facility information
+        - Trả về summary với total count
+        - Chỉ hiển thị nhân viên chưa bị xóa
+        
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID cơ sở y tế
+        - name: position
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              enum: ["MANAGER", "DOCTOR", "NURSE", "TRANSPORTER"]
+          style: form
+          explode: true
+          description: Filter theo vị trí
+      responses:
+        200:
+          description: Danh sách nhân viên cơ sở
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/FacilityStaffSummary'
+        400:
+          description: Thiếu facility ID
+        404:
+          description: Không tìm thấy cơ sở
+
+  /facility-staff/{id}:
+    get:
+      tags:
+        - Staff - Information
+      summary: Lấy thông tin nhân viên theo ID
+      description: |
+        [Authenticated Users] - Lấy thông tin chi tiết của một nhân viên.
+        
+        Tính năng:
+        - Thông tin đầy đủ về nhân viên
+        - Populated user và facility information
+        - Kiểm tra nhân viên tồn tại và chưa bị xóa
+        
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID nhân viên
+      responses:
+        200:
+          description: Thông tin nhân viên
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/FacilityStaffWithDetails'
+        400:
+          description: ID không hợp lệ
+        404:
+          description: Không tìm thấy nhân viên
+
+    put:
+      tags:
+        - Admin - Staff Management
+      summary: Cập nhật thông tin nhân viên
+      description: |
+        [Admin/Manager] - Cập nhật thông tin nhân viên.
+        
+        Quy tắc nghiệp vụ:
+        - Có thể thay đổi facilityId (assign/unassign)
+        - Có thể thay đổi position
+        - Tự động cập nhật assignedAt khi thay đổi facility
+        - Cập nhật role của user nếu thay đổi position
+        - Validate facility và position hợp lệ
+        
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID nhân viên
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FacilityStaffUpdateRequest'
+      responses:
+        200:
+          description: Cập nhật nhân viên thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/FacilityStaff'
+        400:
+          description: Lỗi validation
+        404:
+          description: Không tìm thấy nhân viên
+
+  /facility-staff/delete/{id}:
+    put:
+      tags:
+        - Admin - Staff Management
+      summary: Xóa nhân viên (soft delete)
+      description: |
+        [Admin/Manager] - Xóa nhân viên khỏi hệ thống (soft delete).
+        
+        Quy trình:
+        1. Đánh dấu isDeleted = true
+        2. Reset role của user về MEMBER
+        3. Giữ lại dữ liệu để audit
+        4. Nhân viên không thể đăng nhập với quyền staff
+        
+        Lưu ý: Đây là soft delete, dữ liệu vẫn được giữ lại.
+        
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID nhân viên cần xóa
+      responses:
+        200:
+          description: Xóa nhân viên thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/FacilityStaff'
+        400:
+          description: ID không hợp lệ
+        404:
+          description: Không tìm thấy nhân viên 

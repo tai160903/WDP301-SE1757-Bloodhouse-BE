@@ -1,0 +1,1049 @@
+openapi: 3.0.3
+info:
+  title: Blood Request Management System API
+  description: |
+    Comprehensive API documentation for Blood Request Management System.
+    
+    ## Role-Based Access Control
+    - Member: Create and manage personal blood requests, view support requests
+    - Manager: Facility-specific request management, blood unit assignment, approval workflow
+    - Nurse: Facility-specific request viewing and status updates
+    - Admin: System-wide access (inherited from other roles)
+    
+    ## Blood Request Workflow
+    1. **Request Creation**: Member creates blood request with medical documents
+    2. **Approval Process**: Manager reviews and approves/rejects requests
+    3. **Support System**: Requests can be marked as needing community support
+    4. **Blood Assignment**: Manager assigns available blood units to approved requests
+    5. **Delivery Management**: Automatic delivery creation with QR codes
+    6. **Status Tracking**: Complete lifecycle tracking from creation to completion
+    
+    ## Support Request System
+    - Community-driven blood donation support
+    - Automatic notifications to potential donors
+    - Registration and approval workflow for supporters
+    - Facility-specific support request management
+    
+    ## File Upload System
+    - Medical documents: 1-5 files required per request
+    - Supported formats: Images and documents
+    - Cloudinary integration for secure storage
+    
+    ## Authentication
+    All endpoints require authentication via Bearer token in Authorization header.
+    
+  version: 1.0.0
+  contact:
+    name: Blood Request Management System
+    email: admin@bloodhouse.com
+
+servers:
+  - url: http://localhost:3052/api/v1
+    description: Development server
+  - url: https://api.bloodhouse.com/api/v1
+    description: Production server
+
+tags:
+  - name: Member - Requests
+    description: Personal blood request management for members
+  - name: Member - Support
+    description: Community support request access for members
+  - name: Manager - Approval
+    description: Request approval and blood unit assignment (Manager only)
+  - name: Staff - Management
+    description: Facility-specific request management (Manager/Nurse)
+  - name: Shared - Access
+    description: Shared access endpoints for multiple roles
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login
+  
+  schemas:
+    BloodRequest:
+      type: object
+      required:
+        - groupId
+        - userId
+        - quantity
+        - reason
+        - medicalDocumentUrl
+        - preferredDate
+      properties:
+        _id:
+          type: string
+          description: Unique identifier
+        groupId:
+          type: string
+          description: Reference to BloodGroup
+        userId:
+          type: string
+          description: Reference to User (requester)
+        approvedBy:
+          type: string
+          nullable: true
+          description: Reference to FacilityStaff who approved
+        approvedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Approval timestamp
+        facilityId:
+          type: string
+          nullable: true
+          description: Reference to assigned Facility
+        componentId:
+          type: string
+          nullable: true
+          description: Reference to BloodComponent
+        quantity:
+          type: integer
+          minimum: 1
+          description: Requested blood quantity in units
+          example: 2
+        isUrgent:
+          type: boolean
+          default: false
+          description: Whether request is urgent
+        status:
+          type: string
+          enum: 
+            - "pending_approval"
+            - "rejected_registration" 
+            - "approved"
+            - "assigned"
+            - "ready_for_handover"
+            - "completed"
+            - "cancelled"
+          default: "pending_approval"
+          description: Current request status
+        patientName:
+          type: string
+          description: Patient name (auto-filled from user)
+          example: "Nguyễn Văn A"
+        patientPhone:
+          type: string
+          description: Patient phone (auto-filled from user)
+          example: "0901234567"
+        address:
+          type: string
+          description: Delivery address
+          example: "123 Đường ABC, Quận 1, TP.HCM"
+        location:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: ["Point"]
+              default: "Point"
+            coordinates:
+              type: array
+              items:
+                type: number
+              minItems: 2
+              maxItems: 2
+              description: "[longitude, latitude]"
+              example: [106.6297, 10.8231]
+        medicalDocumentUrl:
+          type: array
+          items:
+            type: string
+            format: uri
+          minItems: 1
+          maxItems: 5
+          description: Medical document URLs (1-5 required)
+          example: ["https://cloudinary.com/doc1.pdf", "https://cloudinary.com/doc2.jpg"]
+        reason:
+          type: string
+          description: Reason for blood request
+          example: "Phẫu thuật tim mạch"
+        note:
+          type: string
+          nullable: true
+          description: Additional notes
+        preferredDate:
+          type: string
+          format: date
+          description: Preferred delivery date
+          example: "2024-01-15"
+        scheduledDeliveryDate:
+          type: string
+          format: date
+          nullable: true
+          description: Scheduled delivery date (set by manager)
+        isFulfilled:
+          type: boolean
+          default: false
+          description: Whether request has been fulfilled
+        needsSupport:
+          type: boolean
+          default: false
+          description: Whether request needs community support
+        qrCodeUrl:
+          type: string
+          nullable: true
+          description: QR code for delivery tracking
+        distributedBy:
+          type: string
+          nullable: true
+          description: Reference to staff who distributed
+        distributedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Distribution timestamp
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BloodRequestCreateRequest:
+      type: object
+      required:
+        - groupId
+        - quantity
+        - reason
+        - preferredDate
+        - address
+      properties:
+        groupId:
+          type: string
+          description: Blood group ID
+        facilityId:
+          type: string
+          nullable: true
+          description: Preferred facility ID
+        componentId:
+          type: string
+          nullable: true
+          description: Specific blood component ID
+        quantity:
+          type: integer
+          minimum: 1
+          description: Requested quantity
+          example: 2
+        isUrgent:
+          type: boolean
+          default: false
+        address:
+          type: string
+          description: Delivery address
+        longitude:
+          type: number
+          description: Location longitude
+          example: 106.6297
+        latitude:
+          type: number
+          description: Location latitude
+          example: 10.8231
+        reason:
+          type: string
+          description: Medical reason
+        note:
+          type: string
+          nullable: true
+          description: Additional notes
+        preferredDate:
+          type: string
+          format: date
+          description: Preferred date
+
+    BloodRequestStatusUpdate:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: 
+            - "pending_approval"
+            - "rejected_registration"
+            - "approved" 
+            - "assigned"
+            - "ready_for_handover"
+            - "completed"
+            - "cancelled"
+        staffId:
+          type: string
+          description: Staff ID for approval actions
+        needsSupport:
+          type: boolean
+          description: Mark request as needing support
+
+    BloodRequestComponentUpdate:
+      type: object
+      required:
+        - componentId
+      properties:
+        componentId:
+          type: string
+          description: Blood component ID
+
+    AssignBloodUnitsRequest:
+      type: object
+      required:
+        - bloodUnits
+        - facilityId
+        - transporterId
+        - scheduledDeliveryDate
+      properties:
+        bloodUnits:
+          type: array
+          items:
+            type: object
+            required:
+              - unitId
+              - quantity
+            properties:
+              unitId:
+                type: string
+                description: Blood unit ID
+              quantity:
+                type: integer
+                minimum: 1
+                description: Quantity to assign
+          minItems: 1
+        facilityId:
+          type: string
+          description: Source facility ID
+        transporterId:
+          type: string
+          description: Transporter staff ID
+        note:
+          type: string
+          nullable: true
+          description: Assignment notes
+        scheduledDeliveryDate:
+          type: string
+          format: date-time
+          description: Scheduled delivery date
+
+    SupportRequestDetails:
+      allOf:
+        - $ref: '#/components/schemas/BloodRequest'
+        - type: object
+          properties:
+            isRegistered:
+              type: boolean
+              description: Whether current user is registered for support
+            numberRegistered:
+              type: integer
+              description: Total number of registered supporters
+            numberPending:
+              type: integer
+              description: Number of pending support registrations
+
+    Error:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "error"
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: "Validation error"
+
+    Success:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "success"
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+        data:
+          type: object
+
+    PaginatedResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BloodRequest'
+        totalItems:
+          type: integer
+        totalPages:
+          type: integer
+        currentPage:
+          type: integer
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ===== MEMBER - REQUESTS =====
+  /blood-request:
+    post:
+      tags:
+        - Member - Requests
+      summary: Create blood request
+      description: |
+        [Member Only] - Create a new blood request with medical documentation.
+        
+        Business Rules:
+        - Requires 1-5 medical document files
+        - Patient info auto-filled from user profile
+        - Blood group must be valid and exist
+        - Quantity must be positive integer
+        - Creates request in 'pending_approval' status
+        - Validates file types and sizes
+        
+        File Upload:
+        - Field name: 'medicalDocuments'
+        - Accepts: images, PDFs, documents
+        - Min: 1 file, Max: 5 files
+        - Stored securely in Cloudinary
+        
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/BloodRequestCreateRequest'
+                - type: object
+                  properties:
+                    medicalDocuments:
+                      type: array
+                      items:
+                        type: string
+                        format: binary
+                      minItems: 1
+                      maxItems: 5
+                      description: Medical document files (1-5 required)
+      responses:
+        201:
+          description: Blood request created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodRequest'
+        400:
+          description: Validation error or missing files
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                  - type: object
+                    properties:
+                      message:
+                        example: "Cần tải lên ít nhất 1 file tài liệu y tế"
+
+  /blood-request/user:
+    get:
+      tags:
+        - Member - Requests
+      summary: Get user's blood requests
+      description: |
+        [Member Only] - Get paginated list of user's blood requests.
+        
+        Features:
+        - Personal request history
+        - Filter by status
+        - Search in patient name, reason
+        - Sort by various fields
+        - Includes facility and blood group info
+        
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: ["pending_approval", "rejected_registration", "approved", "assigned", "ready_for_handover", "completed", "cancelled"]
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search in patient name, reason
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: ["createdAt", "updatedAt", "quantity", "status", "preferredDate"]
+            default: "createdAt"
+        - name: sortOrder
+          in: query
+          schema:
+            type: integer
+            enum: [1, -1]
+            default: -1
+          description: 1 for ascending, -1 for descending
+      responses:
+        200:
+          description: User blood requests retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedResponse'
+
+  /blood-request/user/{id}:
+    get:
+      tags:
+        - Member - Requests
+      summary: Get user's blood request details
+      description: |
+        [Member Only] - Get detailed information about user's specific blood request.
+        
+        Access Control:
+        - User can only access their own requests
+        - Includes complete request information
+        - Shows approval details if approved
+        
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Blood request ID
+      responses:
+        200:
+          description: Blood request details retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodRequest'
+        404:
+          description: Request not found or access denied
+
+  # ===== MEMBER - SUPPORT =====
+  /blood-request/need-support:
+    get:
+      tags:
+        - Member - Support
+      summary: Get blood requests needing support
+      description: |
+        [Member Only] - Get list of blood requests that need community support.
+        
+        Features:
+        - Shows approved requests needing support
+        - Includes supporter statistics
+        - Sorted by urgency and creation date
+        - Shows user's registration status for each request
+        - Community-driven support system
+        
+      responses:
+        200:
+          description: Support requests retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/SupportRequestDetails'
+
+  /blood-request/need-support/{id}:
+    get:
+      tags:
+        - Member - Support
+      summary: Get support request details
+      description: |
+        [Member Only] - Get detailed information about a specific support request.
+        
+        Features:
+        - Complete request information
+        - Supporter statistics
+        - User's registration status
+        - Used for support registration decisions
+        
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Blood request ID
+      responses:
+        200:
+          description: Support request details retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SupportRequestDetails'
+        404:
+          description: Support request not found
+
+  # ===== MANAGER - APPROVAL =====
+  /blood-request/{id}/assign-blood-units:
+    post:
+      tags:
+        - Manager - Approval
+      summary: Assign blood units to request
+      description: |
+        [Manager Only] - Assign available blood units to an approved blood request.
+        
+        Business Process:
+        1. Validate request is approved and belongs to facility
+        2. Check blood unit availability and compatibility
+        3. Reserve blood units and update quantities
+        4. Create delivery record with transporter
+        5. Update request status to 'assigned'
+        6. Generate QR code for delivery tracking
+        7. Create distribution logs
+        8. Send notifications
+        
+        Business Rules:
+        - Request must be approved
+        - Blood units must be available and compatible
+        - Transporter must exist and belong to facility
+        - Atomic operation - all units assigned or none
+        - Automatic delivery creation
+        
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Blood request ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignBloodUnitsRequest'
+      responses:
+        200:
+          description: Blood units assigned successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        description: Created delivery information
+        400:
+          description: Validation error or insufficient blood units
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                  - type: object
+                    properties:
+                      message:
+                        example: "Một số đơn vị máu không hợp lệ"
+        403:
+          description: Insufficient permissions (Manager only)
+
+  # ===== STAFF - MANAGEMENT =====
+  /blood-request/facility/{facilityId}:
+    get:
+      tags:
+        - Staff - Management
+      summary: Get facility blood requests
+      description: |
+        [Manager/Nurse] - Get blood requests for a specific facility.
+        
+        Features:
+        - Facility-specific request list
+        - Filter by status, urgency, fulfillment
+        - Search and sort capabilities
+        - Includes requester and facility information
+        - Pagination support
+        
+      parameters:
+        - name: facilityId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Facility ID
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: ["pending_approval", "rejected_registration", "approved", "assigned", "ready_for_handover", "completed", "cancelled"]
+        - name: isUrgent
+          in: query
+          schema:
+            type: boolean
+          description: Filter urgent requests
+        - name: isFulfilled
+          in: query
+          schema:
+            type: boolean
+          description: Filter fulfilled requests
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: ["createdAt", "updatedAt", "quantity", "status", "preferredDate"]
+            default: "createdAt"
+        - name: sortOrder
+          in: query
+          schema:
+            type: integer
+            enum: [1, -1]
+            default: -1
+      responses:
+        200:
+          description: Facility blood requests retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedResponse'
+
+  /blood-request/facility/{facilityId}/user/{userId}:
+    get:
+      tags:
+        - Staff - Management
+      summary: Get facility requests by user
+      description: |
+        [Manager/Nurse] - Get blood requests from specific user for a facility.
+        
+        Use Cases:
+        - User-specific request history at facility
+        - Patient request tracking
+        - Support staff workflow
+        
+      parameters:
+        - name: facilityId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            default: "createdAt"
+        - name: sortOrder
+          in: query
+          schema:
+            type: integer
+            default: -1
+      responses:
+        200:
+          description: User requests for facility retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedResponse'
+
+  /blood-request/facility/{facilityId}/{id}:
+    get:
+      tags:
+        - Staff - Management
+      summary: Get facility request details
+      description: |
+        [Manager/Nurse] - Get detailed information about specific request at facility.
+        
+        Access Control:
+        - Request must belong to the specified facility
+        - Complete request information with relationships
+        
+      parameters:
+        - name: facilityId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Request details retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodRequest'
+        404:
+          description: Request not found or not in facility
+
+  /blood-request/facility/{facilityId}/{id}/status:
+    patch:
+      tags:
+        - Staff - Management
+      summary: Update request status
+      description: |
+        [Manager/Nurse] - Update blood request status and related information.
+        
+        Business Rules:
+        - Status transitions must be valid
+        - Staff ID required for approval actions
+        - Automatic notifications to requester
+        - Support system integration
+        - Creates audit trail
+        
+        Status Flow:
+        - pending_approval → approved/rejected_registration
+        - approved → assigned (via blood unit assignment)
+        - assigned → ready_for_handover → completed
+        - Any status → cancelled
+        
+      parameters:
+        - name: facilityId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BloodRequestStatusUpdate'
+      responses:
+        200:
+          description: Status updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                          status:
+                            type: string
+                          approvedBy:
+                            type: string
+                          needsSupport:
+                            type: boolean
+                          updatedAt:
+                            type: string
+                            format: date-time
+        400:
+          description: Invalid status transition or validation error
+
+  /blood-request/facility/{facilityId}/{id}/component:
+    patch:
+      tags:
+        - Staff - Management
+      summary: Update request blood component
+      description: |
+        [Manager/Nurse] - Update the specific blood component for a request.
+        
+        Use Cases:
+        - Specify exact blood component needed
+        - Update component based on medical requirements
+        - Component-specific inventory matching
+        
+      parameters:
+        - name: facilityId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BloodRequestComponentUpdate'
+      responses:
+        200:
+          description: Component updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodRequest'
+        404:
+          description: Request not found or not in facility
+
+  /blood-request/facility/{facilityId}/support-requests:
+    get:
+      tags:
+        - Staff - Management
+      summary: Get facility support requests
+      description: |
+        [Manager/Nurse] - Get blood requests needing support for a specific facility.
+        
+        Features:
+        - Facility-specific support requests
+        - Requests marked as needing community support
+        - Sorted by urgency and creation date
+        - Used for support request management
+        
+      parameters:
+        - name: facilityId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Support requests retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/BloodRequest'
+
+  /blood-request/facility/{facilityId}/support-requests/{id}:
+    get:
+      tags:
+        - Staff - Management
+      summary: Get support request details
+      description: |
+        [Manager/Nurse] - Get detailed information about a specific support request.
+        
+        Features:
+        - Complete support request information
+        - Facility-specific access control
+        - Optional status filtering
+        
+      parameters:
+        - name: facilityId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: ["pending_approval", "rejected_registration", "approved", "assigned", "ready_for_handover", "completed", "cancelled"]
+          description: Optional status filter
+      responses:
+        200:
+          description: Support request details retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BloodRequest'
+        404:
+          description: Support request not found 
