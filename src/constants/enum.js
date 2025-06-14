@@ -22,6 +22,7 @@ const NOTIFICATION_TYPE = {
   STATUS: "status",
   GIFT: "gift",
   SUPPORT_REQUEST: "supportRequest",
+  DELIVERY: "delivery",
 };
 
 const ENTITY_TYPE = {
@@ -30,6 +31,7 @@ const ENTITY_TYPE = {
   BLOOD_REQUEST: "bloodRequest",
   BLOOD_GROUP: "bloodGroup",
   BLOOD_INVENTORY: "bloodInventory",
+  BLOOD_DELIVERY: "bloodDelivery",
 };
 
 const HEADER = {
