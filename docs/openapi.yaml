@@ -8,33 +8,6 @@ info:
     
     This is the main API documentation. Click the buttons below to navigate to specialized modules:
     
-    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0;">
-      <button onclick="window.open('/gift-docs', '_blank')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-        🎁 Gift Management
-      </button>
-      <button onclick="window.open('/blood-donation-registration-docs', '_blank')" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-        🩸 Registration
-      </button>
-      <button onclick="window.open('/blood-donation-docs', '_blank')" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-        💉 Donations
-      </button>
-      <button onclick="window.open('/blood-request-docs', '_blank')" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-        🆘 Requests
-      </button>
-      <button onclick="window.open('/blood-inventory-docs', '_blank')" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); color: #333; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-        📦 Inventory
-      </button>
-      <button onclick="window.open('/facility-staff-docs', '_blank')" style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); color: #333; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-        👥 Staff
-      </button>
-      <button onclick="window.open('/blood-unit-docs', '_blank')" style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); color: #333; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-        🧪 Blood Units
-      </button>
-      <button onclick="window.open('/blood-delivery-docs', '_blank')" style="background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%); color: #333; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-        🚚 Delivery
-      </button>
-    </div>
-    
     ## 📋 Module Descriptions
     
     ### 🎁 Gift Management System
@@ -71,7 +44,7 @@ info:
     - Staff and facility management
     - Blood delivery and transportation
     
-    ## 🔗 Direct Links (if buttons don't work)
+    ## 🔗 Direct Links 
     
     - Main API: [/api-docs](/api-docs)
     - Gift System: [/gift-docs](/gift-docs)
@@ -82,6 +55,7 @@ info:
     - Staff: [/facility-staff-docs](/facility-staff-docs)
     - Blood Units: [/blood-unit-docs](/blood-unit-docs)
     - Delivery: [/blood-delivery-docs](/blood-delivery-docs)
+    - Content: [/content-docs](/content-docs)
   version: 1.0.0
 
 servers:

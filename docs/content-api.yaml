@@ -1,0 +1,1057 @@
+openapi: 3.0.3
+info:
+  title: Content Management System API
+  description: |
+    Comprehensive API documentation for Blood Donation Content Management System.
+    
+    ## Role-Based Access Control
+    - Admin: System-wide content management (all content)
+    - Manager: Facility-specific content management (facility content only)
+    - Nurse: Read-only access to facility and system content
+    - Public: Access to published content only
+    
+    ## Facility-Specific Architecture
+    - Content: Can be system-wide (facilityId = null) or facility-specific
+    - Admin: Can create/manage both system and facility content
+    - Manager: Can only create/manage content for their facility
+    - Automatic facility assignment for managers
+    - Data isolation: Staff can only access their facility's content + system content
+    
+    ## Authentication
+    Most endpoints require authentication via Bearer token in Authorization header.
+    Public endpoints do not require authentication.
+    
+    ## Business Logic
+    - Content types: introduction, document, blog
+    - Content status: draft, published, archived
+    - Automatic slug generation from title
+    - Image upload support via multipart/form-data
+    - Facility-specific content isolation
+    - System content visible to all users
+    - Published content filtering for public access
+    - ObjectId validation for all ID parameters
+    
+  version: 1.0.0
+  contact:
+    name: Content Management System
+    email: admin@bloodhouse.com
+
+servers:
+  - url: http://localhost:3052/api/v1
+    description: Development server
+  - url: https://api.bloodhouse.com/api/v1
+    description: Production server
+
+tags:
+  - name: Public Access
+    description: Public access to published content (no authentication required)
+  - name: Admin - Content Management
+    description: System-wide content management (Admin only)
+  - name: Manager - Facility Content
+    description: Facility-specific content management (Manager only)
+  - name: Staff - Read Access
+    description: Read-only access for facility staff (Manager/Nurse)
+  - name: Shared
+    description: Shared endpoints for authenticated users
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login
+  
+  schemas:
+    Content:
+      type: object
+      required:
+        - type
+        - title
+        - authorId
+      properties:
+        _id:
+          type: string
+          description: Unique identifier
+          example: "64a7c8b5f123456789abcdef"
+        type:
+          type: string
+          enum: [introduction, document, blog]
+          description: Loại nội dung
+          example: "blog"
+        categoryId:
+          type: string
+          description: Reference to ContentCategory
+          example: "64a7c8b5f123456789abcdef"
+        facilityId:
+          type: string
+          nullable: true
+          description: Reference to Facility (null = system-wide content)
+          example: "64a7c8b5f123456789abcdef"
+        title:
+          type: string
+          maxLength: 200
+          description: Tiêu đề nội dung
+          example: "Hướng dẫn hiến máu an toàn"
+        image:
+          type: string
+          format: uri
+          description: URL hình ảnh đại diện
+          example: "https://example.com/content-image.jpg"
+        slug:
+          type: string
+          description: URL slug (auto-generated from title)
+          example: "huong-dan-hien-mau-an-toan-1234"
+        content:
+          type: string
+          description: Nội dung chi tiết (HTML/Markdown)
+          example: "<p>Nội dung hướng dẫn chi tiết...</p>"
+        summary:
+          type: string
+          maxLength: 500
+          description: Tóm tắt nội dung
+          example: "Hướng dẫn các bước chuẩn bị và quy trình hiến máu an toàn"
+        authorId:
+          type: string
+          description: Reference to User (author)
+          example: "64a7c8b5f123456789abcdef"
+        status:
+          type: string
+          enum: [draft, published, archived]
+          description: Trạng thái nội dung
+          example: "published"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    ContentWithPopulated:
+      allOf:
+        - $ref: '#/components/schemas/Content'
+        - type: object
+          properties:
+            categoryId:
+              type: object
+              properties:
+                _id:
+                  type: string
+                name:
+                  type: string
+                  example: "Tin tức"
+            authorId:
+              type: object
+              properties:
+                _id:
+                  type: string
+                username:
+                  type: string
+                  example: "admin"
+                avatar:
+                  type: string
+                  format: uri
+                fullName:
+                  type: string
+                  example: "Nguyễn Văn Admin"
+            facilityId:
+              type: object
+              nullable: true
+              properties:
+                _id:
+                  type: string
+                name:
+                  type: string
+                  example: "Bệnh viện Chợ Rẫy"
+                code:
+                  type: string
+                  example: "CR"
+                address:
+                  type: string
+                  example: "201B Nguyễn Chí Thanh, Quận 5, TP.HCM"
+
+    ContentStats:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Tổng số nội dung
+          example: 25
+        published:
+          type: integer
+          description: Số nội dung đã xuất bản
+          example: 20
+        draft:
+          type: integer
+          description: Số nội dung nháp
+          example: 3
+        archived:
+          type: integer
+          description: Số nội dung đã lưu trữ
+          example: 2
+
+    PaginatedContentResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContentWithPopulated'
+        totalItems:
+          type: integer
+          example: 50
+        totalPages:
+          type: integer
+          example: 5
+        currentPage:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+
+    Error:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "error"
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: "Validation error"
+
+    Success:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "success"
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+        data:
+          type: object
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ===== PUBLIC ACCESS =====
+  /content/public:
+    get:
+      tags:
+        - Public Access
+      summary: Lấy tất cả nội dung đã xuất bản
+      description: |
+        [Public Access] - Lấy tất cả nội dung có trạng thái "published" từ cả hệ thống và các cơ sở.
+        
+        Tính năng:
+        - Không cần xác thực
+        - Chỉ trả về nội dung đã xuất bản
+        - Hỗ trợ filter theo loại, danh mục, cơ sở
+        - Phân trang
+        - Thông tin cơ sở được bao gồm để người dùng biết nguồn gốc
+        - Validation ObjectId cho categoryId và facilityId
+        
+      security: []
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [introduction, document, blog]
+          description: Lọc theo loại nội dung
+        - name: categoryId
+          in: query
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+          description: Lọc theo danh mục (phải là ObjectId hợp lệ)
+        - name: facilityId
+          in: query
+          schema:
+            type: string
+          description: |
+            Lọc theo cơ sở:
+            - "system": Chỉ nội dung hệ thống
+            - ObjectId: Nội dung từ cơ sở cụ thể
+            - Không có: Tất cả nội dung published
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        200:
+          description: Lấy nội dung thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedContentResponse'
+        400:
+          description: Lỗi validation (Invalid ObjectId format)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /content/system:
+    get:
+      tags:
+        - Public Access
+      summary: Lấy nội dung hệ thống
+      description: |
+        [Public Access] - Lấy chỉ nội dung hệ thống (facilityId = null).
+        
+        Tính năng:
+        - Không cần xác thực
+        - Chỉ nội dung hệ thống
+        - Hỗ trợ filter theo trạng thái
+        
+      security: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, published, archived]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        200:
+          description: Lấy nội dung hệ thống thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedContentResponse'
+
+  /content/public/{contentId}:
+    get:
+      tags:
+        - Public Access
+      summary: Xem chi tiết nội dung (Public)
+      description: |
+        [Public Access] - Xem chi tiết nội dung cụ thể.
+        
+        Quy tắc truy cập:
+        - Chỉ có thể xem nội dung hệ thống (facilityId = null)
+        - Chỉ có thể xem nội dung đã published
+        - Nội dung facility-specific sẽ bị từ chối
+        - Validation ObjectId format
+        
+      security: []
+      parameters:
+        - name: contentId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+          description: ID của nội dung (phải là ObjectId hợp lệ)
+      responses:
+        200:
+          description: Lấy chi tiết nội dung thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ContentWithPopulated'
+        400:
+          description: Invalid content ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        403:
+          description: |
+            Không có quyền truy cập:
+            - "This content is not publicly accessible" (nội dung facility-specific)
+            - "This content is not published" (nội dung chưa published)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Không tìm thấy nội dung
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ===== ADMIN - CONTENT MANAGEMENT =====
+  /content/admin:
+    post:
+      tags:
+        - Admin - Content Management
+      summary: Tạo nội dung mới
+      description: |
+        [Admin Only] - Tạo nội dung mới trong hệ thống.
+        
+        Quy tắc nghiệp vụ:
+        - Admin có thể tạo nội dung hệ thống (facilityId = null hoặc không có)
+        - Admin có thể tạo nội dung cho cơ sở cụ thể (facilityId = ObjectId)
+        - Slug tự động được tạo từ tiêu đề
+        - Hỗ trợ upload hình ảnh
+        - Trạng thái mặc định là "published"
+        
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - type
+                - title
+                - authorId
+              properties:
+                type:
+                  type: string
+                  enum: [introduction, document, blog]
+                  example: "blog"
+                categoryId:
+                  type: string
+                  pattern: '^[0-9a-fA-F]{24}$'
+                  example: "64a7c8b5f123456789abcdef"
+                facilityId:
+                  type: string
+                  pattern: '^[0-9a-fA-F]{24}$'
+                  description: "null hoặc không có cho nội dung hệ thống, ObjectId cho nội dung cơ sở"
+                  example: "64a7c8b5f123456789abcdef"
+                title:
+                  type: string
+                  maxLength: 200
+                  example: "Hướng dẫn hiến máu an toàn"
+                content:
+                  type: string
+                  example: "<p>Nội dung chi tiết...</p>"
+                summary:
+                  type: string
+                  maxLength: 500
+                  example: "Tóm tắt nội dung"
+                authorId:
+                  type: string
+                  pattern: '^[0-9a-fA-F]{24}$'
+                  example: "64a7c8b5f123456789abcdef"
+                image:
+                  type: string
+                  format: binary
+                  description: "File hình ảnh (optional)"
+      responses:
+        201:
+          description: Tạo nội dung thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ContentWithPopulated'
+        400:
+          description: Lỗi validation (Invalid ObjectId format hoặc dữ liệu không hợp lệ)
+        403:
+          description: Không đủ quyền (chỉ Admin)
+
+    get:
+      tags:
+        - Admin - Content Management
+      summary: Lấy tất cả nội dung (toàn hệ thống)
+      description: |
+        [Admin Only] - Lấy tất cả nội dung từ toàn hệ thống.
+        
+        Tính năng:
+        - Admin xem được tất cả nội dung (hệ thống + tất cả cơ sở)
+        - Hỗ trợ filter theo trạng thái, cơ sở
+        - facilityId="system" để lọc chỉ nội dung hệ thống
+        - Phân trang với validation
+        
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, published, archived]
+        - name: facilityId
+          in: query
+          schema:
+            type: string
+          description: |
+            Filter theo cơ sở:
+            - "system": Chỉ nội dung hệ thống
+            - ObjectId: Nội dung từ cơ sở cụ thể
+            - Không có: Tất cả nội dung
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        200:
+          description: Lấy danh sách nội dung thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedContentResponse'
+        400:
+          description: Invalid facilityId format
+        403:
+          description: Không đủ quyền (chỉ Admin)
+
+  /content/admin/stats:
+    get:
+      tags:
+        - Admin - Content Management
+      summary: Thống kê nội dung toàn hệ thống
+      description: |
+        [Admin Only] - Lấy thống kê nội dung toàn hệ thống.
+        
+        Bao gồm:
+        - Tổng số nội dung từ tất cả cơ sở và hệ thống
+        - Số nội dung theo trạng thái (published, draft, archived)
+        
+      responses:
+        200:
+          description: Lấy thống kê thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ContentStats'
+        403:
+          description: Không đủ quyền (chỉ Admin)
+
+  /content/admin/{contentId}:
+    put:
+      tags:
+        - Admin - Content Management
+      summary: Cập nhật nội dung
+      description: |
+        [Admin Only] - Cập nhật nội dung bất kỳ trong hệ thống.
+        
+        Quy tắc nghiệp vụ:
+        - Admin có thể cập nhật mọi nội dung
+        - Hỗ trợ upload hình ảnh mới
+        - Slug không thay đổi khi cập nhật title
+        - Validation ObjectId format
+        
+      parameters:
+        - name: contentId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+          description: ID của nội dung (phải là ObjectId hợp lệ)
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum: [introduction, document, blog]
+                categoryId:
+                  type: string
+                  pattern: '^[0-9a-fA-F]{24}$'
+                facilityId:
+                  type: string
+                  pattern: '^[0-9a-fA-F]{24}$'
+                title:
+                  type: string
+                  maxLength: 200
+                content:
+                  type: string
+                summary:
+                  type: string
+                  maxLength: 500
+                status:
+                  type: string
+                  enum: [draft, published, archived]
+                image:
+                  type: string
+                  format: binary
+      responses:
+        200:
+          description: Cập nhật nội dung thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ContentWithPopulated'
+        400:
+          description: Invalid content ID format hoặc dữ liệu không hợp lệ
+        403:
+          description: Không đủ quyền (chỉ Admin)
+        404:
+          description: Không tìm thấy nội dung
+
+    delete:
+      tags:
+        - Admin - Content Management
+      summary: Xóa nội dung
+      description: |
+        [Admin Only] - Xóa nội dung bất kỳ trong hệ thống.
+        
+        Quy tắc nghiệp vụ:
+        - Admin có thể xóa mọi nội dung (hệ thống và facility)
+        - Xóa vĩnh viễn khỏi database
+        - Validation ObjectId format
+        
+      parameters:
+        - name: contentId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+          description: ID của nội dung (phải là ObjectId hợp lệ)
+      responses:
+        200:
+          description: Xóa nội dung thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: "Content deleted successfully"
+        400:
+          description: Invalid content ID format
+        403:
+          description: Không đủ quyền (chỉ Admin)
+        404:
+          description: Không tìm thấy nội dung
+
+  # ===== MANAGER - FACILITY CONTENT =====
+  /content/facility:
+    post:
+      tags:
+        - Manager - Facility Content
+      summary: Tạo nội dung cơ sở
+      description: |
+        [Manager Only] - Tạo nội dung cho cơ sở của manager.
+        
+        Quy tắc nghiệp vụ:
+        - facilityId tự động được gán từ thông tin manager
+        - Manager chỉ có thể tạo nội dung cho cơ sở của mình
+        - Không thể tạo nội dung hệ thống
+        - Validation ObjectId cho các tham số
+        
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - type
+                - title
+                - authorId
+              properties:
+                type:
+                  type: string
+                  enum: [introduction, document, blog]
+                categoryId:
+                  type: string
+                  pattern: '^[0-9a-fA-F]{24}$'
+                title:
+                  type: string
+                  maxLength: 200
+                content:
+                  type: string
+                summary:
+                  type: string
+                  maxLength: 500
+                authorId:
+                  type: string
+                  pattern: '^[0-9a-fA-F]{24}$'
+                image:
+                  type: string
+                  format: binary
+      responses:
+        201:
+          description: Tạo nội dung cơ sở thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ContentWithPopulated'
+        400:
+          description: Lỗi validation (Invalid ObjectId format)
+        403:
+          description: Không đủ quyền (chỉ Manager)
+
+    get:
+      tags:
+        - Manager - Facility Content
+      summary: Lấy nội dung cơ sở và hệ thống
+      description: |
+        [Manager/Nurse] - Lấy nội dung của cơ sở và nội dung hệ thống.
+        
+        Phân quyền dữ liệu:
+        - Manager/Nurse chỉ thấy nội dung của cơ sở mình + nội dung hệ thống
+        - Không thấy nội dung của cơ sở khác
+        - Tự động filter theo facilityId của user
+        
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, published, archived]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        200:
+          description: Lấy nội dung thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedContentResponse'
+        403:
+          description: Không đủ quyền (cần Manager hoặc Nurse)
+
+  /content/facility/stats:
+    get:
+      tags:
+        - Manager - Facility Content
+      summary: Thống kê nội dung cơ sở
+      description: |
+        [Manager/Nurse] - Thống kê nội dung của cơ sở và hệ thống.
+        
+        Bao gồm:
+        - Nội dung của cơ sở manager/nurse
+        - Nội dung hệ thống
+        - Thống kê theo trạng thái
+        
+      responses:
+        200:
+          description: Lấy thống kê thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ContentStats'
+        403:
+          description: Không đủ quyền (cần Manager hoặc Nurse)
+
+  /content/facility/{facilityId}:
+    get:
+      tags:
+        - Manager - Facility Content
+      summary: Lấy nội dung của cơ sở cụ thể
+      description: |
+        [Manager/Nurse] - Lấy nội dung của cơ sở cụ thể.
+        
+        Kiểm soát truy cập:
+        - Manager/Nurse chỉ có thể truy cập nội dung của cơ sở mình
+        - Admin có thể truy cập nội dung của mọi cơ sở
+        - Validation ObjectId format
+        - Trả về 403 nếu facilityId không phải của user
+        
+      parameters:
+        - name: facilityId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+          description: ID của cơ sở (phải là ObjectId hợp lệ)
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, published, archived]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        200:
+          description: Lấy nội dung cơ sở thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedContentResponse'
+        400:
+          description: Invalid facility ID format
+        403:
+          description: |
+            Không có quyền truy cập:
+            - "You don't have permission to view this facility's content"
+            - "You don't have permission to view facility content"
+            - "Authentication required"
+        404:
+          description: Không tìm thấy cơ sở hoặc không có quyền truy cập
+
+  /content/facility/{contentId}:
+    put:
+      tags:
+        - Manager - Facility Content
+      summary: Cập nhật nội dung cơ sở
+      description: |
+        [Manager Only] - Cập nhật nội dung của cơ sở.
+        
+        Kiểm soát truy cập:
+        - Manager chỉ có thể cập nhật nội dung của cơ sở mình
+        - Không thể cập nhật nội dung hệ thống
+        - Không thể cập nhật nội dung của cơ sở khác
+        - Validation ObjectId format
+        
+      parameters:
+        - name: contentId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+          description: ID của nội dung (phải là ObjectId hợp lệ)
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum: [introduction, document, blog]
+                categoryId:
+                  type: string
+                  pattern: '^[0-9a-fA-F]{24}$'
+                title:
+                  type: string
+                  maxLength: 200
+                content:
+                  type: string
+                summary:
+                  type: string
+                  maxLength: 500
+                status:
+                  type: string
+                  enum: [draft, published, archived]
+                image:
+                  type: string
+                  format: binary
+      responses:
+        200:
+          description: Cập nhật nội dung thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ContentWithPopulated'
+        400:
+          description: Invalid content ID format hoặc dữ liệu không hợp lệ
+        403:
+          description: |
+            Không có quyền cập nhật:
+            - "You don't have permission to update this content"
+            - "You don't have permission to update content"
+            - "Authentication required"
+        404:
+          description: Không tìm thấy nội dung
+
+    delete:
+      tags:
+        - Manager - Facility Content
+      summary: Xóa nội dung cơ sở
+      description: |
+        [Manager Only] - Xóa nội dung của cơ sở.
+        
+        Kiểm soát truy cập:
+        - Manager chỉ có thể xóa nội dung của cơ sở mình
+        - Không thể xóa nội dung hệ thống
+        - Không thể xóa nội dung của cơ sở khác
+        - Validation ObjectId format
+        
+      parameters:
+        - name: contentId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+          description: ID của nội dung (phải là ObjectId hợp lệ)
+      responses:
+        200:
+          description: Xóa nội dung thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: "Content deleted successfully"
+        400:
+          description: Invalid content ID format
+        403:
+          description: |
+            Không có quyền xóa:
+            - "You don't have permission to delete this content"
+            - "You don't have permission to delete content"
+        404:
+          description: Không tìm thấy nội dung
+
+  # ===== SHARED ENDPOINTS =====
+  /content/{contentId}:
+    get:
+      tags:
+        - Shared
+      summary: Xem chi tiết nội dung (có xác thực)
+      description: |
+        [Authenticated Users] - Xem chi tiết nội dung với kiểm tra quyền.
+        
+        Phân quyền:
+        - Admin: Xem mọi nội dung
+        - Manager/Nurse: Xem nội dung của cơ sở mình + nội dung hệ thống
+        - Public (không xác thực): Chỉ nội dung hệ thống và published
+        - Validation ObjectId format
+        
+      parameters:
+        - name: contentId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+          description: ID của nội dung (phải là ObjectId hợp lệ)
+      responses:
+        200:
+          description: Lấy chi tiết nội dung thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ContentWithPopulated'
+        400:
+          description: Invalid content ID format
+        403:
+          description: |
+            Không có quyền xem:
+            - "You don't have permission to view this content"
+            - "This content is not publicly accessible"
+            - "This content is not published"
+        404:
+          description: Không tìm thấy nội dung 

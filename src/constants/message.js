@@ -106,6 +106,8 @@ const CONTENT_MESSAGE = {
   GET_FAILED: "Lấy nội dung thất bại",
   UPDATE_SUCCESS: "Cập nhật nội dung thành công",
   UPDATE_FAILED: "Cập nhật nội dung thất bại",
+  DELETE_SUCCESS: "Xóa nội dung thành công",
+  DELETE_FAILED: "Xóa nội dung thất bại",
 };
 
 const FACILITY_MESSAGE = {
