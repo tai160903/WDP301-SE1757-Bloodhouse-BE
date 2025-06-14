@@ -39,6 +39,10 @@ const bloodDeliveryApiDocument = YAML.load(
   path.join(__dirname, "../../docs/blood-delivery-api.yaml")
 );
 
+const contentApiDocument = YAML.load(
+  path.join(__dirname, "../../docs/content-api.yaml")
+);
+
 const addServers = (req, doc) => {
   const modifiedDoc = { ...doc };
   const protocol = req.protocol;
@@ -111,6 +115,12 @@ const bloodDeliverySwaggerSetup = (req, res) => {
   return swaggerUi.generateHTML(doc);
 };
 
+// Content API documentation setup
+const contentSwaggerSetup = (req, res) => {
+  const doc = addServers(req, contentApiDocument);
+  return swaggerUi.generateHTML(doc);
+};
+
 // Generic function to get API document
 const getApiDocument = (apiType = 'main') => {
   switch (apiType) {
@@ -130,6 +140,8 @@ const getApiDocument = (apiType = 'main') => {
       return bloodUnitApiDocument;
     case 'blood-delivery':
       return bloodDeliveryApiDocument;
+    case 'content':
+      return contentApiDocument;
     case 'main':
     default:
       return mainSwaggerDocument;
@@ -200,6 +212,12 @@ const setupSwaggerRoutes = (app) => {
   app.get("/blood-delivery-docs", (req, res) => {
     res.send(bloodDeliverySwaggerSetup(req, res));
   });
+
+  // Content API documentation
+  app.use("/content-docs", swaggerUi.serve);
+  app.get("/content-docs", (req, res) => {
+    res.send(contentSwaggerSetup(req, res));
+  });
   
   // Log all documentation routes
 };
@@ -219,6 +237,7 @@ module.exports = {
   facilityStaffSwaggerSetup,
   bloodUnitSwaggerSetup,
   bloodDeliverySwaggerSetup,
+  contentSwaggerSetup,
   
   // Generic functions
   createSwaggerSetup,

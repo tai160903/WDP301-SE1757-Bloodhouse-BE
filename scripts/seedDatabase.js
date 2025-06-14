@@ -24,6 +24,10 @@ const GiftBudget = require('../src/models/giftBudget.model');
 const GiftDistribution = require('../src/models/giftDistribution.model');
 const GiftLog = require('../src/models/giftLog.model');
 
+// Import Content models
+const ContentCategory = require('../src/models/contentCategory.model');
+const Content = require('../src/models/content.model');
+
 // Import constants
 const {
   USER_ROLE,
@@ -42,7 +46,8 @@ const {
   BLOOD_REQUEST_STATUS,
   GIFT_ITEM_CATEGORY,
   GIFT_ITEM_UNIT,
-  GIFT_ACTION
+  GIFT_ACTION,
+  CONTENT_STATUS
 } = require('../src/constants/enum');
 
 // MongoDB connection string - adjust as needed
@@ -81,6 +86,10 @@ async function clearDatabase() {
     await GiftBudget.deleteMany({});
     await GiftDistribution.deleteMany({});
     await GiftLog.deleteMany({});
+    
+    // Clear content data
+    await Content.deleteMany({});
+    await ContentCategory.deleteMany({});
     
     console.log('🧹 Database cleared');
   } catch (error) {
@@ -1567,6 +1576,244 @@ async function createGiftLogs(giftItems, giftPackages, facilities, facilityStaff
   return createdGiftLogs;
 }
 
+async function createContentCategories() {
+  const contentCategories = [
+    {
+      name: 'Tin tức',
+      description: 'Tin tức và thông báo về hoạt động hiến máu'
+    },
+    {
+      name: 'Hướng dẫn',
+      description: 'Hướng dẫn quy trình và thủ tục hiến máu'
+    },
+    {
+      name: 'Sức khỏe',
+      description: 'Thông tin về sức khỏe và chăm sóc sau hiến máu'
+    },
+    {
+      name: 'Câu chuyện',
+      description: 'Câu chuyện cảm động từ người hiến máu và người nhận'
+    },
+    {
+      name: 'Sự kiện',
+      description: 'Thông tin về các sự kiện và chiến dịch hiến máu'
+    }
+  ];
+
+  const createdContentCategories = await ContentCategory.insertMany(contentCategories);
+  console.log(`✅ Created ${createdContentCategories.length} content categories`);
+  return createdContentCategories;
+}
+
+async function createContentData(users, facilities, facilityStaff, contentCategories) {
+  const contents = [];
+  
+  // Get admin users and facility managers
+  const admins = users.filter(user => user.role === USER_ROLE.ADMIN);
+  const managers = facilityStaff.filter(staff => staff.position === STAFF_POSITION.MANAGER);
+  
+  console.log(`📝 Creating content data...`);
+  console.log(`   👤 Found ${admins.length} admin users`);
+  console.log(`   👨‍💼 Found ${managers.length} facility managers`);
+  
+  // Create 2 system-wide content by Admin
+  const systemContents = [
+    {
+      type: 'blog',
+      categoryId: contentCategories.find(cat => cat.name === 'Tin tức')._id,
+      facilityId: null, // System-wide content
+      title: 'Tầm quan trọng của việc hiến máu trong cộng đồng',
+      image: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800',
+      content: `
+        <h2>Hiến máu - Hành động nhân văn cao đẹp</h2>
+        <p>Hiến máu là một trong những hành động nhân văn cao đẹp nhất mà mỗi người có thể thực hiện để cứu sống những người khác. Mỗi đơn vị máu hiến tặng có thể cứu sống tới 3 người bệnh.</p>
+        
+        <h3>Lợi ích của việc hiến máu:</h3>
+        <ul>
+          <li>Giúp cứu sống những người bệnh cần truyền máu khẩn cấp</li>
+          <li>Tốt cho sức khỏe của người hiến máu</li>
+          <li>Tạo ra nguồn máu dự trữ cho cộng đồng</li>
+          <li>Thể hiện tinh thần tương thân tương ái</li>
+        </ul>
+        
+        <h3>Ai có thể hiến máu?</h3>
+        <p>Người từ 18-60 tuổi, có sức khỏe tốt, cân nặng từ 45kg trở lên và không mắc các bệnh lý nguy hiểm có thể tham gia hiến máu.</p>
+        
+        <p>Hãy cùng chung tay xây dựng một cộng đồng khỏe mạnh và nhân ái thông qua việc hiến máu tình nguyện!</p>
+      `,
+      summary: 'Hiến máu là hành động nhân văn cao đẹp, mang lại nhiều lợi ích cho cả người hiến và người nhận. Mỗi đơn vị máu có thể cứu sống tới 3 người bệnh.',
+      authorId: admins[0]._id,
+      status: CONTENT_STATUS.PUBLISHED
+    },
+    {
+      type: 'document',
+      categoryId: contentCategories.find(cat => cat.name === 'Hướng dẫn')._id,
+      facilityId: null, // System-wide content
+      title: 'Quy trình hiến máu an toàn - Hướng dẫn chi tiết',
+      image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=800',
+      content: `
+        <h2>Quy trình hiến máu an toàn</h2>
+        <p>Để đảm bảo an toàn cho cả người hiến máu và người nhận máu, chúng tôi áp dụng quy trình hiến máu nghiêm ngặt theo tiêu chuẩn quốc tế.</p>
+        
+        <h3>Bước 1: Đăng ký và kiểm tra thông tin</h3>
+        <ul>
+          <li>Điền đầy đủ thông tin cá nhân</li>
+          <li>Xuất trình giấy tờ tùy thân</li>
+          <li>Trả lời bảng câu hỏi sức khỏe</li>
+        </ul>
+        
+        <h3>Bước 2: Khám sàng lọc</h3>
+        <ul>
+          <li>Đo huyết áp, cân nặng, chiều cao</li>
+          <li>Kiểm tra mức hemoglobin</li>
+          <li>Khám lâm sàng tổng quát</li>
+        </ul>
+        
+        <h3>Bước 3: Hiến máu</h3>
+        <ul>
+          <li>Sử dụng dụng cụ vô trùng, một lần duy nhất</li>
+          <li>Lấy 350-450ml máu (tùy theo cân nặng)</li>
+          <li>Thời gian hiến máu: 8-10 phút</li>
+        </ul>
+        
+        <h3>Bước 4: Nghỉ ngơi và chăm sóc sau hiến máu</h3>
+        <ul>
+          <li>Nghỉ ngơi 10-15 phút</li>
+          <li>Uống nước và ăn nhẹ</li>
+          <li>Nhận quà cảm ơn và giấy chứng nhận</li>
+        </ul>
+        
+        <h3>Lưu ý quan trọng:</h3>
+        <p>Sau khi hiến máu, bạn nên:</p>
+        <ul>
+          <li>Uống nhiều nước trong 24h đầu</li>
+          <li>Tránh hoạt động nặng trong 24h</li>
+          <li>Không uống rượu bia trong 24h</li>
+          <li>Liên hệ ngay nếu có triệu chứng bất thường</li>
+        </ul>
+      `,
+      summary: 'Hướng dẫn chi tiết quy trình hiến máu an toàn gồm 4 bước: đăng ký, khám sàng lọc, hiến máu và chăm sóc sau hiến máu.',
+      authorId: admins[1]._id,
+      status: CONTENT_STATUS.PUBLISHED
+    }
+  ];
+  
+  // Add system contents to array
+  contents.push(...systemContents);
+  console.log(`   📄 Created 2 system-wide contents by Admin`);
+  
+  // Create 2 facility-specific content for each facility by their managers
+  for (let facilityIndex = 0; facilityIndex < facilities.length; facilityIndex++) {
+    const facility = facilities[facilityIndex];
+    const facilityManager = managers.find(m => m.facilityId.toString() === facility._id.toString());
+    
+    if (facilityManager) {
+      console.log(`   🏥 Creating content for ${facility.name} by manager ${facilityManager._id}`);
+      
+      const facilityContents = [
+        {
+          type: 'introduction',
+          categoryId: contentCategories.find(cat => cat.name === 'Sự kiện')._id,
+          facilityId: facility._id,
+          title: `Giới thiệu về ${facility.name}`,
+          image: 'https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=800',
+          content: `
+            <h2>Chào mừng đến với ${facility.name}</h2>
+            <p>Chúng tôi tự hào là một trong những cơ sở y tế hàng đầu trong lĩnh vực hiến máu và truyền máu tại TP.HCM.</p>
+            
+            <h3>Thông tin liên hệ:</h3>
+            <ul>
+              <li><strong>Địa chỉ:</strong> ${facility.address}</li>
+              <li><strong>Điện thoại:</strong> ${facility.contactPhone}</li>
+              <li><strong>Email:</strong> ${facility.contactEmail}</li>
+            </ul>
+            
+            <h3>Giờ làm việc:</h3>
+            <ul>
+              <li>Thứ 2 - Thứ 6: 7:00 - 17:00</li>
+              <li>Thứ 7: 7:00 - 12:00</li>
+              <li>Chủ nhật: Nghỉ</li>
+            </ul>
+            
+            <h3>Dịch vụ của chúng tôi:</h3>
+            <ul>
+              <li>Hiến máu tình nguyện</li>
+              <li>Hiến máu theo yêu cầu</li>
+              <li>Xét nghiệm máu</li>
+              <li>Tư vấn sức khỏe</li>
+              <li>Cấp cứu truyền máu 24/7</li>
+            </ul>
+            
+            <p>Đội ngũ y bác sĩ giàu kinh nghiệm của chúng tôi luôn sẵn sàng phục vụ và đảm bảo an toàn tuyệt đối cho mọi người hiến máu.</p>
+          `,
+          summary: `Giới thiệu về ${facility.name} - cơ sở y tế hàng đầu trong lĩnh vực hiến máu và truyền máu tại TP.HCM với đội ngũ chuyên nghiệp.`,
+          authorId: facilityManager._id,
+          status: CONTENT_STATUS.PUBLISHED
+        },
+        {
+          type: 'blog',
+          categoryId: contentCategories.find(cat => cat.name === 'Câu chuyện')._id,
+          facilityId: facility._id,
+          title: `Câu chuyện cảm động tại ${facility.name}`,
+          image: 'https://images.unsplash.com/photo-1559757175-0eb30cd8c063?w=800',
+          content: `
+            <h2>Những câu chuyện cảm động từ ${facility.name}</h2>
+            <p>Mỗi ngày, chúng tôi chứng kiến rất nhiều câu chuyện cảm động về tình người và sự chia sẻ của các tình nguyện viên hiến máu.</p>
+            
+            <h3>Câu chuyện của anh Minh - Người hiến máu 50 lần</h3>
+            <p>Anh Nguyễn Văn Minh, 45 tuổi, đã hiến máu 50 lần tại cơ sở của chúng tôi. "Mỗi lần hiến máu, tôi nghĩ đến những người bệnh đang cần được cứu sống. Đó là động lực để tôi tiếp tục hành trình này", anh Minh chia sẻ.</p>
+            
+            <h3>Câu chuyện của em Hoa - Sinh viên năm nhất</h3>
+            <p>Em Trần Thị Hoa, sinh viên năm nhất, lần đầu hiến máu vào ngày sinh nhật 18 tuổi. "Em muốn làm điều gì đó ý nghĩa trong ngày đặc biệt này. Hiến máu là cách em góp phần giúp đỡ cộng đồng", em Hoa nói.</p>
+            
+            <h3>Gia đình hiến máu 3 thế hệ</h3>
+            <p>Gia đình ông Trần Văn Nam có truyền thống hiến máu từ ông, bố đến con. "Hiến máu không chỉ là việc làm tốt mà còn là cách giáo dục con em về lòng nhân ái", ông Nam chia sẻ.</p>
+            
+            <p>Những câu chuyện này là nguồn động viên lớn cho đội ngũ y bác sĩ của chúng tôi, đồng thời truyền cảm hứng cho nhiều người khác tham gia hiến máu tình nguyện.</p>
+            
+            <blockquote>
+              <p>"Hiến máu là cho đi để nhận lại. Cho đi tình yêu thương, nhận lại niềm hạnh phúc." - Một tình nguyện viên hiến máu</p>
+            </blockquote>
+          `,
+          summary: `Những câu chuyện cảm động từ các tình nguyện viên hiến máu tại ${facility.name}, thể hiện tinh thần tương thân tương ái và lòng nhân ái của cộng đồng.`,
+          authorId: facilityManager._id,
+          status: CONTENT_STATUS.PUBLISHED
+        }
+      ];
+      
+      contents.push(...facilityContents);
+      console.log(`     ✅ Created 2 contents for ${facility.name}`);
+    }
+  }
+  
+  // Create content records one by one to trigger pre-save middleware for slug generation
+  const createdContents = [];
+  console.log(`🔄 Creating ${contents.length} content records one by one...`);
+  
+  for (let i = 0; i < contents.length; i++) {
+    try {
+      const content = await Content.create(contents[i]);
+      createdContents.push(content);
+      console.log(`  ✅ Created content ${i + 1}/${contents.length}: "${content.title}" (${content.slug})`);
+    } catch (error) {
+      console.error(`  ❌ Error creating content ${i + 1}:`, error.message);
+      throw error;
+    }
+  }
+  
+  console.log(`✅ Created ${createdContents.length} content records`);
+  console.log(`   📄 System-wide contents: ${createdContents.filter(c => c.facilityId === null).length}`);
+  console.log(`   🏥 Facility-specific contents: ${createdContents.filter(c => c.facilityId !== null).length}`);
+  
+  // Log content by facility
+  for (const facility of facilities) {
+    const facilityContents = createdContents.filter(c => c.facilityId && c.facilityId.toString() === facility._id.toString());
+    console.log(`     - ${facility.name}: ${facilityContents.length} contents`);
+  }
+  
+  return createdContents;
+}
+
 async function createCompletedBloodDonations(users, facilities, bloodGroups, facilityStaff) {
   const donors = users.filter(user => user.role === USER_ROLE.MEMBER);
   const nurses = facilityStaff.filter(staff => staff.position === STAFF_POSITION.NURSE);
@@ -2356,6 +2603,12 @@ async function seedDatabase() {
     const giftBudgets = await createGiftBudgets(facilities);
     const giftInventories = await createGiftInventories(giftItems, facilities);
     const giftLogs = await createGiftLogs(giftItems, giftPackages, facilities, facilityStaff);
+    
+    // Create content management data
+    console.log('\n📝 Creating content management data...');
+    const contentCategories = await createContentCategories();
+    const contentData = await createContentData(users, facilities, facilityStaff, contentCategories);
+    
     const bloodDonations = await createCompletedBloodDonations(users, facilities, bloodGroups, facilityStaff);
     const giftDistributions = await createSampleGiftDistributions(giftPackages, giftItems, users, facilityStaff, facilities, bloodDonations);
     
@@ -2438,51 +2691,18 @@ async function seedDatabase() {
     console.log(`- Gift Distributions: ${giftDistributions.length} (Sample distributions to test the system)`);
     console.log(`- Gift Logs: ${giftLogs.length} (Activity logs for audit trail)`);
     
-    console.log('\n📦 Package Quantity Summary:');
-    console.log('- Total packages across all types: 305 packages');
-    console.log('- Facility 1 (Chợ Rẫy): 190 packages total');
-    console.log('- Facility 2 (Viện Huyết học): 115 packages total');
+    // Content management summary
+    console.log('\n📝 Content Management Data:');
+    console.log(`- Content Categories: ${contentCategories.length} (Tin tức, Hướng dẫn, Sức khỏe, Câu chuyện, Sự kiện)`);
+    console.log(`- Content Articles: ${contentData.length} (2 system-wide by Admin + 2 per facility by Managers)`);
+    console.log(`  - System-wide contents: ${contentData.filter(c => c.facilityId === null).length} (by Admin)`);
+    console.log(`  - Facility-specific contents: ${contentData.filter(c => c.facilityId !== null).length} (by Facility Managers)`);
     
-    console.log('\n👤 Sample Login Credentials:');
-    console.log('Admin: admin1@bloodhouse.vn / password123');
-    console.log('Manager (Chợ Rẫy): manager1@choray.vn / password123');
-    console.log('Manager (Viện Huyết học HCM): manager2@ihttm-hcm.vn / password123');
-    console.log('Doctor: doctor1@choray.vn / password123');
-    console.log('Nurse: nurse1@choray.vn / password123');
-    console.log('Donor: donor1@gmail.com / password123');
-    
-    console.log('\n🎁 Gift System Features Ready:');
-    console.log('- Admin can manage gift items system-wide');
-    console.log('- Managers can create packages with quantities, manage inventory & budget');
-    console.log('- Package quantity tracking: decreases when distributed');
-    console.log('- Nurses can distribute gifts to donors with quantity validation');
-    console.log('- Full audit trail via gift logs');
-    console.log('- Role-based access control implemented');
-    
-    console.log('\n🩸 Blood Donation Workflow Features Ready:');
-    console.log('- Complete donation registration to blood unit workflow');
-    console.log('- Health checks with realistic medical data (BP, hemoglobin, weight, pulse, temperature)');
-    console.log('- Process donation logs for complete audit trail');
-    console.log('- Blood units with test results (HIV, Hepatitis B/C, Syphilis)');
-    console.log('- Automatic blood inventory management');
-    console.log('- Component-based blood processing (Whole, Red Cells, Plasma, Platelets)');
-    console.log('- Expiry date tracking per component type');
-    console.log('- Doctor approval workflow for blood units');
-    console.log('- Real-time inventory updates based on blood unit status');
-    
-    console.log('\n🩸 Blood Request System Features Ready:');
-    console.log('- Complete blood request workflow with 7 status levels');
-    console.log('- Support system for community blood donation');
-    console.log('- Urgent request prioritization');
-    console.log('- Medical document upload and validation');
-    console.log('- Geographic location tracking for requests');
-    console.log('- Manager approval workflow');
-    console.log('- Blood unit assignment and delivery scheduling');
-    console.log('- Request fulfillment tracking');
-    console.log('- Multi-status support system (pending, approved, rejected)');
-    console.log('- Facility-specific request management');
-    console.log('- User-specific request history');
-    console.log('- Component-specific blood requests');
+    // Log content by facility
+    for (const facility of facilities) {
+      const facilityContents = contentData.filter(c => c.facilityId && c.facilityId.toString() === facility._id.toString());
+      console.log(`    - ${facility.name}: ${facilityContents.length} contents`);
+    }
     
     await verifyData();
     

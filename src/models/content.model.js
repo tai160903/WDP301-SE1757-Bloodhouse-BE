@@ -15,6 +15,11 @@ const contentSchema = new mongoose.Schema(
       required: true,
     },
     categoryId: { type: mongoose.Schema.Types.ObjectId, ref: "ContentCategory" },
+    facilityId: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: "Facility",
+      default: null // null = system-wide content (Admin), has value = facility-specific content (Manager)
+    },
     title: { type: String, trim: true, required: true },
     image: { type: String, trim: true },
     slug: { 
