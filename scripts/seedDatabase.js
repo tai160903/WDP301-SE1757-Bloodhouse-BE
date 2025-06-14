@@ -13,6 +13,8 @@ const HealthCheck = require('../src/models/healthCheck.model');
 const ProcessDonationLog = require('../src/models/processDonationLog.model');
 const BloodUnit = require('../src/models/bloodUnit.model');
 const BloodInventory = require('../src/models/bloodInventory.model');
+const BloodRequest = require('../src/models/bloodRequest.model');
+const BloodRequestSupport = require('../src/models/bloodRequestSupport.model');
 
 // Import Gift models
 const GiftItem = require('../src/models/giftItem.model');
@@ -37,6 +39,7 @@ const {
   HEALTH_CHECK_STATUS,
   BLOOD_UNIT_STATUS,
   TEST_BLOOD_UNIT_RESULT,
+  BLOOD_REQUEST_STATUS,
   GIFT_ITEM_CATEGORY,
   GIFT_ITEM_UNIT,
   GIFT_ACTION
@@ -68,6 +71,8 @@ async function clearDatabase() {
     await ProcessDonationLog.deleteMany({});
     await BloodUnit.deleteMany({});
     await BloodInventory.deleteMany({});
+    await BloodRequest.deleteMany({});
+    await BloodRequestSupport.deleteMany({});
     
     // Clear gift data
     await GiftItem.deleteMany({});
@@ -929,6 +934,72 @@ async function verifyData() {
     
     Object.keys(donationsByFacility).forEach(facilityName => {
       console.log(`   🏥 ${facilityName}: ${donationsByFacility[facilityName]} donations`);
+    });
+
+    // Check blood requests
+    console.log('\n🩸 Verifying blood request data...');
+    const bloodRequests = await BloodRequest.find()
+      .populate('userId', 'fullName')
+      .populate('facilityId', 'name')
+      .populate('groupId', 'name')
+      .populate('componentId', 'name')
+      .select('userId facilityId groupId componentId status isUrgent quantity needsSupport isFulfilled');
+    console.log(`🩸 Blood Requests found: ${bloodRequests.length}`);
+    
+    // Group by facility
+    const requestsByFacility = {};
+    bloodRequests.forEach(req => {
+      const facilityName = req.facilityId.name;
+      if (!requestsByFacility[facilityName]) {
+        requestsByFacility[facilityName] = [];
+      }
+      requestsByFacility[facilityName].push(req);
+    });
+    
+    Object.keys(requestsByFacility).forEach(facilityName => {
+      const count = requestsByFacility[facilityName].length;
+      console.log(`   🏥 ${facilityName}: ${count} requests`);
+    });
+    
+    // Group by status
+    const requestsByStatus = {};
+    bloodRequests.forEach(req => {
+      if (!requestsByStatus[req.status]) {
+        requestsByStatus[req.status] = 0;
+      }
+      requestsByStatus[req.status]++;
+    });
+    
+    Object.keys(requestsByStatus).forEach(status => {
+      console.log(`   📊 ${status}: ${requestsByStatus[status]} requests`);
+    });
+    
+    // Check urgent requests
+    const urgentRequests = bloodRequests.filter(req => req.isUrgent);
+    console.log(`   🚨 Urgent requests: ${urgentRequests.length}`);
+    
+    // Check requests needing support
+    const requestsNeedingSupport = bloodRequests.filter(req => req.needsSupport);
+    console.log(`   🤝 Requests needing support: ${requestsNeedingSupport.length}`);
+    
+    // Check blood request supports
+    const bloodRequestSupports = await BloodRequestSupport.find()
+      .populate('requestId', 'status')
+      .populate('userId', 'fullName')
+      .select('requestId userId status');
+    console.log(`🤝 Blood Request Supports found: ${bloodRequestSupports.length}`);
+    
+    // Group supports by status
+    const supportsByStatus = {};
+    bloodRequestSupports.forEach(support => {
+      if (!supportsByStatus[support.status]) {
+        supportsByStatus[support.status] = 0;
+      }
+      supportsByStatus[support.status]++;
+    });
+    
+    Object.keys(supportsByStatus).forEach(status => {
+      console.log(`   📊 Support ${status}: ${supportsByStatus[status]} supports`);
     });
 
     // Check gift management data
@@ -2055,6 +2126,214 @@ async function createBloodInventoryFromUnits(bloodUnits, facilities, bloodGroups
   return createdInventory;
 }
 
+async function createBloodRequests(users, facilities, bloodGroups, bloodComponents, facilityStaff) {
+  const bloodRequests = [];
+  
+  // Get donor users (MEMBER role)
+  const donors = users.filter(user => user.role === USER_ROLE.MEMBER);
+  const managers = facilityStaff.filter(staff => staff.position === STAFF_POSITION.MANAGER);
+  
+  console.log(`🩸 Creating blood requests for ${facilities.length} facilities...`);
+  
+  // Tạo 14 blood requests (7 cho mỗi facility, mỗi status có 2 requests)
+  const statuses = Object.values(BLOOD_REQUEST_STATUS);
+  
+  let requestIndex = 0;
+  
+  for (const facility of facilities) {
+    const facilityManager = managers.find(m => m.facilityId.toString() === facility._id.toString());
+    
+    console.log(`🏥 Creating requests for ${facility.name}...`);
+    
+    // Tạo 2 requests cho mỗi status (7 statuses = 14 requests per facility)
+    for (let statusIndex = 0; statusIndex < statuses.length; statusIndex++) {
+      const status = statuses[statusIndex];
+      
+      // Tạo 2 requests cho status này
+      for (let i = 0; i < 2; i++) {
+        const donor = donors[requestIndex % donors.length];
+        const bloodGroup = bloodGroups[requestIndex % bloodGroups.length];
+        const component = bloodComponents[requestIndex % bloodComponents.length];
+        
+        // Tạo ngày yêu cầu trong khoảng 1-30 ngày tới
+        const preferredDate = new Date();
+        preferredDate.setDate(preferredDate.getDate() + Math.floor(Math.random() * 30) + 1);
+        
+        // Tạo địa chỉ và tọa độ giả
+        const addresses = [
+          { address: '123 Nguyễn Văn Cừ, Quận 5, TP.HCM', coordinates: [106.6583, 10.7554] },
+          { address: '456 Lê Đại Hành, Quận 11, TP.HCM', coordinates: [106.6544, 10.7614] },
+          { address: '789 Võ Văn Tần, Quận 3, TP.HCM', coordinates: [106.6917, 10.7769] },
+          { address: '321 Pasteur, Quận 1, TP.HCM', coordinates: [106.6958, 10.7769] },
+          { address: '654 Điện Biên Phủ, Quận 10, TP.HCM', coordinates: [106.6667, 10.7667] }
+        ];
+        const addressInfo = addresses[requestIndex % addresses.length];
+        
+        const bloodRequest = {
+          groupId: bloodGroup._id,
+          userId: donor._id,
+          facilityId: facility._id,
+          componentId: component._id,
+          quantity: 350 + Math.floor(Math.random() * 100), // 350-450ml
+          isUrgent: Math.random() > 0.7, // 30% urgent
+          status: status,
+          patientName: donor.fullName,
+          patientPhone: donor.phone,
+          address: addressInfo.address,
+          location: {
+            type: 'Point',
+            coordinates: addressInfo.coordinates
+          },
+          medicalDocumentUrl: [
+            'https://res.cloudinary.com/bloodhouse/image/upload/v1/medical-docs/sample1.pdf',
+            'https://res.cloudinary.com/bloodhouse/image/upload/v1/medical-docs/sample2.pdf'
+          ],
+          reason: [
+            'Phẫu thuật tim mạch khẩn cấp',
+            'Điều trị ung thư máu',
+            'Tai nạn giao thông nghiêm trọng',
+            'Phẫu thuật ghép tạng',
+            'Điều trị bệnh tan máu',
+            'Phẫu thuật sản khoa',
+            'Điều trị xuất huyết tiêu hóa'
+          ][requestIndex % 7],
+          note: `Ghi chú cho yêu cầu máu ${requestIndex + 1} - ${status}`,
+          preferredDate: preferredDate,
+          needsSupport: status === BLOOD_REQUEST_STATUS.APPROVED && Math.random() > 0.5,
+          isFulfilled: [BLOOD_REQUEST_STATUS.COMPLETED, BLOOD_REQUEST_STATUS.ASSIGNED].includes(status)
+        };
+        
+        // Thêm thông tin phê duyệt nếu status không phải pending
+        if (status !== BLOOD_REQUEST_STATUS.PENDING_APPROVAL && facilityManager) {
+          bloodRequest.approvedBy = facilityManager._id;
+          bloodRequest.approvedAt = new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000); // 0-7 ngày trước
+        }
+        
+        // Thêm thông tin phân phối nếu status là assigned hoặc completed
+        if ([BLOOD_REQUEST_STATUS.ASSIGNED, BLOOD_REQUEST_STATUS.COMPLETED].includes(status) && facilityManager) {
+          bloodRequest.distributedBy = facilityManager._id;
+          bloodRequest.distributedAt = new Date(Date.now() - Math.random() * 3 * 24 * 60 * 60 * 1000); // 0-3 ngày trước
+          bloodRequest.scheduledDeliveryDate = new Date(Date.now() + Math.random() * 2 * 24 * 60 * 60 * 1000); // 0-2 ngày tới
+        }
+        
+        bloodRequests.push(bloodRequest);
+        requestIndex++;
+      }
+    }
+  }
+  
+  // Tạo blood requests một cách tuần tự để tránh lỗi
+  const createdBloodRequests = [];
+  console.log(`🔄 Creating ${bloodRequests.length} blood requests one by one...`);
+  
+  for (let i = 0; i < bloodRequests.length; i++) {
+    try {
+      const bloodRequest = await BloodRequest.create(bloodRequests[i]);
+      createdBloodRequests.push(bloodRequest);
+      console.log(`  ✅ Created blood request ${i + 1}/${bloodRequests.length}: ${bloodRequest._id} - ${bloodRequest.status}`);
+    } catch (error) {
+      console.error(`  ❌ Error creating blood request ${i + 1}:`, error.message);
+      throw error;
+    }
+  }
+  
+  console.log(`✅ Created ${createdBloodRequests.length} blood requests`);
+  console.log(`   📊 Status distribution:`);
+  
+  // Log distribution by status
+  const statusCounts = {};
+  createdBloodRequests.forEach(req => {
+    statusCounts[req.status] = (statusCounts[req.status] || 0) + 1;
+  });
+  
+  Object.keys(statusCounts).forEach(status => {
+    console.log(`     - ${status}: ${statusCounts[status]} requests`);
+  });
+  
+  return createdBloodRequests;
+}
+
+async function createBloodRequestSupports(bloodRequests, users) {
+  const bloodRequestSupports = [];
+  
+  // Lấy các blood requests cần support (approved và needsSupport = true)
+  const requestsNeedingSupport = bloodRequests.filter(req => 
+    req.status === BLOOD_REQUEST_STATUS.APPROVED && req.needsSupport
+  );
+  
+  if (requestsNeedingSupport.length === 0) {
+    console.log('📝 No blood requests need support, skipping support creation');
+    return [];
+  }
+  
+  // Lấy donors có thể support
+  const donors = users.filter(user => user.role === USER_ROLE.MEMBER);
+  
+  console.log(`🤝 Creating blood request supports for ${requestsNeedingSupport.length} requests...`);
+  
+  for (const request of requestsNeedingSupport) {
+    // Tạo 2-5 support requests cho mỗi blood request
+    const numSupports = 2 + Math.floor(Math.random() * 4); // 2-5 supports
+    
+    for (let i = 0; i < numSupports; i++) {
+      const supporter = donors[Math.floor(Math.random() * donors.length)];
+      
+      // Kiểm tra xem supporter đã support request này chưa
+      const existingSupport = bloodRequestSupports.find(support => 
+        support.requestId.toString() === request._id.toString() && 
+        support.userId.toString() === supporter._id.toString()
+      );
+      
+      if (!existingSupport) {
+        const supportStatus = ['pending', 'approved', 'rejected'][Math.floor(Math.random() * 3)];
+        
+        const support = {
+          requestId: request._id,
+          userId: supporter._id,
+          phone: supporter.phone,
+          email: supporter.email,
+          note: `Tôi sẵn sàng hỗ trợ hiến máu cho yêu cầu này. Liên hệ tôi qua số ${supporter.phone}`,
+          status: supportStatus
+        };
+        
+        bloodRequestSupports.push(support);
+      }
+    }
+  }
+  
+  // Tạo blood request supports
+  const createdSupports = [];
+  console.log(`🔄 Creating ${bloodRequestSupports.length} blood request supports...`);
+  
+  for (let i = 0; i < bloodRequestSupports.length; i++) {
+    try {
+      const support = await BloodRequestSupport.create(bloodRequestSupports[i]);
+      createdSupports.push(support);
+      if ((i + 1) % 5 === 0) {
+        console.log(`  ✅ Created ${i + 1}/${bloodRequestSupports.length} supports`);
+      }
+    } catch (error) {
+      console.error(`  ❌ Error creating support ${i + 1}:`, error.message);
+      throw error;
+    }
+  }
+  
+  console.log(`✅ Created ${createdSupports.length} blood request supports`);
+  
+  // Log distribution by status
+  const statusCounts = {};
+  createdSupports.forEach(support => {
+    statusCounts[support.status] = (statusCounts[support.status] || 0) + 1;
+  });
+  
+  console.log(`   📊 Support status distribution:`);
+  Object.keys(statusCounts).forEach(status => {
+    console.log(`     - ${status}: ${statusCounts[status]} supports`);
+  });
+  
+  return createdSupports;
+}
+
 async function seedDatabase() {
   try {
     console.log('🌱 Starting database seeding...');
@@ -2092,6 +2371,12 @@ async function seedDatabase() {
     // Create blood inventory from units
     const bloodInventory = await createBloodInventoryFromUnits(bloodUnits, facilities, bloodGroups, bloodComponents);
     
+    // Create blood requests
+    const bloodRequests = await createBloodRequests(users, facilities, bloodGroups, bloodComponents, facilityStaff);
+    
+    // Create blood request supports
+    const bloodRequestSupports = await createBloodRequestSupports(bloodRequests, users);
+    
     console.log('\n🎉 Database seeding completed successfully!');
     console.log('\n📊 Summary:');
     console.log(`- Blood Groups: ${bloodGroups.length}`);
@@ -2116,6 +2401,33 @@ async function seedDatabase() {
     console.log(`  - Rejected: ${bloodUnits.filter(bu => bu.status === BLOOD_UNIT_STATUS.REJECTED).length}`);
     console.log(`  - Testing: ${bloodUnits.filter(bu => bu.status === BLOOD_UNIT_STATUS.TESTING).length}`);
     console.log(`- Blood Inventory Records: ${bloodInventory.length} (Grouped by facility/blood group/component)`);
+    
+    // Blood request summary
+    console.log('\n🩸 Blood Request System Data:');
+    console.log(`- Blood Requests: ${bloodRequests.length} (${bloodRequests.length/2} per facility, 2 per status)`);
+    console.log(`- Blood Request Supports: ${bloodRequestSupports.length} (For approved requests needing support)`);
+    
+    // Blood request status distribution
+    const requestStatusCounts = {};
+    bloodRequests.forEach(req => {
+      requestStatusCounts[req.status] = (requestStatusCounts[req.status] || 0) + 1;
+    });
+    console.log(`   📊 Request status distribution:`);
+    Object.keys(requestStatusCounts).forEach(status => {
+      console.log(`     - ${status}: ${requestStatusCounts[status]} requests`);
+    });
+    
+    // Support status distribution
+    if (bloodRequestSupports.length > 0) {
+      const supportStatusCounts = {};
+      bloodRequestSupports.forEach(support => {
+        supportStatusCounts[support.status] = (supportStatusCounts[support.status] || 0) + 1;
+      });
+      console.log(`   🤝 Support status distribution:`);
+      Object.keys(supportStatusCounts).forEach(status => {
+        console.log(`     - ${status}: ${supportStatusCounts[status]} supports`);
+      });
+    }
     
     // Gift management summary
     console.log('\n🎁 Gift Management Data:');
@@ -2157,6 +2469,20 @@ async function seedDatabase() {
     console.log('- Expiry date tracking per component type');
     console.log('- Doctor approval workflow for blood units');
     console.log('- Real-time inventory updates based on blood unit status');
+    
+    console.log('\n🩸 Blood Request System Features Ready:');
+    console.log('- Complete blood request workflow with 7 status levels');
+    console.log('- Support system for community blood donation');
+    console.log('- Urgent request prioritization');
+    console.log('- Medical document upload and validation');
+    console.log('- Geographic location tracking for requests');
+    console.log('- Manager approval workflow');
+    console.log('- Blood unit assignment and delivery scheduling');
+    console.log('- Request fulfillment tracking');
+    console.log('- Multi-status support system (pending, approved, rejected)');
+    console.log('- Facility-specific request management');
+    console.log('- User-specific request history');
+    console.log('- Component-specific blood requests');
     
     await verifyData();
     
