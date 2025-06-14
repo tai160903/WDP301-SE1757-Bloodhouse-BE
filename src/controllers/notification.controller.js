@@ -7,7 +7,10 @@ const notificationService = require("../services/notification.service");
 
 class NotificationController {
   getNotificationUser = asyncHandler(async (req, res, next) => {
-    const result = await notificationService.getNotificationUser(req.user.userId);
+    const result = await notificationService.getNotificationUser({
+      userId: req.user.userId,
+      ...req.query,
+    });
     new OK({ message: NOTIFICATION_MESSAGE.GET_SUCCESS, data: result }).send(res);
   });
 }

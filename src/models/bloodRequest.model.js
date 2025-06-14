@@ -54,7 +54,7 @@ const bloodRequestSchema = new mongoose.Schema(
       required: true,
     },
     reason: { type: String, trim: true, required: true },
-    note: { type: String, trim: true },
+    reasonRejected: { type: String, trim: true },
     preferredDate: { type: Date },
     scheduledDeliveryDate: { type: Date },
     isFulfilled: { type: Boolean, default: false },
