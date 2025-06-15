@@ -196,6 +196,13 @@ const EVENT_STATUS = {
   COMPLETED: "completed",
 };
 
+const EVENT_REGISTRATION_STATUS = {
+  REGISTERED: "registered",
+  CHECKED_IN: "checked_in",
+  CANCELLED: "cancelled",
+  NO_SHOW: "no_show",
+};
+
 module.exports = {
   USER_ROLE,
   STAFF_POSITION,
@@ -222,4 +229,5 @@ module.exports = {
   GIFT_ACTION,
   BLOOD_DELIVERY_STATUS,
   EVENT_STATUS,
+  EVENT_REGISTRATION_STATUS,
 };
