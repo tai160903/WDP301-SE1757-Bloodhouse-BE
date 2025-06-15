@@ -19,6 +19,8 @@ const { BLOOD_UNIT_STATUS } = require("../constants/enum");
 const bloodDeliveryModel = require("../models/bloodDelivery.model");
 const facilityStaffModel = require("../models/facilityStaff.model");
 const bloodDistributionLogModel = require("../models/bloodDistributionLog.model");
+const bloodInventoryModel = require("../models/bloodInventory.model");
+const facilityModel = require("../models/facility.model");
 const { default: mongoose } = require("mongoose");
 const { BLOOD_REQUEST_MESSAGE } = require("../constants/message");
 const QRCode = require("qrcode");
@@ -435,7 +437,7 @@ class BloodRequestService {
   updateBloodRequestStatus = async (
     id,
     facilityId,
-    { status, staffId, needsSupport }
+    { status, staffId, needsSupport, reasonRejected }
   ) => {
     const bloodRequest = await BloodRequest.findOne({
       _id: id,
@@ -458,6 +460,10 @@ class BloodRequestService {
         throw new BadRequestError("Trạng thái không hợp lệ");
       }
       bloodRequest.status = status;
+
+      if (status === BLOOD_REQUEST_STATUS.REJECTED_REGISTRATION) {
+        bloodRequest.reasonRejected = reasonRejected;
+      }
     }
 
     if (staffId) {
@@ -495,12 +501,20 @@ class BloodRequestService {
       bloodRequest.userId,
       status,
       bloodRequest.facilityId.name,
-      bloodRequest._id
+      bloodRequest._id,
+      reasonRejected || ""
     );
 
     return {
       data: getInfoData({
-        fields: ["_id", "status", "approvedBy", "needsSupport", "updatedAt"],
+        fields: [
+          "_id",
+          "status",
+          "approvedBy",
+          "needsSupport",
+          "updatedAt",
+          "reasonRejected",
+        ],
         object: bloodRequest,
       }),
     };
@@ -691,7 +705,9 @@ class BloodRequestService {
       const bloodRequest = await BloodRequest.findOne({
         _id: requestId,
         facilityId,
-      }).session(session);
+      })
+        .populate("facilityId", "_id name address")
+        .session(session);
       if (!bloodRequest) {
         throw new BadRequestError("Không tìm thấy yêu cầu máu");
       }
@@ -762,7 +778,19 @@ class BloodRequestService {
         await bloodDistributionLogModel.insertMany(logOps, { session });
       }
 
-      // Step 5: Kiểm tra transporter có tồn tại và thuộc cơ sở này không
+      // Step 5: Cập nhật bloodInventory
+      const bloodInventory = await bloodInventoryModel.findOne({
+        facilityId,
+        groupId: bloodRequest.groupId,
+        componentId: bloodRequest.componentId,
+      });
+      if (!bloodInventory) {
+        throw new BadRequestError("Không tìm thấy kho máu");
+      }
+      bloodInventory.totalQuantity -= bloodRequest.quantity;
+      await bloodInventory.save({ session });
+
+      // Step 6: Kiểm tra transporter có tồn tại và thuộc cơ sở này không
       const transporter = await facilityStaffModel
         .findOne({
           _id: transporterId,
@@ -776,22 +804,27 @@ class BloodRequestService {
         );
       }
 
-      // Step 6: Tạo delivery
-      const delivery = await bloodDeliveryModel.create([{
-        bloodRequestId: requestId,
-        facilityId,
-        facilityToAddress: bloodRequest.address,
-        bloodUnits: bloodUnits.map(unit => ({
-          unitId: unit.unitId,
-          quantity: unit.quantity
-        })),
-        transporterId,
-        assignedBy: userId,
-        status: BLOOD_DELIVERY_STATUS.PENDING,
-        note,
-      }], { session });
+      // Step 7: Tạo delivery
+      const delivery = await bloodDeliveryModel.create(
+        [
+          {
+            bloodRequestId: requestId,
+            facilityId,
+            facilityToAddress: bloodRequest.address,
+            bloodUnits: bloodUnits.map((unit) => ({
+              unitId: unit.unitId,
+              quantity: unit.quantity,
+            })),
+            transporterId,
+            assignedBy: userId,
+            status: BLOOD_DELIVERY_STATUS.PENDING,
+            note,
+          },
+        ],
+        { session }
+      );
 
-      // Step 7: Cập nhật request
+      // Step 8: Cập nhật request
       const totalAssigned = bloodUnits.reduce(
         (sum, item) => sum + item.quantity,
         0
@@ -804,13 +837,13 @@ class BloodRequestService {
       bloodRequest.distributedBy = userId;
       bloodRequest.distributedAt = new Date();
 
-      // Step 8: Tạo QR code cho delivery
+      // Step 9: Tạo QR code cho delivery
       const deliveryId = delivery[0]._id;
       const qrData = {
         type: "blood_delivery",
         deliveryId: deliveryId,
         requestId: bloodRequest._id,
-        facilityId: bloodRequest.facilityId,
+        facilityId: bloodRequest.facilityId._id,
         recipientId: bloodRequest.userId,
         timestamp: new Date().toISOString(),
       };
@@ -824,10 +857,41 @@ class BloodRequestService {
       }
       await bloodRequest.save({ session });
 
+      // Step 10: Gửi thông báo đến người dùng yêu cầu máu
+      const transporterUser = await facilityStaffModel.findOne({
+        _id: transporterId,
+        facilityId,
+        position: STAFF_POSITION.TRANSPORTER,
+      });
+      if (!transporterUser) {
+        throw new BadRequestError("Không tìm thấy người dùng");
+      }
+      const $userNotification =
+        notificationService.sendBloodRequestStatusNotification(
+          bloodRequest.userId,
+          BLOOD_REQUEST_STATUS.ASSIGNED,
+          bloodRequest.facilityId.name,
+          bloodRequest._id
+        );
+      const $transporterNotification =
+        notificationService.sendBloodRequestStatusNotificationToTransporter(
+          transporterUser.userId,
+          BLOOD_DELIVERY_STATUS.PENDING,
+          bloodRequest.facilityId.name,
+          deliveryId
+        );
+
+      await Promise.all([$userNotification, $transporterNotification]).catch(
+        (error) => {
+          console.log(error);
+        }
+      );
+
       await session.commitTransaction();
       session.endSession();
       return delivery;
     } catch (error) {
+      console.log(error);
       await session.abortTransaction();
       session.endSession();
       throw error;
