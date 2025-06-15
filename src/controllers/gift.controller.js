@@ -61,7 +61,7 @@ class GiftManagerController {
   // ===== GIFT PACKAGES MANAGEMENT =====
 
   createGiftPackage = asyncHandler(async (req, res) => {
-    const { name, description, items, image, priority, quantity } = req.body;
+    const { name, description, items, image, quantity } = req.body;
     
     // Validate required fields
     if (!name || !items || quantity === undefined) {
@@ -73,7 +73,6 @@ class GiftManagerController {
       description,
       items,
       image,
-      priority,
       quantity,
       createdBy: req.user.staffId,
       facilityId: req.user.facilityId,

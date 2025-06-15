@@ -62,10 +62,6 @@ const giftPackageSchema = new mongoose.Schema({
   // Thông tin display
   image: {
     type: String,
-  },
-  priority: {
-    type: Number,
-    default: 0, // Càng cao càng ưu tiên
   }
 }, { timestamps: true, collection: COLLECTION_NAME });
 
@@ -91,6 +87,6 @@ giftPackageSchema.pre('save', function(next) {
 
 // Indexes
 giftPackageSchema.index({ facilityId: 1, name: 1 });
-giftPackageSchema.index({ facilityId: 1, isActive: 1, priority: -1 });
+giftPackageSchema.index({ facilityId: 1, isActive: 1 });
 
 module.exports = mongoose.model(DOCUMENT_NAME, giftPackageSchema); 

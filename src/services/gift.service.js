@@ -176,7 +176,7 @@ class GiftService {
   // ===== GIFT PACKAGES MANAGEMENT =====
 
   async createGiftPackage(packageData) {
-    const { name, description, items, image, priority, quantity, createdBy, facilityId } = packageData;
+    const { name, description, items, image, quantity, createdBy, facilityId } = packageData;
 
     // Validate facility-specific createdBy
     if (!facilityId) {
@@ -247,7 +247,6 @@ class GiftService {
       items,
       quantity,
       image,
-      priority,
       createdBy,
     });
 
@@ -268,7 +267,7 @@ class GiftService {
     }).save();
 
     return getInfoData({
-      fields: ["_id", "name", "description", "facilityId", "items", "quantity", "availableQuantity", "image", "priority", "isActive", "createdAt"],
+      fields: ["_id", "name", "description", "facilityId", "items", "quantity", "reservedQuantity", "image", "isActive", "createdAt"],
       object: giftPackage,
     });
   }
@@ -288,7 +287,7 @@ class GiftService {
       query,
       page,
       limit,
-      select: "_id name description facilityId items quantity availableQuantity image priority isActive createdAt",
+      select: "_id name description facilityId items quantity reservedQuantity image isActive createdAt",
       populate: [
         { 
           path: "items.giftItemId", 
@@ -301,7 +300,7 @@ class GiftService {
       ],
       search,
       searchFields: ["name", "description"],
-      sort: { priority: -1, createdAt: -1 },
+      sort: { createdAt: -1 },
     });
 
     return result;
@@ -324,7 +323,7 @@ class GiftService {
     }
     
     return getInfoData({
-      fields: ["_id", "name", "description", "facilityId", "items", "quantity", "availableQuantity", "image", "priority", "isActive", "createdAt"],
+      fields: ["_id", "name", "description", "facilityId", "items", "quantity", "reservedQuantity", "image", "isActive", "createdAt"],
       object: giftPackage,
     });
   }
@@ -463,7 +462,7 @@ class GiftService {
     }).save();
 
     return getInfoData({
-      fields: ["_id", "name", "description", "facilityId", "items", "quantity", "availableQuantity", "image", "priority", "isActive", "updatedAt"],
+      fields: ["_id", "name", "description", "facilityId", "items", "quantity", "reservedQuantity", "image", "isActive", "updatedAt"],
       object: giftPackage,
     });
   }
@@ -716,8 +715,65 @@ class GiftService {
     // Validate
     if (!facilityId) throw new BadRequestError("facilityId is required");
 
-    // Build query
-    const matchQuery = { facilityId, isActive: true };
+    // Build base query
+    let matchQuery = { facilityId, isActive: true };
+
+    // Handle search in gift item fields
+    if (search) {
+      // First, find gift items that match the search criteria
+      const searchRegex = new RegExp(search, "i");
+      const matchingGiftItems = await GiftItem.find({
+        $or: [
+          { name: searchRegex },
+          { description: searchRegex }
+        ],
+        isActive: true
+      }).select('_id');
+
+      const matchingGiftItemIds = matchingGiftItems.map(item => item._id);
+      
+      if (matchingGiftItemIds.length > 0) {
+        matchQuery.giftItemId = { $in: matchingGiftItemIds };
+      } else {
+        // If no gift items match, return empty result
+        return {
+          data: [],
+          metadata: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: 0,
+            totalPages: 0,
+          },
+        };
+      }
+    }
+
+    // Handle category filter
+    if (category) {
+      const categoryGiftItems = await GiftItem.find({
+        category: category,
+        isActive: true
+      }).select('_id');
+
+      const categoryGiftItemIds = categoryGiftItems.map(item => item._id);
+      
+      if (matchQuery.giftItemId) {
+        // If already have giftItemId filter from search, intersect with category filter
+        const existingIds = matchQuery.giftItemId.$in || [matchQuery.giftItemId];
+        matchQuery.giftItemId = { 
+          $in: existingIds.filter(id => 
+            categoryGiftItemIds.some(catId => catId.toString() === id.toString())
+          )
+        };
+      } else {
+        matchQuery.giftItemId = { $in: categoryGiftItemIds };
+      }
+    }
+
+    // Handle low stock filter
+    if (lowStock === 'true') {
+      matchQuery.$expr = { $lte: ["$quantity", "$minStockLevel"] };
+    }
 
     const result = await getPaginatedData({
       model: GiftInventory,
@@ -728,20 +784,8 @@ class GiftService {
       populate: [
         { path: "giftItemId", select: "name description image unit category isActive" }
       ],
-      search,
-      searchFields: ["giftItemId.name", "giftItemId.description"],
       sort: sort,
     });
-
-    // Filter by category if specified
-    if (category) {
-      result.data = result.data.filter(inv => inv.giftItemId?.category === category);
-    }
-
-    // Filter low stock if specified
-    if (lowStock === 'true') {
-      result.data = result.data.filter(inv => inv.quantity <= inv.minStockLevel);
-    }
 
     // Add available quantity virtual field
     result.data = result.data.map(inv => ({
@@ -1021,7 +1065,7 @@ class GiftService {
       quantity: { $gt: 0 }  // Only packages with available quantity
     })
       .populate('items.giftItemId', 'name unit category costPerUnit')
-      .sort({ priority: -1, createdAt: -1 });
+      .sort({ createdAt: -1 });
 
     // Filter packages based on inventory availability
     const availablePackages = [];
@@ -1160,7 +1204,7 @@ class GiftService {
   // ===== REPORTS =====
 
   async getDistributionReport({ facilityId, query }) {
-    const { startDate, endDate, page = 1, limit = 10, giftItemId, distributedBy, packageId } = query;
+    const { startDate, endDate, page = 1, limit = 10, giftItemId, distributedBy, packageId, search } = query;
 
     // Validate
     if (!facilityId) throw new BadRequestError("facilityId is required");
@@ -1168,7 +1212,7 @@ class GiftService {
       throw new BadRequestError("startDate and endDate must be valid dates");
     }
 
-    // Build query
+    // Build base query
     const match = { facilityId };
     if (startDate) match.distributedAt = { $gte: new Date(startDate) };
     if (endDate) match.distributedAt = { ...match.distributedAt, $lte: new Date(endDate) };
@@ -1192,7 +1236,10 @@ class GiftService {
           select: "userId position", 
           populate: { path: "userId", select: "fullName" }
         },
+        { path: "facilityId", select: "name code" }
       ],
+      search,
+      searchFields: ["userId.fullName"],
       sort: { distributedAt: -1 },
     });
 
@@ -1247,6 +1294,7 @@ class GiftService {
         { path: "packageId", select: "name" },
         { 
           path: "userId", 
+          model: "FacilityStaff",
           select: "userId position", 
           populate: { path: "userId", select: "fullName" }
         },
