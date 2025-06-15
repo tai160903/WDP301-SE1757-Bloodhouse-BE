@@ -9,6 +9,7 @@ const { USER_STATUS, SEX, USER_ROLE } = require("../constants/enum");
 const crypto = require("crypto");
 const mailService = require("./mail.service");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
+const FPT_AI_OCR = require("../helpers/fptOcrHelper");
 
 class UserService {
   // Tìm kiếm người dùng gần vị trí
@@ -159,25 +160,25 @@ class UserService {
   };
 
   // Gửi email xác minh
-      sendVerificationEmail = async (userId) => {
-        const user = await userModel.findById(userId);
-        if (!user) {
-          throw new NotFoundError("User not found");
-        }
-        if (user.status === USER_STATUS.VERIFIED) {
-          throw new BadRequestError("User already verified");
-        }
+  sendVerificationEmail = async (userId) => {
+    const user = await userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+    if (user.status === USER_STATUS.VERIFIED) {
+      throw new BadRequestError("User already verified");
+    }
 
-        const verifyOTP = crypto.randomInt(100000, 999999).toString();
-        const hashOTP = await bcrypt.hash(verifyOTP, 10);
-        const verifyExpires = Date.now() + 3600000;
-        await userModel.findByIdAndUpdate(userId, {
-          verifyOTP: hashOTP,
-          verifyExpires,
-        });
+    const verifyOTP = crypto.randomInt(100000, 999999).toString();
+    const hashOTP = await bcrypt.hash(verifyOTP, 10);
+    const verifyExpires = Date.now() + 3600000;
+    await userModel.findByIdAndUpdate(userId, {
+      verifyOTP: hashOTP,
+      verifyExpires,
+    });
 
-        return mailService.sendVerificationEmail(user.email, verifyOTP);
-      };
+    return mailService.sendVerificationEmail(user.email, verifyOTP);
+  };
 
   // Xác minh tài khoản
   verifyAccount = async (userId, verifyOTP) => {
@@ -230,8 +231,36 @@ class UserService {
     });
   };
 
+  // Upload CCCD
+  uploadCCCD = async (userId, file) => {
+    const user = await userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+
+    // 2. Kiểm tra file
+    if (!file) throw new BadRequestError("CCCD image is required");
+    const validTypes = ["image/jpeg", "image/png", "image/jpg"];
+    if (!validTypes.includes(file.mimetype))
+      throw new BadRequestError("Invalid file type (JPEG/PNG only)");
+
+    // 3. Gọi OCR (FPT AI) – lấy dữ liệu CCCD
+    let ocrData;
+    try {
+      ocrData = await FPT_AI_OCR.extractCCCD(file.buffer, file.mimetype, file.originalname);
+      // ocrData = { idCard, fullName, dob, address, sex }
+    } catch (err) {
+      throw new BadRequestError(
+        "Cannot read CCCD, please upload clearer image"
+      );
+    }
+
+    return ocrData;
+  };
+
   // Xác minh tài khoản level 2
   verifyLevel2 = async (userId, verifyData) => {
+    console.log(verifyData);
     const user = await userModel.findById(userId);
     if (!user) {
       throw new NotFoundError("User not found");
@@ -342,12 +371,7 @@ class UserService {
   };
 
   // Lấy danh sách user
-  getUsers = async ({
-    status,
-    isAvailable,
-    limit = 10,
-    page = 1,
-  }) => {
+  getUsers = async ({ status, isAvailable, limit = 10, page = 1 }) => {
     const query = {};
     if (status) query.status = status;
     if (isAvailable) query.isAvailable = isAvailable;

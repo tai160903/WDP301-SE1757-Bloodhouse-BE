@@ -62,6 +62,15 @@ class UserController {
     }).send(res);
   });
 
+  // Upload CCCD
+  uploadCCCD = asyncHandler(async (req, res) => {
+    const result = await userService.uploadCCCD(req.user.userId, req.file);
+    new OK({
+      message: "CCCD uploaded successfully",
+      data: result,
+    }).send(res);
+  });
+
   // Xác minh tài khoản level 2
   verifyLevel2 = asyncHandler(async (req, res) => {
     const result = await userService.verifyLevel2(req.user.userId, req.body);
@@ -70,6 +79,7 @@ class UserController {
       data: result,
     }).send(res);
   });
+
   // Đổi mật khẩu
   changePassword = asyncHandler(async (req, res) => {
     const result = await userService.changePassword(req.user.userId, req.body);
