@@ -5,6 +5,7 @@ const notificationModel = require("../models/notification.model");
 const userModel = require("../models/user.model");
 const { Expo } = require("expo-server-sdk");
 const dayjs = require("dayjs");
+const { getPaginatedData } = require("../helpers/mongooseHelper");
 
 class NotificationService {
   constructor() {
@@ -120,7 +121,8 @@ class NotificationService {
     userId,
     status,
     facilityName,
-    entityId
+    entityId,
+    reasonRejected
   ) => {
     let title = "Cập nhật đơn yêu cầu máu";
     let body = "";
@@ -135,14 +137,52 @@ class NotificationService {
       case "approved":
         body = `Đơn yêu cầu máu của bạn tại ${facilityName} đã được duyệt.`;
         break;
-      case "rejected":
-        body = `Đơn yêu cầu máu của bạn tại ${facilityName} đã bị từ chối.`;
+      case "rejected_registration":
+        body = `Đơn yêu cầu máu của bạn tại ${facilityName} đã bị từ chối. Lý do: ${reasonRejected}`;
+        break;
+      case "assigned":
+        body = `Đơn yêu cầu máu của bạn tại ${facilityName} đã được phân phối và đang chờ người giao nhận đơn.`;
+        break;
+      case "completed":
+        body = `Đơn yêu cầu máu của bạn tại ${facilityName} đã hoàn thành.`;
         break;
       default:
         body = `Trạng thái đơn yêu cầu máu của bạn tại ${facilityName} đã được cập nhật thành ${status}.`;
     }
 
     return this.sendPushNotification(userId, {
+      title,
+      body,
+      data: { type, status },
+      entityType,
+      relatedEntityId,
+    });
+  };
+
+  sendBloodRequestStatusNotificationToTransporter = async (
+    transporterId,
+    status,
+    facilityName,
+    deliveryId
+  ) => {
+    let title = "Cập nhật đơn giao nhận máu";
+    let body = "";
+    let type = "delivery";
+    let relatedEntityId = deliveryId;
+    let entityType = "bloodDelivery";
+
+    switch (status) {
+      case "pending":
+        body = `Có đơn yêu cầu máu tại ${facilityName} đang chờ bạn giao nhận.`;
+        break;
+      case "completed":
+        body = `Đơn giao nhận máu của bạn tại ${facilityName} đã được giao nhận thành công.`;
+        break;
+      default:
+        body = `Trạng thái đơn giao nhận máu của bạn tại ${facilityName} đã được cập nhật thành ${status}.`;
+    }
+
+    return this.sendPushNotification(transporterId, {
       title,
       body,
       data: { type, status },
@@ -169,7 +209,7 @@ class NotificationService {
       relatedEntityId: entityId,
     });
   };
-
+ 
   sendBloodSupportRequestNotification = async (
     targetUserId,
     patientName,
@@ -183,21 +223,30 @@ class NotificationService {
     return this.sendPushNotification(targetUserId, {
       title,
       body,
-      data: { 
+      data: {
         type: NOTIFICATION_TYPE.SUPPORT_REQUEST,
         bloodGroup,
-        requestId
+        requestId,
       },
       entityType: ENTITY_TYPE.BLOOD_REQUEST,
       relatedEntityId: requestId,
     });
   };
 
-  getNotificationUser = async (userId) => {
-    const user = await notificationModel
-      .find({ userId })
-      .sort({ createdAt: -1 });
-    return user;
+  getNotificationUser = async ({ userId, page = 1, limit = 10 }) => {
+    const query = { userId };
+    const result = await getPaginatedData({
+      model: notificationModel,
+      query,
+      page,
+      limit,
+      select:
+        "_id title message data status entityType relatedEntityId createAt type",
+      search: "",
+      searchFields: ["title", "message"],
+      sort: { createAt: -1 },
+    });
+    return result;
   };
 }
 

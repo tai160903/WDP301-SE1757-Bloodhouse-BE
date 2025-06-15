@@ -10,8 +10,8 @@ const bloodDeliverySchema = new mongoose.Schema(
   {
     code: {
       type: String,
-      index: true,
       unique: true,
+      index: true,
     },
     bloodRequestId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -80,14 +80,12 @@ const bloodDeliverySchema = new mongoose.Schema(
 );
 
 bloodDeliverySchema.pre("save", async function (next) {
-  if (this.isNew) {
-    if (!this.code) {
-      this.code = await generateUniqueCodeSafe(
-        mongoose.model(DOCUMENT_NAME),
-        "DELI",
-        "code"
-      );
-    }
+  if (this.isNew && !this.code) {
+    this.code = await generateUniqueCodeSafe(
+      mongoose.model(DOCUMENT_NAME),
+      "DELI",
+      "code"
+    );
   }
   next();
 });
