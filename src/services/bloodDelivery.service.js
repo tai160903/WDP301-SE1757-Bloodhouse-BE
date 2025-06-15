@@ -12,6 +12,7 @@ const bloodRequestModel = require("../models/bloodRequest.model");
 const userStaffModel = require("../models/facilityStaff.model");
 const userModel = require("../models/user.model");
 const bloodUnitModel = require("../models/bloodUnit.model");
+const notificationService = require("./notification.service");
 
 class BloodDeliveryService {
   getBloodDeliveryByRequestId = async (requestId, userId) => {
@@ -236,11 +237,25 @@ class BloodDeliveryService {
           { _id: requestId },
           { status: BLOOD_REQUEST_STATUS.COMPLETED }
         )
+        .populate("facilityId", "name")
         .session(session);
 
       if (!bloodRequest) {
         throw new Error("Yêu cầu máu không tồn tại");
       }
+
+      // Step 4: Thông báo cho người dùng yêu cầu máu
+      const user = await userModel.findById(bloodRequest.userId);
+      if (!user) {
+        throw new Error("Người dùng không tồn tại");
+      }
+
+      await notificationService.sendBloodRequestStatusNotification(
+        user._id,
+        BLOOD_REQUEST_STATUS.COMPLETED,
+        bloodRequest.facilityId.name,
+        bloodRequest._id
+      );
 
       await session.commitTransaction();
       return bloodDelivery;

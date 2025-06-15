@@ -2,6 +2,79 @@
 
 const { BadRequestError } = require("../configs/error.response");
 
+/**
+ * MONGOOSE HELPER - Hỗ trợ tìm kiếm với dot notation cho nested fields
+ * 
+ * Các tính năng chính:
+ * 1. Phân trang dữ liệu với tìm kiếm
+ * 2. Nested populate qua nhiều bảng
+ * 3. Tìm kiếm trong nested fields sử dụng dot notation
+ * 4. Validation an toàn cho search fields
+ * 
+ * Ví dụ sử dụng trong service:
+ * ```javascript
+ * // Tìm kiếm inventory theo tên gift item
+ * const result = await getPaginatedData({
+ *   model: GiftInventory,
+ *   search: "áo thun",
+ *   searchFields: ["giftItemId.name", "giftItemId.description"],
+ *   populate: [{ path: "giftItemId", select: "name description category" }],
+ *   page: 1,
+ *   limit: 10
+ * });
+ * 
+ * // Tìm kiếm distribution theo tên người nhận
+ * const result = await getPaginatedData({
+ *   model: GiftDistribution,
+ *   search: "nguyen van a",
+ *   searchFields: ["userId.fullName", "userId.phone", "notes"],
+ *   populate: [{ path: "userId", select: "fullName phone email" }]
+ * });
+ * ```
+ */
+
+/**
+ * Hàm helper để lấy dữ liệu có phân trang từ MongoDB
+ * @param {Object} options
+ * @param {Object} options.model - Model Mongoose (User, Order, v.v.)
+ * @param {Object} options.query - Điều kiện lọc (filter)
+ * @param {Number} options.page - Trang hiện tại
+ * @param {Number} options.limit - Số lượng bản ghi mỗi trang
+ * @param {String} options.select - Các trường cần lấy
+ * @param {Array} options.populate - Các trường cần populate
+ * @param {String} options.search - Từ khóa tìm kiếm
+ * @param {Array} options.searchFields - Các trường để tìm kiếm (hỗ trợ dot notation cho nested fields)
+ * @param {Object} options.sort - Sắp xếp mặc định theo createdAt giảm dần
+ * 
+ * @example
+ * // Tìm kiếm trong field đơn giản
+ * const result = await getPaginatedData({
+ *   model: User,
+ *   search: "john",
+ *   searchFields: ["fullName", "email"]
+ * });
+ * 
+ * @example
+ * // Tìm kiếm trong nested field sử dụng dot notation
+ * const result = await getPaginatedData({
+ *   model: GiftInventory,
+ *   search: "áo thun",
+ *   searchFields: ["giftItemId.name", "giftItemId.description"],
+ *   populate: [{ path: "giftItemId", select: "name description category" }]
+ * });
+ * 
+ * @example
+ * // Tìm kiếm trong nested field nhiều cấp
+ * const result = await getPaginatedData({
+ *   model: Order,
+ *   search: "nguyen",
+ *   searchFields: ["userId.fullName", "userId.profile.address", "items.productId.name"],
+ *   populate: [
+ *     { path: "userId", populate: { path: "profile" } },
+ *     { path: "items.productId" }
+ *   ]
+ * });
+ */
 const getPaginatedData = async ({
   model, // Model Mongoose (User, Order, v.v.)
   query = {}, // Điều kiện lọc (filter)
@@ -26,13 +99,10 @@ const getPaginatedData = async ({
 
     // Step 2: Xây dựng query tìm kiếm
     let finalQuery = { ...query };
-    if (search && searchFields.length > 0) {
-      const searchRegex = new RegExp(search, "i"); // Không phân biệt hoa thường
-      finalQuery.$or = searchFields.map((field) => ({
-        [field]: searchRegex,
-      }));
+    const searchQuery = buildSearchQuery(search, searchFields);
+    if (searchQuery) {
+      finalQuery = { ...finalQuery, ...searchQuery };
     }
-
 
     // Step 3: Tính toán phân trang
     const skip = (pageNum - 1) * limitNum;
@@ -79,9 +149,11 @@ const getPaginatedData = async ({
  * @param {Number} options.page - Trang hiện tại (nếu cần phân trang)
  * @param {Number} options.limit - Số lượng bản ghi mỗi trang (nếu cần phân trang)
  * @param {Boolean} options.isPaginated - Có sử dụng phân trang không
+ * @param {String} options.search - Từ khóa tìm kiếm
+ * @param {Array} options.searchFields - Các trường để tìm kiếm (hỗ trợ dot notation cho nested fields)
  * 
  * @example
- * // Ví dụ cho ProcessDonationLog
+ * // Ví dụ cho ProcessDonationLog với tìm kiếm nested field
  * const result = await getNestedPopulatedData({
  *   model: processDonationLogModel,
  *   query: { registrationId: "someId" },
@@ -107,6 +179,22 @@ const getPaginatedData = async ({
  *   sort: { changedAt: -1 },
  *   isPaginated: true,
  *   page: 1,
+ *   limit: 10,
+ *   search: "john",
+ *   searchFields: ["changedBy.userId.fullName", "registrationId.userId.fullName", "notes"]
+ * });
+ * 
+ * @example
+ * // Ví dụ cho GiftInventory với tìm kiếm trong giftItem
+ * const result = await getNestedPopulatedData({
+ *   model: GiftInventory,
+ *   search: "áo thun",
+ *   searchFields: ["giftItemId.name", "giftItemId.description"],
+ *   nestedPopulate: [
+ *     { path: "giftItemId", select: "name description image unit category isActive" }
+ *   ],
+ *   isPaginated: true,
+ *   page: 1,
  *   limit: 10
  * });
  */
@@ -125,11 +213,9 @@ const getNestedPopulatedData = async ({
   try {
     // Xây dựng query tìm kiếm
     let finalQuery = { ...query };
-    if (search && searchFields.length > 0) {
-      const searchRegex = new RegExp(search, "i");
-      finalQuery.$or = searchFields.map((field) => ({
-        [field]: searchRegex,
-      }));
+    const searchQuery = buildSearchQuery(search, searchFields);
+    if (searchQuery) {
+      finalQuery = { ...finalQuery, ...searchQuery };
     }
 
     // Tạo base query
@@ -271,9 +357,54 @@ const createNestedPopulateConfig = (path, select = "", nestedConfig = null) => {
   return config;
 };
 
+/**
+ * Hàm helper để validate và xử lý search fields với dot notation
+ * @param {String} search - Từ khóa tìm kiếm
+ * @param {Array} searchFields - Mảng các field để tìm kiếm
+ * @returns {Object|null} - Query object hoặc null nếu không có search
+ * 
+ * @example
+ * const searchQuery = buildSearchQuery("john", ["fullName", "userId.fullName", "profile.address"]);
+ * // Trả về: { $or: [{ fullName: /john/i }, { "userId.fullName": /john/i }, { "profile.address": /john/i }] }
+ */
+const buildSearchQuery = (search, searchFields = []) => {
+  if (!search || !searchFields.length) {
+    return null;
+  }
+
+  const searchRegex = new RegExp(search, "i"); // Không phân biệt hoa thường
+  
+  // Validate và xử lý các search fields
+  const validSearchFields = searchFields.filter(field => {
+    // Kiểm tra field không rỗng và là string
+    if (typeof field !== 'string' || !field.trim()) {
+      return false;
+    }
+    
+    // Kiểm tra dot notation hợp lệ (không bắt đầu hoặc kết thúc bằng dấu chấm)
+    if (field.startsWith('.') || field.endsWith('.') || field.includes('..')) {
+      console.warn(`Invalid search field format: ${field}`);
+      return false;
+    }
+    
+    return true;
+  });
+
+  if (!validSearchFields.length) {
+    return null;
+  }
+
+  return {
+    $or: validSearchFields.map((field) => ({
+      [field]: searchRegex,
+    }))
+  };
+};
+
 module.exports = { 
   getPaginatedData,
   getNestedPopulatedData,
   populateExistingDocument,
-  createNestedPopulateConfig
+  createNestedPopulateConfig,
+  buildSearchQuery
 };
