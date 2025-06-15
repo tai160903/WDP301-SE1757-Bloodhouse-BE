@@ -30,5 +30,6 @@ router.use("/gift", require("./gift"));
 router.use("/blood-delivery", require("./bloodDelivery"));
 router.use("/user-badge", require("./userBadge"));
 router.use("/event", require("./event"));
+router.use("/event-registration", require("./eventRegistration"));
 
 module.exports = router;
