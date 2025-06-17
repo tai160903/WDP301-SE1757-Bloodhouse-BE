@@ -362,6 +362,14 @@ const EVENT_MESSAGE = {
   EVENT_NOT_FOUND: "Sự kiện không tồn tại",
 };
 
+const EVENT_REGISTRATION_MESSAGE = {
+  GET_SUCCESS: "Lấy đăng ký sự kiện thành công",
+  GET_FAILED: "Lấy đăng ký sự kiện thất bại",
+  CREATE_SUCCESS: "Tạo đăng ký sự kiện thành công",
+  CREATE_FAILED: "Tạo đăng ký sự kiện thất bại",
+  EVENT_ALREADY_REGISTERED: "Bạn đã đăng ký sự kiện này",
+};
+
 module.exports = {
   ACCESS_MESSAGE,
   BLOOD_COMPATIBILITY_MESSAGE,
@@ -388,4 +396,5 @@ module.exports = {
   BLOOD_DELIVERY_MESSAGE,
   USER_BADGE_MESSAGE,
   EVENT_MESSAGE,
+  EVENT_REGISTRATION_MESSAGE,
 };

@@ -5,11 +5,17 @@ const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const { BadRequestError, NotFoundError } = require("../configs/error.response");
 const { getInfoData } = require("../utils");
-const { USER_STATUS, SEX, USER_ROLE } = require("../constants/enum");
+const {
+  USER_STATUS,
+  SEX,
+  USER_ROLE,
+  BLOOD_DONATION_STATUS,
+} = require("../constants/enum");
 const crypto = require("crypto");
 const mailService = require("./mail.service");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
 const FPT_AI_OCR = require("../helpers/fptOcrHelper");
+const bloodDonationModel = require("../models/bloodDonation.model");
 
 class UserService {
   // Tìm kiếm người dùng gần vị trí
@@ -247,7 +253,11 @@ class UserService {
     // 3. Gọi OCR (FPT AI) – lấy dữ liệu CCCD
     let ocrData;
     try {
-      ocrData = await FPT_AI_OCR.extractCCCD(file.buffer, file.mimetype, file.originalname);
+      ocrData = await FPT_AI_OCR.extractCCCD(
+        file.buffer,
+        file.mimetype,
+        file.originalname
+      );
       // ocrData = { idCard, fullName, dob, address, sex }
     } catch (err) {
       throw new BadRequestError(
@@ -332,8 +342,27 @@ class UserService {
     });
   };
 
-  // Lấy thông tin user
-  getUserInfo = async (userId) => {
+  // Lấy thông tin thống kê hiến máu của user
+  getDonationStats = async (userId) => {
+    const completedDonations = await bloodDonationModel.countDocuments({
+      userId,
+      status: BLOOD_DONATION_STATUS.COMPLETED,
+    });
+
+    const latestDonation = await bloodDonationModel
+      .findOne({
+        userId,
+        status: BLOOD_DONATION_STATUS.COMPLETED,
+      })
+      .sort({ donationDate: -1 });
+
+    return {
+      completedDonations,
+      latestDonationDate: latestDonation?.donationDate || null,
+    };
+  };
+
+  getUserInfo = async (userId, role) => {
     const user = await userModel
       .findById(userId)
       .select(
@@ -343,7 +372,14 @@ class UserService {
     if (!user) {
       throw new NotFoundError("User not found");
     }
-    return getInfoData({
+
+    // Get donation stats if user is a member
+    let donationStats = null;
+    if (role === USER_ROLE.MEMBER) {
+      donationStats = await this.getDonationStats(userId);
+    }
+
+    const userInfo = getInfoData({
       fields: [
         "_id",
         "fullName",
@@ -368,6 +404,11 @@ class UserService {
       ],
       object: user,
     });
+
+    return {
+      ...userInfo,
+      donationStats,
+    };
   };
 
   // Lấy danh sách user
