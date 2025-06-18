@@ -64,27 +64,27 @@ class BloodDonationService {
     // }
 
     // Lấy lần hiến máu gần nhất
-    const lastDonation = await bloodDonationModel
-      .findOne({ userId })
-      .sort({ donationDate: -1 });
+    // const lastDonation = await bloodDonationModel
+    //   .findOne({ userId })
+    //   .sort({ donationDate: -1 });
 
-    if (lastDonation) {
-      const lastDonationDate = new Date(lastDonation.donationDate);
-      const currentDate = new Date();
-      const monthsDiff =
-        (currentDate.getFullYear() - lastDonationDate.getFullYear()) * 12 +
-        (currentDate.getMonth() - lastDonationDate.getMonth());
+    // if (lastDonation) {
+    //   const lastDonationDate = new Date(lastDonation.donationDate);
+    //   const currentDate = new Date();
+    //   const monthsDiff =
+    //     (currentDate.getFullYear() - lastDonationDate.getFullYear()) * 12 +
+    //     (currentDate.getMonth() - lastDonationDate.getMonth());
 
-      // Kiểm tra thời gian chờ dựa trên giới tính
-      const requiredMonths = user.gender === "female" ? 4 : 3;
-      if (monthsDiff < requiredMonths) {
-        throw new BadRequestError(
-          `Bạn cần đợi đủ ${requiredMonths} tháng kể từ lần hiến máu trước (${lastDonationDate.toLocaleDateString(
-            "vi-VN"
-          )})`
-        );
-      }
-    }
+    //   // Kiểm tra thời gian chờ dựa trên giới tính
+    //   const requiredMonths = user.gender === "female" ? 4 : 3;
+    //   if (monthsDiff < requiredMonths) {
+    //     throw new BadRequestError(
+    //       `Bạn cần đợi đủ ${requiredMonths} tháng kể từ lần hiến máu trước (${lastDonationDate.toLocaleDateString(
+    //         "vi-VN"
+    //       )})`
+    //     );
+    //   }
+    // }
 
     // Lấy location từ profile người dùng
     const location = user.location || { type: "Point", coordinates: [0, 0] };
