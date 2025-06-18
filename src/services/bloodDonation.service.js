@@ -164,6 +164,7 @@ class BloodDonationService {
     status,
     staffId,
     notes,
+    reasonRejected,
   }) => {
     // Step 1: Find registration
     const registration = await bloodDonationRegistrationModel
@@ -194,6 +195,9 @@ class BloodDonationService {
       // }
 
       registration.status = status;
+      if (status === BLOOD_DONATION_REGISTRATION_STATUS.REJECTED_REGISTRATION) {
+        registration.reasonRejected = reasonRejected;
+      }
 
       if (status === BLOOD_DONATION_REGISTRATION_STATUS.REGISTERED) {
         // Step 4: Create QR code
@@ -370,6 +374,7 @@ class BloodDonationService {
         "completedAt",
         "createdAt",
         "updatedAt",
+        "reasonRejected",
       ],
       object: registration,
     });

@@ -31,6 +31,7 @@ const bloodDonationRegistrationSchema = new mongoose.Schema(
       default: BLOOD_DONATION_REGISTRATION_STATUS.PENDING_APPROVAL,
     },
     notes: { type: String },
+    reasonRejected: { type: String, trim: true },
     expectedQuantity: { type: Number },
     source: { type: String, enum: Object.values(BLOOD_DONATION_REGISTRATION_SOURCE) },
 
