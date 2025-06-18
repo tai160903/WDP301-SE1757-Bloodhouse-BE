@@ -103,7 +103,7 @@ class UserController {
 
   // Lấy thông tin user
   getUserInfo = asyncHandler(async (req, res) => {
-    const result = await userService.getUserInfo(req.user.userId);
+    const result = await userService.getUserInfo(req.user.userId, req.user.role);
     new OK({
       message: "User info retrieved successfully",
       data: result,
