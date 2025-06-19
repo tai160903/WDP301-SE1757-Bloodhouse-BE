@@ -150,7 +150,24 @@ class BloodDeliveryService {
     return bloodDelivery;
   };
 
-  startDelivery = async (deliveryId, facilityId) => {
+  startDelivery = async (deliveryId, facilityId, userId) => {
+    const facilityStaff = await userStaffModel.findOne({
+      userId,
+      facilityId,
+    });
+    if (!facilityStaff) {
+      throw new Error("Người dùng không phải nhân viên của hệ thống");
+    }
+    // Kiểm tra xem đơn có đang ở trạng thái đang giao không
+    const activeDelivery = await bloodDeliveryModel.findOne({
+      transporterId: facilityStaff._id,
+      status: BLOOD_DELIVERY_STATUS.IN_TRANSIT,
+    });
+    if (activeDelivery) {
+      throw new Error(
+        "Có đơn đang ở trạng thái đang giao, vui lòng hoàn tất đơn trước khi bắt đầu đơn mới"
+      );
+    }
     const bloodDelivery = await bloodDeliveryModel.findOneAndUpdate(
       { _id: deliveryId, facilityId },
       {
