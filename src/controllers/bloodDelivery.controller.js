@@ -62,7 +62,8 @@ class BloodDeliveryController {
     const { deliveryId, facilityId } = req.params;
     const result = await bloodDeliveryService.startDelivery(
       deliveryId,
-      facilityId
+      facilityId,
+      req.user.userId
     );
     new OK({
       message: BLOOD_DELIVERY_MESSAGE.GET_SUCCESS,
