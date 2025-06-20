@@ -45,8 +45,18 @@ const contentApiDocument = YAML.load(
 
 const addServers = (req, doc) => {
   const modifiedDoc = { ...doc };
-  const protocol = req.protocol;
+  let protocol = req.protocol;
   const host = req.get("host");
+  
+  // Handle reverse proxy HTTPS (common in production)
+  if (req.get('x-forwarded-proto')) {
+    protocol = req.get('x-forwarded-proto');
+  }
+  
+  // Force HTTPS in production if behind reverse proxy
+  if (process.env.NODE_ENV === "production" && host && !host.includes('localhost')) {
+    protocol = 'https';
+  }
 
   modifiedDoc.servers = [
     {
@@ -156,13 +166,29 @@ const createSwaggerSetup = (apiType) => {
   };
 };
 
+// Swagger UI options
+const swaggerUiOptions = {
+  swaggerOptions: {
+    requestInterceptor: (request) => {
+      // Add CORS headers
+      request.headers['Access-Control-Allow-Origin'] = '*';
+      return request;
+    },
+    responseInterceptor: (response) => {
+      // Handle CORS response
+      return response;
+    }
+  }
+};
+
 // Setup all Swagger routes function
 const setupSwaggerRoutes = (app) => {
   
   // Main API documentation
   app.use("/api-docs", swaggerUi.serve);
   app.get("/api-docs", (req, res) => {
-    res.send(mainSwaggerSetup(req, res));
+    const html = mainSwaggerSetup(req, res);
+    res.send(html);
   });
 
   // Gift API documentation

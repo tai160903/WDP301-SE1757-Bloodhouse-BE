@@ -1,0 +1,79 @@
+name: Deploy Production
+
+on:
+  push:
+    branches: ["production"]
+  pull_request:
+    branches: ["production"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Gửi thông báo Telegram - Bắt đầu Deploy
+        uses: appleboy/telegram-action@master
+        with:
+          to:     ${{ secrets.TELEGRAM_TO }}
+          token:  ${{ secrets.TELEGRAM_TOKEN }}
+          message: |
+            🚀 *Deploy Started!*
+            👤 *Triggered by:* `${{ github.actor }}`
+            📂 *Repository:* `${{ github.repository }}`
+            🔧 *Branch:* `${{ github.ref_name }}`
+            🔗 [Xem chi tiết](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+
+      - name: SSH Deploy to VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host:     ${{ secrets.HOST_PRODUCTION }}
+          username: ${{ secrets.USERNAME_PRODUCTION }}
+          password: ${{ secrets.PASSWORD_PRODUCTION }}
+          port:     ${{ secrets.PORT_PRODUCTION }}
+          script: |
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            nvm use 22 || export PATH=$HOME/.nvm/versions/node/v22/bin:$PATH
+
+            cd ~/hienmau-be
+
+            echo "📥 Fetching code from production branch..."
+            git fetch --all
+            git reset --hard origin/production
+            git clean -fd
+
+            echo "📦 Updating .env file..."
+            cat <<EOF > .env
+            ${{ secrets.ENV_PRODUCTION }}
+            EOF
+
+            echo "📦 Installing dependencies..."
+            npm install --force --yes
+
+            echo "🔁 Restarting PM2 process..."
+            pm2 restart hienmau-be
+            pm2 save
+
+      - name: Gửi thông báo Telegram - Deploy Thành Công
+        if: success()
+        uses: appleboy/telegram-action@master
+        with:
+          to:     ${{ secrets.TELEGRAM_TO }}
+          token:  ${{ secrets.TELEGRAM_TOKEN }}
+          message: |
+            ✅ *Deploy Successful!*
+            👤 *Triggered by:* `${{ github.actor }}`
+            📂 *Repository:* `${{ github.repository }}`
+            🔗 [Xem chi tiết](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+
+      - name: Gửi thông báo Telegram - Deploy Thất Bại
+        if: failure()
+        uses: appleboy/telegram-action@master
+        with:
+          to:     ${{ secrets.TELEGRAM_TO }}
+          token:  ${{ secrets.TELEGRAM_TOKEN }}
+          message: |
+            ❌ *Deploy Failed!*
+            👤 *Triggered by:* `${{ github.actor }}`
+            📂 *Repository:* `${{ github.repository }}`
+            🔗 [Xem chi tiết](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
