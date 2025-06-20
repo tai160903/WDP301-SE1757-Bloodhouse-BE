@@ -137,7 +137,7 @@ class MailService {
 
   // Gửi email đặt lại mật khẩu
   sendResetPasswordEmail = async (to, resetToken) => {
-    const resetLink = `${process.env.APP_URL}/api/v1/users/reset-password?token=${resetToken}`;
+    const resetLink = `${process.env.APP_URL}/reset-password?token=${resetToken}`;
     return this.sendEmail({
       to,
       subject: "Đặt lại mật khẩu BloodHouse",
