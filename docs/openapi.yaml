@@ -61,6 +61,8 @@ info:
 servers:
   - url: http://localhost:3005/api/v1
     description: Local Development
+  - url: https://api.hienmau.io.vn/api/v1
+    description: Production Server
 
 paths:
   /auth/sign-up:
