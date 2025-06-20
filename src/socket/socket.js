@@ -51,6 +51,7 @@ const initSocket = (server) => {
         const { latitude, longitude, deliveryId, timestamp } = data;
 
         // Cập nhật vị trí trong database
+
         await BloodDelivery.findByIdAndUpdate(deliveryId, {
           currentLocation: {
             type: "Point",
@@ -96,6 +97,7 @@ const initSocket = (server) => {
           !delivery ||
           delivery.transporterId.userId.toString() !== socket.user.userId
         ) {
+          console.log("Không có quyền resume tracking cho delivery");
           throw new Error(
             `Không có quyền resume tracking cho delivery ${deliveryId}`
           );
@@ -109,6 +111,7 @@ const initSocket = (server) => {
         const downtimeMinutes = Math.floor(
           (resumeDateTime - lastUpdateTime) / (1000 * 60)
         );
+
 
         // Cập nhật vị trí cuối cùng vào database
         if (lastLocation) {
