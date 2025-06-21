@@ -16,6 +16,7 @@ class BloodUnitService {
     staffId,
     units 
   }) => {
+    console.log("🚀 ~ BloodUnitService ~ units:", units)
     // Kiểm tra donation
     const donation = await bloodDonationModel
       .findById(donationId)
@@ -69,6 +70,7 @@ class BloodUnitService {
         bloodGroupId,
         componentId,
         quantity,
+        remainingQuantity: quantity,
         collectedAt,
         expiresAt,
         processedBy: staffId,
