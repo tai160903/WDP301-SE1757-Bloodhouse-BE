@@ -35,7 +35,7 @@ jobs:
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             nvm use 22 || export PATH=$HOME/.nvm/versions/node/v22/bin:$PATH
 
-            cd ~/hienmau-be
+            cd ~/WDP301-SE1757-Bloodhouse-BE
 
             echo "📥 Fetching code from production branch..."
             git fetch --all
