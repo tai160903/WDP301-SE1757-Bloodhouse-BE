@@ -46,16 +46,12 @@ const contentApiDocument = YAML.load(
 const addServers = (req, doc) => {
   const modifiedDoc = { ...doc };
   let protocol = req.protocol;
-  const host = req.get("host");
-  
-  // Handle reverse proxy HTTPS (common in production)
-  if (req.get('x-forwarded-proto')) {
-    protocol = req.get('x-forwarded-proto');
-  }
-  
-  // Force HTTPS in production if behind reverse proxy
-  if (process.env.NODE_ENV === "production" && host && !host.includes('localhost')) {
-    protocol = 'https';
+  let host = req.get("host");
+
+  // Force HTTPS và host cố định cho production
+  if (process.env.NODE_ENV === "production") {
+    protocol = "https";
+    host = "api.hienmau.io.vn"; // Force sử dụng domain production
   }
 
   modifiedDoc.servers = [
@@ -132,27 +128,27 @@ const contentSwaggerSetup = (req, res) => {
 };
 
 // Generic function to get API document
-const getApiDocument = (apiType = 'main') => {
+const getApiDocument = (apiType = "main") => {
   switch (apiType) {
-    case 'gift':
+    case "gift":
       return giftApiDocument;
-    case 'blood-donation-registration':
+    case "blood-donation-registration":
       return bloodDonationRegistrationApiDocument;
-    case 'blood-donation':
+    case "blood-donation":
       return bloodDonationApiDocument;
-    case 'blood-request':
+    case "blood-request":
       return bloodRequestApiDocument;
-    case 'blood-inventory':
+    case "blood-inventory":
       return bloodInventoryApiDocument;
-    case 'facility-staff':
+    case "facility-staff":
       return facilityStaffApiDocument;
-    case 'blood-unit':
+    case "blood-unit":
       return bloodUnitApiDocument;
-    case 'blood-delivery':
+    case "blood-delivery":
       return bloodDeliveryApiDocument;
-    case 'content':
+    case "content":
       return contentApiDocument;
-    case 'main':
+    case "main":
     default:
       return mainSwaggerDocument;
   }
@@ -171,19 +167,29 @@ const swaggerUiOptions = {
   swaggerOptions: {
     requestInterceptor: (request) => {
       // Add CORS headers
-      request.headers['Access-Control-Allow-Origin'] = '*';
+      request.headers["Access-Control-Allow-Origin"] = "*";
       return request;
     },
     responseInterceptor: (response) => {
       // Handle CORS response
       return response;
-    }
-  }
+    },
+  },
 };
 
 // Setup all Swagger routes function
 const setupSwaggerRoutes = (app) => {
-  
+  // Thêm middleware để force HTTPS trong production
+  app.use(["/api-docs", "/*/docs"], (req, res, next) => {
+    if (process.env.NODE_ENV === "production") {
+      if (req.headers["x-forwarded-proto"] !== "https") {
+        // Redirect to HTTPS
+        return res.redirect(`https://${req.headers.host}${req.url}`);
+      }
+    }
+    next();
+  });
+
   // Main API documentation
   app.use("/api-docs", swaggerUi.serve);
   app.get("/api-docs", (req, res) => {
@@ -244,7 +250,7 @@ const setupSwaggerRoutes = (app) => {
   app.get("/content-docs", (req, res) => {
     res.send(contentSwaggerSetup(req, res));
   });
-  
+
   // Log all documentation routes
 };
 
@@ -252,7 +258,7 @@ module.exports = {
   swaggerUi,
   // Legacy support - main API
   swaggerSetup: mainSwaggerSetup,
-  
+
   // Individual setups
   mainSwaggerSetup,
   giftSwaggerSetup,
@@ -264,11 +270,11 @@ module.exports = {
   bloodUnitSwaggerSetup,
   bloodDeliverySwaggerSetup,
   contentSwaggerSetup,
-  
+
   // Generic functions
   createSwaggerSetup,
   getApiDocument,
-  
+
   // New: Setup all routes function
   setupSwaggerRoutes,
 };
