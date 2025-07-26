@@ -31,16 +31,38 @@ jobs:
           password: ${{ secrets.PASSWORD_PRODUCTION }}
           port:     ${{ secrets.PORT_PRODUCTION }}
           script: |
+            set -e  # Exit on any error
+            
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             nvm use 22 || export PATH=$HOME/.nvm/versions/node/v22/bin:$PATH
 
+            echo "🔍 Current directory: $(pwd)"
+            echo "📂 Changing to project directory..."
+
             cd ~/WDP301-SE1757-Bloodhouse-BE
 
-            echo "📥 Fetching code from production branch..."
-            git fetch --all
+            echo "📋 Current git status:"
+            git status
+            
+            echo "📋 Current branch:"
+            git branch -a
+            
+            echo "📥 Fetching latest code from production branch..."
+            git fetch --all --prune
+            
+            echo "🔄 Checking out production branch..."
+            git checkout production || git checkout -b production origin/production
+            
+            echo "🔄 Resetting to latest production..."
             git reset --hard origin/production
             git clean -fd
+
+            echo "📋 After reset - git status:"
+            git status
+            
+            echo "📋 Latest commit:"
+            git log --oneline -1
 
             echo "📦 Updating .env file..."
             cat <<EOF > .env
@@ -50,9 +72,16 @@ jobs:
             echo "📦 Installing dependencies..."
             npm install --force --yes
 
+            echo "🔍 Checking PM2 status before restart..."
+            pm2 status || echo "PM2 not running or no processes"
+
             echo "🔁 Restarting PM2 process..."
-            pm2 restart hienmau-be
+            pm2 restart hienmau-be || pm2 start index.js --name hienmau-be
             pm2 save
+
+            echo "✅ Deploy completed successfully!"
+            echo "📋 Final PM2 status:"
+            pm2 status
 
       - name: Gửi thông báo Telegram - Deploy Thành Công
         if: success()
