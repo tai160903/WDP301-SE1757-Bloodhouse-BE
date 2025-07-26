@@ -39,6 +39,7 @@ jobs:
 
             echo "🔍 Current directory: $(pwd)"
             echo "📂 Changing to project directory..."
+
             cd ~/WDP301-SE1757-Bloodhouse-BE
 
             echo "📋 Current git status:"

@@ -3291,7 +3291,223 @@ paths:
           description: Invalid input
         "403":
           description: Forbidden (requires nurse role)
-
+  /health-check/registration/{registrationId}:
+    get:
+      summary: Get health check details by registration ID
+      description: Get detailed information about a health check and its associated registration by registration ID. This endpoint is accessible by nurses, doctors, and managers within their facility, and by the user who owns the registration.
+      tags:
+        - Health Checks
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: registrationId
+          required: true
+          schema:
+            type: string
+          description: The ID of the blood donation registration
+          example: "60f7b3a4b9c4e1234567890"
+      responses:
+        "200":
+          description: Health check and registration details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Get health check details successfully"
+                  data:
+                    type: object
+                    properties:
+                      registration:
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                          userId:
+                            type: object
+                            properties:
+                              _id:
+                                type: string
+                              fullName:
+                                type: string
+                              email:
+                                type: string
+                              phone:
+                                type: string
+                              avatar:
+                                type: string
+                              sex:
+                                type: string
+                              yob:
+                                type: number
+                              bloodId:
+                                type: object
+                                properties:
+                                  type:
+                                    type: string
+                                  name:
+                                    type: string
+                          facilityId:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                              street:
+                                type: string
+                              city:
+                                type: string
+                              address:
+                                type: string
+                              contactPhone:
+                                type: string
+                              contactEmail:
+                                type: string
+                          bloodGroupId:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                              type:
+                                type: string
+                          staffId:
+                            type: object
+                            properties:
+                              userId:
+                                type: object
+                                properties:
+                                  fullName:
+                                    type: string
+                                  email:
+                                    type: string
+                                  phone:
+                                    type: string
+                              position:
+                                type: string
+                          bloodComponent:
+                            type: string
+                          preferredDate:
+                            type: string
+                            format: date-time
+                          status:
+                            type: string
+                          source:
+                            type: string
+                          notes:
+                            type: string
+                          code:
+                            type: string
+                          location:
+                            type: object
+                          expectedQuantity:
+                            type: number
+                          qrCodeUrl:
+                            type: string
+                          checkInAt:
+                            type: string
+                            format: date-time
+                          completedAt:
+                            type: string
+                            format: date-time
+                          createdAt:
+                            type: string
+                            format: date-time
+                          updatedAt:
+                            type: string
+                            format: date-time
+                      healthCheck:
+                        type: object
+                        nullable: true
+                        properties:
+                          _id:
+                            type: string
+                          registrationId:
+                            type: string
+                          userId:
+                            type: string
+                          doctorId:
+                            type: object
+                            properties:
+                              userId:
+                                type: object
+                                properties:
+                                  fullName:
+                                    type: string
+                                  email:
+                                    type: string
+                                  phone:
+                                    type: string
+                              position:
+                                type: string
+                          staffId:
+                            type: object
+                            properties:
+                              userId:
+                                type: object
+                                properties:
+                                  fullName:
+                                    type: string
+                                  email:
+                                    type: string
+                                  phone:
+                                    type: string
+                              position:
+                                type: string
+                          facilityId:
+                            type: string
+                          checkDate:
+                            type: string
+                            format: date-time
+                          isEligible:
+                            type: boolean
+                          bloodPressure:
+                            type: string
+                          hemoglobin:
+                            type: number
+                          weight:
+                            type: number
+                          pulse:
+                            type: number
+                          temperature:
+                            type: number
+                          generalCondition:
+                            type: string
+                          deferralReason:
+                            type: string
+                          notes:
+                            type: string
+                          code:
+                            type: string
+                          status:
+                            type: string
+                          createdAt:
+                            type: string
+                            format: date-time
+                          updatedAt:
+                            type: string
+                            format: date-time
+        "400":
+          description: Bad Request - Invalid registration ID or access denied
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Registration ID không hợp lệ"
+        "403":
+          description: Forbidden - User does not have permission to access this registration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Bạn không có quyền truy cập đăng ký này"
   # Staff and Manager APIs for Blood Donation Registration
   /blood-donation-registration/staff/assigned:
     get:
