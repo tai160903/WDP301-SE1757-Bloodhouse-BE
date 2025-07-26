@@ -25,6 +25,7 @@ const {
   getPaginatedData,
   populateExistingDocument,
   createNestedPopulateConfig,
+  getNestedPopulatedData,
 } = require("../helpers/mongooseHelper");
 const processDonationLogService = require("./processDonationLog.service");
 const donorStatusLogService = require("./donorStatusLog.service");
@@ -513,40 +514,45 @@ class BloodDonationService {
   // Lấy danh sách hiến máu
   getBloodDonations = async ({ status, facilityId, limit = 10, page = 1 }) => {
     const query = {};
-    if (status) query.status = status;
-
-    const result = await getPaginatedData({
+    if (status) {
+      query.status = status;
+    }
+  
+    // Đầu tiên lấy danh sách bloodDonationRegistration có facilityId tương ứng
+    let registrationIds = [];
+    if (facilityId) {
+      const registrations = await bloodDonationRegistrationModel
+        .find({ facilityId: facilityId })
+        .select('_id');
+      registrationIds = registrations.map(reg => reg._id);
+      
+      // Thêm điều kiện vào query
+      query.bloodDonationRegistrationId = { $in: registrationIds };
+    }
+  
+    const result = await getNestedPopulatedData({
       model: bloodDonationModel,
       query,
-      page,
-      limit,
-      select:
-        "_id userId bloodGroupId quantity donationDate status bloodDonationRegistrationId giftPackageId createdAt",
-      populate: [
-        { path: "userId", select: "fullName email phone avatar" },
-        { path: "bloodGroupId", select: "name" },
-        {path: "createdBy", select: "userId position",
-          populate: { path: "userId", select: "fullName" }
-        },
-        { path: "giftPackageId", select: "name description" },
-        {
-          path: "bloodDonationRegistrationId",
-          select: "facilityId preferredDate",
-          populate: { path: "facilityId", select: "name street city" },
-        },
+      select: "_id userId bloodGroupId quantity donationDate status bloodDonationRegistrationId giftPackageId createdAt",
+      nestedPopulate: [
+        createNestedPopulateConfig("userId", "fullName email phone avatar"),
+        createNestedPopulateConfig("bloodGroupId", "name"),
+        createNestedPopulateConfig("createdBy", "userId position", {
+          path: "userId",
+          select: "fullName"
+        }),
+        createNestedPopulateConfig("giftPackageId", "name description"),
+        createNestedPopulateConfig("bloodDonationRegistrationId", "facilityId preferredDate", {
+          path: "facilityId",
+          select: "name street city"
+        })
       ],
       sort: { createdAt: -1 },
+      isPaginated: true,
+      page,
+      limit
     });
-
-    // Lọc theo facilityId nếu có
-    if (facilityId) {
-      result.data = result.data.filter(
-        (donation) =>
-          donation.bloodDonationRegistrationId?.facilityId?._id.toString() ===
-          facilityId.toString()
-      );
-    }
-
+  
     return result;
   };
 
