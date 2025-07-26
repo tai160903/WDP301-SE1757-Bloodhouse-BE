@@ -11,7 +11,7 @@ server.listen(PORT, () => {
 process.on("SIGINT", () => {
   server.close(() => {
     console.log("Server Express stopped");
-    logServerStop();
+    // logServerStop();
     // notify.send('Server Express stopped');
     process.exit(0);
   });
