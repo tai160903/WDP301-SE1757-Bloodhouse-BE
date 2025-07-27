@@ -10,6 +10,7 @@ const {
   SEX,
   USER_ROLE,
   BLOOD_DONATION_STATUS,
+  STAFF_POSITION,
 } = require("../constants/enum");
 const crypto = require("crypto");
 const mailService = require("./mail.service");
@@ -17,8 +18,235 @@ const { getPaginatedData } = require("../helpers/mongooseHelper");
 const FPT_AI_OCR = require("../helpers/fptOcrHelper");
 const bloodDonationModel = require("../models/bloodDonation.model");
 const { validatePhone, validateEmail, validateIdCard } = require("../utils/validation");
+const facilityStaffService = require("./facilityStaff.service");
+const facilityStaffModel = require("../models/facilityStaff.model");
 
 class UserService {
+  // Admin xem chi tiết thông tin user
+  adminGetUserDetail = async (userId) => {
+    // Tìm user và populate bloodId
+    const user = await userModel
+      .findById(userId)
+      .select("-password -verifyOTP -verifyExpires -resetPasswordToken -resetPasswordExpires")
+      .populate("bloodId", "name type");
+
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+
+    // Lấy thông tin facility staff nếu user là staff
+    let facilityStaffInfo = null;
+    const staffRoles = [USER_ROLE.MANAGER, USER_ROLE.DOCTOR, USER_ROLE.NURSE, USER_ROLE.TRANSPORTER];
+    
+    if (staffRoles.includes(user.role)) {
+      facilityStaffInfo = await facilityStaffModel
+        .findOne({
+          userId: user._id,
+          isDeleted: { $ne: true }
+        })
+        .populate("facilityId", "name address contactPhone contactEmail");
+    }
+
+    // Lấy thống kê hiến máu nếu là member
+    let donationStats = null;
+    if (user.role === USER_ROLE.MEMBER) {
+      donationStats = await this.getDonationStats(userId);
+    }
+
+    // Tạo response object
+    const userDetail = {
+      ...user.toObject(),
+      facilityStaffInfo: facilityStaffInfo ? {
+        position: facilityStaffInfo.position,
+        assignedAt: facilityStaffInfo.assignedAt,
+        facility: facilityStaffInfo.facilityId ? {
+          id: facilityStaffInfo.facilityId._id,
+          name: facilityStaffInfo.facilityId.name,
+          address: facilityStaffInfo.facilityId.address,
+          contactPhone: facilityStaffInfo.facilityId.contactPhone,
+          contactEmail: facilityStaffInfo.facilityId.contactEmail,
+        } : null
+      } : null,
+      donationStats
+    };
+
+    return userDetail;
+  };
+
+  // Admin cập nhật thông tin user
+  adminUpdateUser = async (
+    userId,
+    {
+      fullName,
+      email,
+      password,
+      role,
+      sex,
+      yob,
+      phone,
+      address,
+      idCard,
+      bloodId,
+      isAvailable,
+      status,
+      profileLevel,
+    }
+  ) => {
+    // Check if user exists
+    const user = await userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+
+    // Validate email if changed
+    if (email && email !== user.email) {
+      if (!validateEmail(email)) {
+        throw new BadRequestError("Email is invalid");
+      }
+      const existingEmail = await userModel.findOne({
+        email: email.trim().toLowerCase(),
+        _id: { $ne: userId },
+      });
+      if (existingEmail) {
+        throw new BadRequestError("Email already exists");
+      }
+    }
+
+    // Validate phone if changed
+    if (phone && phone !== user.phone) {
+      if (!validatePhone(phone)) {
+        throw new BadRequestError("Phone number is invalid");
+      }
+      const existingPhone = await userModel.findOne({
+        phone: phone.trim(),
+        _id: { $ne: userId },
+      });
+      if (existingPhone) {
+        throw new BadRequestError("Phone number already exists");
+      }
+    }
+
+    // Validate idCard if changed
+    if (idCard && idCard !== user.idCard) {
+      if (!validateIdCard(idCard)) {
+        throw new BadRequestError("ID card number is invalid");
+      }
+      const existingIdCard = await userModel.findOne({
+        idCard: idCard.trim(),
+        _id: { $ne: userId },
+      });
+      if (existingIdCard) {
+        throw new BadRequestError("ID card number already exists");
+      }
+    }
+
+    // Validate role if changed
+    if (role && !Object.values(USER_ROLE).includes(role)) {
+      throw new BadRequestError(
+        `Role must be one of: ${Object.values(USER_ROLE).join(", ")}`
+      );
+    }
+
+    // Validate sex if changed
+    if (sex && !Object.values(SEX).includes(sex)) {
+      throw new BadRequestError(
+        `Sex must be one of: ${Object.values(SEX).join(", ")}`
+      );
+    }
+
+    // Validate yob if changed
+    if (yob && isNaN(Date.parse(yob))) {
+      throw new BadRequestError("Year of birth (yob) must be a valid date");
+    }
+
+    // Validate status if changed
+    if (status && !Object.values(USER_STATUS).includes(status)) {
+      throw new BadRequestError(
+        `Status must be one of: ${Object.values(USER_STATUS).join(", ")}`
+      );
+    }
+
+    // Create update object with only changed fields
+    const updateData = {
+      ...(fullName && { fullName: fullName.trim() }),
+      ...(email && { email: email.trim().toLowerCase() }),
+      ...(role && { role }),
+      ...(sex && { sex }),
+      ...(yob && { yob: new Date(yob) }),
+      ...(phone && { phone: phone.trim() }),
+      ...(address && { address: address.trim() }),
+      ...(idCard && { idCard: idCard.trim() }),
+      ...(bloodId && { bloodId }),
+      ...(typeof isAvailable !== 'undefined' && { isAvailable }),
+      ...(status && { status }),
+      ...(profileLevel && { profileLevel }),
+    };
+
+    // Hash password if provided
+    if (password) {
+      if (password.length < 6) {
+        throw new BadRequestError("Password must be at least 6 characters");
+      }
+      updateData.password = await bcrypt.hash(password, 10);
+    }
+
+    // Xử lý thay đổi role và facility staff
+    if (role && role !== user.role) {
+      const staffRoleMapping = {
+        [USER_ROLE.MANAGER]: STAFF_POSITION.MANAGER,
+        [USER_ROLE.DOCTOR]: STAFF_POSITION.DOCTOR,
+        [USER_ROLE.NURSE]: STAFF_POSITION.NURSE,
+        [USER_ROLE.TRANSPORTER]: STAFF_POSITION.TRANSPORTER,
+      };
+
+      // Nếu role cũ là staff role, xóa facility staff cũ
+      if (staffRoleMapping[user.role]) {
+        const existingStaff = await facilityStaffModel.findOne({
+          userId,
+          isDeleted: { $ne: true }
+        });
+        if (existingStaff) {
+          await facilityStaffService.deleteFacilityStaff(existingStaff._id);
+        }
+      }
+
+      // Nếu role mới là staff role, tạo facility staff mới
+      if (staffRoleMapping[role]) {
+        await facilityStaffService.createFacilityStaff({
+          userId,
+          position: staffRoleMapping[role],
+        });
+      }
+    }
+
+    // Update user
+    const updatedUser = await userModel.findByIdAndUpdate(
+      userId,
+      updateData,
+      { new: true }
+    ).select("-password -verifyOTP -verifyExpires -resetPasswordToken -resetPasswordExpires");
+
+    return getInfoData({
+      fields: [
+        "_id",
+        "fullName",
+        "email",
+        "role",
+        "sex",
+        "yob",
+        "phone",
+        "address",
+        "idCard",
+        "bloodId",
+        "isAvailable",
+        "status",
+        "profileLevel",
+        "avatar",
+      ],
+      object: updatedUser,
+    });
+  };
+
   // Admin tạo user mới
   createUser = async ({
     fullName,
@@ -115,6 +343,21 @@ class UserService {
       status: USER_STATUS.VERIFIED, // Admin created accounts are automatically verified
       profileLevel: 2, // Admin created accounts start at level 2
     });
+
+    // Tự động tạo facility staff cho các role tương ứng
+    const staffRoleMapping = {
+      [USER_ROLE.MANAGER]: STAFF_POSITION.MANAGER,
+      [USER_ROLE.DOCTOR]: STAFF_POSITION.DOCTOR,
+      [USER_ROLE.NURSE]: STAFF_POSITION.NURSE,
+      [USER_ROLE.TRANSPORTER]: STAFF_POSITION.TRANSPORTER,
+    };
+
+    if (staffRoleMapping[role]) {
+      await facilityStaffService.createFacilityStaff({
+        userId: newUser._id,
+        position: staffRoleMapping[role],
+      });
+    }
 
     return getInfoData({
       fields: [
