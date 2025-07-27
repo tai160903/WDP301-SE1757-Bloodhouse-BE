@@ -74,6 +74,9 @@ const BLOOD_DONATION_REGISTRATION_MESSAGE = {
   CHECK_IN_FAILED: "Check-in thất bại",
   GET_STATISTICS_SUCCESS: "Lấy thống kê thành công",
   GET_STATISTICS_FAILED: "Lấy thống kê thất bại",
+  PREFERRED_DATE_REQUIRED: "Ngày hiến máu không được để trống",
+  EXPECTED_QUANTITY_REQUIRED: "Số lượng máu không được để trống",
+  EXPECTED_QUANTITY_MINIMUM: "Số lượng máu không được nhỏ hơn 100ml",
 };
 
 const NOTIFICATION_MESSAGE = {

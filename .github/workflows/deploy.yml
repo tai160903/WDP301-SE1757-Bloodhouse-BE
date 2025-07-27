@@ -14,8 +14,8 @@ jobs:
       - name: Gửi thông báo Telegram - Bắt đầu Deploy
         uses: appleboy/telegram-action@master
         with:
-          to:     ${{ secrets.TELEGRAM_TO }}
-          token:  ${{ secrets.TELEGRAM_TOKEN }}
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
           message: |
             🚀 *Deploy Started!*
             👤 *Triggered by:* `${{ github.actor }}`
@@ -26,21 +26,46 @@ jobs:
       - name: SSH Deploy to VPS
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host:     ${{ secrets.HOST_PRODUCTION }}
+          host: ${{ secrets.HOST_PRODUCTION }}
           username: ${{ secrets.USERNAME_PRODUCTION }}
           password: ${{ secrets.PASSWORD_PRODUCTION }}
-          port:     ${{ secrets.PORT_PRODUCTION }}
+          port: ${{ secrets.PORT_PRODUCTION }}
           script: |
+            set -e  # Exit on any error
+            
+            # Setup Node environment
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             nvm use 22 || export PATH=$HOME/.nvm/versions/node/v22/bin:$PATH
 
+            echo "🔍 Current directory: $(pwd)"
+            echo "📂 Changing to project directory..."
+            
+            # Navigate to project directory
             cd ~/WDP301-SE1757-Bloodhouse-BE
-
-            echo "📥 Fetching code from production branch..."
-            git fetch --all
-            git reset --hard origin/production
+            
+            # Clean up any existing changes and locks
+            echo "🧹 Cleaning up git repository..."
+            git reset --hard
+            rm -f .git/index.lock
+            rm -f .git/refs/remotes/origin/*.lock
+            
+            # Force clean working directory
             git clean -fd
+            
+            echo "📋 Current git status:"
+            git status
+            
+            echo "🔄 Fetching and resetting to production branch..."
+            # Force fetch and reset
+            git fetch --all --prune --force
+            git checkout production || git checkout -b production origin/production
+            git reset --hard origin/production
+            
+            echo "📋 Verifying current state:"
+            git status
+            git branch -a
+            git log --oneline -1
 
             echo "📦 Updating .env file..."
             cat <<EOF > .env
@@ -48,18 +73,28 @@ jobs:
             EOF
 
             echo "📦 Installing dependencies..."
-            npm install --force --yes
+            # Add --no-optional to skip optional dependencies if needed
+            npm install --force --yes --no-optional
 
-            echo "🔁 Restarting PM2 process..."
-            pm2 restart hienmau-be
+            echo "🔍 Checking PM2 process..."
+            # Kill existing process if running
+            pm2 delete hienmau-be || true
+            
+            echo "🚀 Starting new PM2 process..."
+            # Start new process
+            pm2 start index.js --name hienmau-be
             pm2 save
+
+            echo "✅ Deploy completed successfully!"
+            echo "📋 Final PM2 status:"
+            pm2 status
 
       - name: Gửi thông báo Telegram - Deploy Thành Công
         if: success()
         uses: appleboy/telegram-action@master
         with:
-          to:     ${{ secrets.TELEGRAM_TO }}
-          token:  ${{ secrets.TELEGRAM_TOKEN }}
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
           message: |
             ✅ *Deploy Successful!*
             👤 *Triggered by:* `${{ github.actor }}`
@@ -70,8 +105,8 @@ jobs:
         if: failure()
         uses: appleboy/telegram-action@master
         with:
-          to:     ${{ secrets.TELEGRAM_TO }}
-          token:  ${{ secrets.TELEGRAM_TOKEN }}
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
           message: |
             ❌ *Deploy Failed!*
             👤 *Triggered by:* `${{ github.actor }}`
