@@ -53,7 +53,9 @@ class BloodDonationService {
     if (!facility) throw new NotFoundError(FACILITY_MESSAGE.FACILITY_NOT_FOUND);
     if (!bloodGroup)
       throw new NotFoundError(BLOOD_GROUP_MESSAGE.BLOOD_GROUP_NOT_FOUND);
-
+    if(!preferredDate) throw new BadRequestError(BLOOD_DONATION_REGISTRATION_MESSAGE.PREFERRED_DATE_REQUIRED);
+    if(!expectedQuantity) throw new BadRequestError(BLOOD_DONATION_REGISTRATION_MESSAGE.EXPECTED_QUANTITY_REQUIRED);
+    if(expectedQuantity < 100) throw new BadRequestError(BLOOD_DONATION_REGISTRATION_MESSAGE.EXPECTED_QUANTITY_MINIMUM);
     // Kiểm tra xem người dùng có đăng ký nào đang chờ xử lý không
     // const pendingRegistration = await bloodDonationRegistrationModel.findOne({
     //   userId,
