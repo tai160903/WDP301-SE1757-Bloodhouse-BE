@@ -6031,7 +6031,7 @@ components:
                   example: MANAGER
                 sex:
                   type: string
-                  enum: [MALE, FEMALE, OTHER]
+                  enum: [male, female, other]
                   description: User's gender
                   example: MALE
                 yob:
