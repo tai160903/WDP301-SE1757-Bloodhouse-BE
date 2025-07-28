@@ -363,7 +363,7 @@ class FacilityService {
             currentManager._id,
             { 
               facilityId: null,
-              isDeleted: true,
+              // isDeleted: true,
               assignedAt: null
             }
           );
@@ -409,7 +409,7 @@ class FacilityService {
             },
             {
               facilityId: null,
-              isDeleted: true,
+              // isDeleted: true,
               assignedAt: null
             }
           );
@@ -456,7 +456,7 @@ class FacilityService {
             },
             {
               facilityId: null,
-              isDeleted: true,
+              // isDeleted: true,
               assignedAt: null
             }
           );
@@ -503,7 +503,7 @@ class FacilityService {
             },
             {
               facilityId: null,
-              isDeleted: true,
+              // isDeleted: true,
               assignedAt: null
             }
           );
